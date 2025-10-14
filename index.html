@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArcGIS Simple Map</title>
+    <style>
+      html, body, #viewDiv { height:100%; margin:0; }
+    </style>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.33/@arcgis/core/assets/esri/themes/light/main.css" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+    <div id="legend" style="position:absolute; top:12px; left:12px; background:#fff; padding:10px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.15); max-width:260px;"></div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
