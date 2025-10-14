@@ -62,10 +62,12 @@ function makePointRenderer3D(color: string) {
       },
       screenSizePerspectiveEnabled: true,
       popupTemplate: {
-        title: "{name}",      // uses field from GeoJSON
+        title: "{ptf_ref}",
         content: `
           <b>Type:</b> ${cat.label}<br>
-          <b>ID:</b> {name}
+          <b>Reference:</b> {ptf_ref}<br>
+          <b>Model:</b> {ptf_model}<br>
+          <b>Country:</b> {country_name}
         `,
       },
     });

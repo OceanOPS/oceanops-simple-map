@@ -1,5 +1,5 @@
 export const categories = [
-  { id: 'test_argo_profiling_floats', label: 'Profiling floats',       color: '#00BFFF' },
+  { id: 'new_argo',                    label: 'Profiling floats',       color: '#00BFFF' },
   { id: 'drifting_buoy',               label: 'Drifting Buoys',        color: '#FF7F50' },
   { id: 'moored_buoy',                 label: 'Moored Buoys',          color: '#FFD700' },
   { id: 'glider',                      label: 'Gliders',               color: '#3CB371' },
