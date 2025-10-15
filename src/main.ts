@@ -3,16 +3,17 @@ import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer.js";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D.js";
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer.js";
-import { categories } from "./categories";
+import { categories, type Shape } from "./categories";
+import {makeSwatch} from './legend.ts';
 
 const BASE = import.meta.env.BASE_URL;
 
-export function makeShipRenderer() {
+export function makeImageRenderer(imagePath: string) {
   return new SimpleRenderer({
     symbol: new PointSymbol3D({
       symbolLayers: [
         new IconSymbol3DLayer({
-          resource: { href: `${BASE}img/ship.png` },
+          resource: { href: `${BASE}${imagePath}` },
           size: 10,
           anchor: "center",
         })
@@ -21,20 +22,35 @@ export function makeShipRenderer() {
   });
 }
 
-function makePointRenderer3D(color: string) {
+export function makePointRenderer3D(color: string, shape: Shape = "circle") {
   return new SimpleRenderer({
     symbol: new PointSymbol3D({
       symbolLayers: [
         new IconSymbol3DLayer({
-          resource: { primitive: "circle" },
+          resource: { primitive: shape },
           material: { color },
           size: 4,
-          outline: { color: "white", size: 0.5 },
+          outline: { color: "black", size: 0.5 },
         }),
       ],
     })
   });
 }
+
+function makeLineRenderer(color: string) {
+  return new SimpleRenderer({
+    symbol: {
+      type: "line-3d",
+      symbolLayers: [{
+        type: "path",
+        material: { color },
+        width: 40000
+      }]
+    } as any
+  });
+}
+
+
 
 (async () => {
   const { map, view } = await initMap("viewDiv");
@@ -46,20 +62,21 @@ function makePointRenderer3D(color: string) {
   for (const cat of categories) {
 
     const renderer =
-    cat.id === "ship"
-      ? makeShipRenderer()
-      : makePointRenderer3D(cat.color);
+  cat.type === "image"
+    ? makeImageRenderer(cat.imagePath ?? '') 
+    : cat.type === "line"
+    ? makeLineRenderer(cat.color)
+    : makePointRenderer3D(cat.color, (cat.shape ?? "circle") as Shape);
+
 
     const layer = new GeoJSONLayer({
-      url: `${BASE}/geojson/${cat.id}.geojson`,
+      url: `${BASE}geojson/${cat.id}.geojson`,
       title: cat.label,
       outFields: ["*"],
       renderer: renderer,
-      elevationInfo: {
-        mode: "absolute-height",
-        featureExpressionInfo: { expression: "0" },
-        offset: 0,
-      },
+      elevationInfo: cat.type === 'line'
+        ? { mode: "on-the-ground" }
+        : { mode: "absolute-height", featureExpressionInfo: { expression: "0" }, offset: 0 },
       screenSizePerspectiveEnabled: true,
       popupTemplate: {
         title: "{ptf_ref}",
@@ -104,10 +121,7 @@ function makePointRenderer3D(color: string) {
     cb.type = "checkbox";
     cb.checked = true;
 
-    const swatch = document.createElement("span");
-    swatch.style.cssText =
-      "width:12px;height:12px;border:1px solid #888;border-radius:50%;display:inline-block;";
-    swatch.style.background = cat.color;
+    const swatch = makeSwatch(cat);
 
     const text = document.createElement("span");
     text.textContent = cat.label;

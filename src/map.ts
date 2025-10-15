@@ -3,7 +3,6 @@ import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import Basemap from "@arcgis/core/Basemap.js";
 import TileLayer from "@arcgis/core/layers/TileLayer.js";
-
 export async function initMap(containerId = "viewDiv") {
   esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
