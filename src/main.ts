@@ -80,11 +80,11 @@ function makeLineRenderer(color: string) {
       screenSizePerspectiveEnabled: true,
       popupTemplate: cat.type === 'line' ? 
       {
-        title: "{name}",
+        title: "{line_name}",
         content: `
           <b>Type:</b> ${cat.label}<br>
-          <b>Name:</b> {name}<br><br>
-          <a target="_blank" href="https://www.ocean-ops.org/board/wa/InspectLine?name={name}">Inspect at OceanOPS</a>
+          <b>Name:</b> {line_name}<br><br>
+          <a target="_blank" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a>
         `,
       } : {
         title: "{ptf_ref}",
