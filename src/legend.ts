@@ -1,9 +1,12 @@
+// legend.ts
+import type SceneView from "@arcgis/core/views/SceneView";
+import type Layer from "@arcgis/core/layers/Layer";
 import { categories } from "./categories";
 
 const BASE = import.meta.env.BASE_URL;
 
-export function makeSwatch(cat: (typeof categories)[number]) {
-  // use inline SVG for crisp shapes
+/** Inline SVG / IMG swatch that matches each category’s symbology */
+function makeSwatch(cat: (typeof categories)[number]) {
   const svgNS = "http://www.w3.org/2000/svg";
 
   if (cat.type === "point") {
@@ -11,26 +14,31 @@ export function makeSwatch(cat: (typeof categories)[number]) {
     svg.setAttribute("width", "14");
     svg.setAttribute("height", "14");
 
-    if (cat.shape === "circle" || !cat.shape) {
-      const c = document.createElementNS(svgNS, "circle");
-      c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "5");
-      c.setAttribute("fill", cat.color);
-      c.setAttribute("stroke", "#1a1a1aff"); c.setAttribute("stroke-width", "1");
-      svg.appendChild(c);
-    } else if (cat.shape === "square") {
+    if (cat.shape === "square") {
       const r = document.createElementNS(svgNS, "rect");
       r.setAttribute("x", "2"); r.setAttribute("y", "2");
       r.setAttribute("width", "10"); r.setAttribute("height", "10");
       r.setAttribute("fill", cat.color);
-      r.setAttribute("stroke", "#000000ff"); r.setAttribute("stroke-width", "1");
+      r.setAttribute("stroke", "#000"); r.setAttribute("stroke-width", "1");
       svg.appendChild(r);
-    } else if (cat.shape === "triangle") {
-      const p = document.createElementNS(svgNS, "polygon");
-      p.setAttribute("points", "7,2 12,12 2,12"); // upright triangle
-      p.setAttribute("fill", cat.color);
-      p.setAttribute("stroke", "#000000ff"); p.setAttribute("stroke-width", "1");
-      svg.appendChild(p);
+      return svg;
     }
+
+    if (cat.shape === "triangle") {
+      const p = document.createElementNS(svgNS, "polygon");
+      p.setAttribute("points", "7,2 12,12 2,12");
+      p.setAttribute("fill", cat.color);
+      p.setAttribute("stroke", "#000"); p.setAttribute("stroke-width", "1");
+      svg.appendChild(p);
+      return svg;
+    }
+
+    // default: circle
+    const c = document.createElementNS(svgNS, "circle");
+    c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "5");
+    c.setAttribute("fill", cat.color);
+    c.setAttribute("stroke", "#1a1a1a"); c.setAttribute("stroke-width", "1");
+    svg.appendChild(c);
     return svg;
   }
 
@@ -39,7 +47,6 @@ export function makeSwatch(cat: (typeof categories)[number]) {
     img.src = `${BASE}${cat.imagePath}`;
     img.width = 18; img.height = 18;
     img.style.objectFit = "contain";
-    img.style.border = "none";
     img.style.borderRadius = "3px";
     return img;
   }
@@ -56,4 +63,81 @@ export function makeSwatch(cat: (typeof categories)[number]) {
   line.setAttribute("stroke-linecap", "round");
   svg.appendChild(line);
   return svg;
+}
+
+/**
+ * Build the legend UI, wire up layer toggles, and show feature counts.
+ * Pass the `layerById` map you already maintain in main.ts.
+ */
+export function attachLegend(
+  view: SceneView,
+  layerById: Map<string, Layer>
+) {
+  // nuke any previous legend
+  document.getElementById("legend")?.remove();
+
+  const legend = document.createElement("div");
+  legend.id = "legend";
+  legend.className = "o-legend";
+  legend.innerHTML = `<strong>GOOS Status report 2025</strong>`;
+  legend.innerHTML += `<br>(in situ Networks)`;
+  view.ui.add(legend, "top-right");
+
+  const countNodes = new Map<string, HTMLSpanElement>();
+  const list = document.createElement("div");
+  list.style.marginTop = "8px";
+
+  for (const cat of categories) {
+    const row = document.createElement("label");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "8px";
+    row.style.margin = "6px 0";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+
+    const swatch = makeSwatch(cat);
+
+    const text = document.createElement("span");
+    text.textContent = cat.label;
+
+    const count = document.createElement("span");
+    count.textContent = " (…)";
+    count.style.opacity = "0.7";
+    countNodes.set(cat.id, count);
+
+    cb.addEventListener("change", () => {
+      const layer = layerById.get(cat.id);
+      if (layer) (layer as any).visible = cb.checked;
+    });
+
+    row.append(cb, swatch, text, count);
+    list.appendChild(row);
+  }
+
+  legend.appendChild(list);
+
+  // After UI is built, query counts from each layer when ready
+  for (const [id, layer] of layerById) {
+    // guard: only layers with queryFeatureCount
+    const canCount = typeof (layer as any).queryFeatureCount === "function";
+    const when = (layer as any).when?.() ?? Promise.resolve();
+    when.then(async () => {
+      if (!canCount) {
+        const node = countNodes.get(id);
+        if (node) node.textContent = "";
+        return;
+      }
+      try {
+        const n = await (layer as any).queryFeatureCount({ where: "1=1" });
+        const node = countNodes.get(id);
+        if (node) node.textContent = ` (${n.toLocaleString()})`;
+      } catch {
+        const node = countNodes.get(id);
+        if (node) node.textContent = "";
+      }
+    });
+  }
 }
