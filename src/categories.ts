@@ -7,7 +7,8 @@ export type Category =
   | { id: string; label: string; color: string; type: "point"; shape?: Shape };
 
 export const categories = [
-  { id: 'ship_meteo',                        label: 'Ship based meteorological – SOT',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
+  { id: 'vos',                        label: 'Ship based meteorological – VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
+  { id: 'asap',                        label: 'Ship based meteorological – ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   { id: 'ship_oceano',                        label: 'Ship based oceanographic – SOT',                 color: '#faa62d', type: 'line' },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
