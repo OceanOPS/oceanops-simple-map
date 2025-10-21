@@ -48,10 +48,39 @@ export async function initMap(containerId = "viewDiv") {
   // const basemap = Basemap.fromId("oceans");
 
   // OPTION 11: Streets Navigation (clean navigation style)
-  const basemap = Basemap.fromId("streets-navigation-vector");
+  // const basemap = Basemap.fromId("streets-navigation-vector");
 
   // OPTION 12: Streets Relief (with terrain shading)
   // const basemap = Basemap.fromId("streets-relief-vector");
+
+   // ===== 3D OPTIMIZED BASEMAPS (Best for SceneView/Globe) =====
+
+  // OPTION 13: Gray 3D (ultra minimal light - RECOMMENDED for clean look)
+  // const basemap = Basemap.fromId("gray-3d");
+
+  // OPTION 14: Dark Gray 3D (ultra minimal dark)
+  // const basemap = Basemap.fromId("dark-gray-3d");
+
+  // OPTION 15: Topo 3D (topographic optimized for 3D)
+  // const basemap = Basemap.fromId("topo-3d");
+
+  // OPTION 16: Navigation 3D (clean navigation for 3D)
+  // const basemap = Basemap.fromId("navigation-3d");
+
+  // OPTION 17: Navigation Dark 3D (dark navigation for 3D)
+  // const basemap = Basemap.fromId("navigation-dark-3d");
+
+  // OPTION 18: Streets 3D (detailed streets for 3D)
+  // const basemap = Basemap.fromId("streets-3d");
+
+  // OPTION 19: Streets Dark 3D (dark streets for 3D)
+  // const basemap = Basemap.fromId("streets-dark-3d");
+
+  // OPTION 20: OSM 3D (OpenStreetMap for 3D)
+  const basemap = Basemap.fromId("osm-3d");
+
+  // OPTION 21: CUSTOM DARK - Personalizable (dark blue style)
+  // const basemap = Basemap.fromId("dark-gray-3d");
 
   // ===== END BASEMAP OPTIONS =====
 
