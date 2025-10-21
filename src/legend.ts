@@ -73,15 +73,33 @@ export function attachLegend(
   view: SceneView,
   layerById: Map<string, Layer>
 ) {
-  // nuke any previous legend
+  // nuke any previous legend and toggle button
   document.getElementById("legend")?.remove();
+  document.getElementById("legend-toggle")?.remove();
+
+  // Create toggle button
+  const toggleButton = document.createElement("button");
+  toggleButton.id = "legend-toggle";
+  toggleButton.className = "o-legend-toggle";
+  toggleButton.innerHTML = "☰";
+  toggleButton.title = "Toggle filters";
+  toggleButton.setAttribute("aria-expanded", "false");
+  view.ui.add(toggleButton, "top-left");
 
   const legend = document.createElement("div");
   legend.id = "legend";
   legend.className = "o-legend";
   legend.innerHTML = `<strong>GOOS Status report 2025</strong>`;
   legend.innerHTML += `<br>(in situ Networks)`;
-  view.ui.add(legend, "top-right");
+  legend.style.display = "none"; // Hidden by default
+  view.ui.add(legend, "top-left");
+
+  // Toggle functionality
+  toggleButton.addEventListener("click", () => {
+    const isHidden = legend.style.display === "none";
+    legend.style.display = isHidden ? "block" : "none";
+    toggleButton.setAttribute("aria-expanded", isHidden ? "true" : "false");
+  });
 
   const countNodes = new Map<string, HTMLSpanElement>();
   const list = document.createElement("div");

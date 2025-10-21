@@ -39,5 +39,11 @@ export async function initMap(containerId = "viewDiv") {
   });
 
   await view.when();
+
+  // Move all navigation controls to bottom-right
+  view.ui.move("zoom", "bottom-right");
+  view.ui.move("navigation-toggle", "bottom-right");
+  view.ui.move("compass", "bottom-right");
+
   return { map, view };
 }
