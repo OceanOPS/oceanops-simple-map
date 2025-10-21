@@ -24,11 +24,14 @@ export async function initMap(containerId = "viewDiv") {
     map,
     camera: { position: { longitude: 0, latitude: 20, z: 3.0e7 }, tilt: 20 },
     qualityProfile: "low",
-    environment: { 
-      atmosphereEnabled: false, 
+    navigation: {
+      mouseWheelZoomEnabled: false
+    },
+    environment: {
+      atmosphereEnabled: false,
       starsEnabled: false,
       lighting: {
-        type: "virtual", 
+        type: "virtual",
         directShadowsEnabled: false
       },
       background: { type: "color", color: [11, 30, 66, 1] }
