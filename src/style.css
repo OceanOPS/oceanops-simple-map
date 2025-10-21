@@ -58,6 +58,20 @@
   gap: 8px !important;
 }
 
+/* Zoom container styling */
+.esri-zoom {
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+/* Override default widget button styles */
+.esri-widget--button {
+  background-color: transparent !important;
+}
+
 /* Style navigation controls to match filter button */
 .esri-zoom .esri-widget--button,
 .esri-compass {
@@ -74,52 +88,22 @@
   padding: 0 !important;
   font-size: 34px !important;
   --calcite-icon-size: 34px !important;
+  --calcite-ui-icon-color: #f8f8f8 !important;
+  --calcite-color-text-3: #f8f8f8 !important;
+  --calcite-color-foreground-3: transparent !important;
 }
 
 .esri-zoom .esri-widget--button:hover,
 .esri-compass:hover {
   background-color: #f8f8f8 !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  --calcite-ui-icon-color: #184596 !important;
+  --calcite-color-text-3: #184596 !important;
 }
 
 .esri-zoom .esri-widget--button:active,
 .esri-compass:active {
   transform: scale(0.95) !important;
-}
-
-/* Zoom container styling */
-.esri-zoom {
-  background: transparent !important;
-  box-shadow: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-}
-
-/* Adjust icon colors and size using Calcite variables */
-.esri-zoom .esri-widget--button,
-.esri-compass {
-  --calcite-ui-icon-color: #f8f8f8 !important;
-  --calcite-color-text-3: #f8f8f8 !important;
-  --calcite-icon-size: 24px !important;
-  background-color: transparent !important;
-  --calcite-color-foreground-3: transparent !important;
-}
-
-/* Override appearance solid background */
-.esri-widget--button:not([appearance]),
-.esri-widget--button[appearance="solid"] {
-  --calcite-color-foreground-3: transparent !important;
-}
-
-.esri-widget--button {
-  background-color: transparent !important;
-}
-
-.esri-zoom .esri-widget--button:hover,
-.esri-compass:hover {
-  --calcite-ui-icon-color: #184596 !important;
-  --calcite-color-text-3: #184596 !important;
 }
 
 /* Esri attribution bar styling */
