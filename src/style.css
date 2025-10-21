@@ -1,3 +1,15 @@
+/* Remove focus outline from map */
+.esri-view {
+  --esri-view-outline: none !important;
+}
+
+.esri-view:focus {
+  outline: none !important;
+}
+
+#viewDiv:focus {
+  outline: none;
+}
 
 .o-legend {
   background: #fff;
