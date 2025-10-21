@@ -69,7 +69,7 @@
 
 /* Override default widget button styles */
 .esri-widget--button {
-  background-color: transparent !important;
+  background-color: #0b1e42 !important;
 }
 
 /* Style navigation controls to match filter button */
@@ -77,7 +77,7 @@
 .esri-compass {
   width: 46px !important;
   height: 46px !important;
-  background-color: transparent !important;
+  background-color: #0b1e42 !important;
   border: 1px solid #e0e0e0 !important;
   border-radius: 50% !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
@@ -86,24 +86,40 @@
   align-items: center !important;
   justify-content: center !important;
   padding: 0 !important;
-  font-size: 34px !important;
-  --calcite-icon-size: 34px !important;
   --calcite-ui-icon-color: #f8f8f8 !important;
   --calcite-color-text-3: #f8f8f8 !important;
-  --calcite-color-foreground-3: transparent !important;
+  --calcite-color-foreground-3: #0b1e42 !important;
+  --calcite-border-width-md: 0 !important;
+  --calcite-color-focus: transparent !important;
+  --calcite-ui-focus-color: transparent !important;
+  --calcite-internal-color-focus: transparent !important;
 }
 
 .esri-zoom .esri-widget--button:hover,
 .esri-compass:hover {
-  background-color: #f8f8f8 !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-  --calcite-ui-icon-color: #184596 !important;
-  --calcite-color-text-3: #184596 !important;
+  background-color: #0b1e42 !important;
+  box-shadow: none !important;
+  --calcite-ui-icon-color: #f8f8f8 !important;
+  --calcite-color-text-3: #f8f8f8 !important;
+  --calcite-internal-button-background-color: #0b1e42 !important;
+  --calcite-color-border-3: #0b1e42 !important;
+  opacity: .8;
 }
 
 .esri-zoom .esri-widget--button:active,
 .esri-compass:active {
   transform: scale(0.95) !important;
+}
+
+.esri-zoom .esri-widget--button:focus,
+.esri-compass:focus,
+.esri-zoom .esri-widget--button:focus-visible,
+.esri-compass:focus-visible {
+  outline: none !important;
+  --calcite-border-width-md: 0 !important;
+  --calcite-color-focus: transparent !important;
+  --calcite-ui-focus-color: transparent !important;
+  --calcite-internal-color-focus: transparent !important;
 }
 
 /* Esri attribution bar styling */
