@@ -12,8 +12,8 @@
 }
 
 .o-legend-toggle {
-  width: 38px;
-  height: 38px;
+  width: 46px;
+  height: 46px;
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 50%;
@@ -27,6 +27,11 @@
   padding: 0;
 }
 
+.o-legend-toggle svg {
+  width: 24px;
+  height: 23px;
+}
+
 .o-legend-toggle:hover {
   background-color: #f8f8f8;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
@@ -36,9 +41,6 @@
   transform: scale(0.95);
 }
 
-.o-legend-toggle svg {
-  display: block;
-}
 
 .o-legend {
   background: #fff;
@@ -53,7 +55,71 @@
 .esri-ui-bottom-right {
   flex-direction: column !important;
   align-items: flex-end !important;
-  gap: 16px !important;
+  gap: 8px !important;
+}
+
+/* Style navigation controls to match filter button */
+.esri-zoom .esri-widget--button,
+.esri-compass {
+  width: 46px !important;
+  height: 46px !important;
+  background-color: transparent !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  font-size: 34px !important;
+  --calcite-icon-size: 34px !important;
+}
+
+.esri-zoom .esri-widget--button:hover,
+.esri-compass:hover {
+  background-color: #f8f8f8 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.esri-zoom .esri-widget--button:active,
+.esri-compass:active {
+  transform: scale(0.95) !important;
+}
+
+/* Zoom container styling */
+.esri-zoom {
+  background: transparent !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+/* Adjust icon colors and size using Calcite variables */
+.esri-zoom .esri-widget--button,
+.esri-compass {
+  --calcite-ui-icon-color: #f8f8f8 !important;
+  --calcite-color-text-3: #f8f8f8 !important;
+  --calcite-icon-size: 24px !important;
+  background-color: transparent !important;
+  --calcite-color-foreground-3: transparent !important;
+}
+
+/* Override appearance solid background */
+.esri-widget--button:not([appearance]),
+.esri-widget--button[appearance="solid"] {
+  --calcite-color-foreground-3: transparent !important;
+}
+
+.esri-widget--button {
+  background-color: transparent !important;
+}
+
+.esri-zoom .esri-widget--button:hover,
+.esri-compass:hover {
+  --calcite-ui-icon-color: #184596 !important;
+  --calcite-color-text-3: #184596 !important;
 }
 
 /* Esri attribution bar styling */
