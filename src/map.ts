@@ -2,21 +2,20 @@ import esriConfig from "@arcgis/core/config.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import Basemap from "@arcgis/core/Basemap.js";
-import TileLayer from "@arcgis/core/layers/TileLayer.js";
-import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
+// import TileLayer from "@arcgis/core/layers/TileLayer.js"; // Only needed for Ocean base
 export async function initMap(containerId = "viewDiv") {
   esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
 
   // CURRENT: Ocean base (default)
-  const oceanBase = new TileLayer({
-    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
-  });
-  const basemap = new Basemap({
-    baseLayers: [oceanBase],
-    referenceLayers: []
-  });
+  // const oceanBase = new TileLayer({
+  //   url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
+  // });
+  // const basemap = new Basemap({
+  //   baseLayers: [oceanBase],
+  //   referenceLayers: []
+  // });
 
   // OPTION 1: Gray Vector (light minimalist)
   // const basemap = Basemap.fromId("gray-vector");
@@ -44,6 +43,15 @@ export async function initMap(containerId = "viewDiv") {
 
   // OPTION 9: Streets modern
   // const basemap = Basemap.fromId("streets-vector");
+
+  // OPTION 10: Oceans (focused on oceanographic data - RECOMMENDED!)
+  // const basemap = Basemap.fromId("oceans");
+
+  // OPTION 11: Streets Navigation (clean navigation style)
+  const basemap = Basemap.fromId("streets-navigation-vector");
+
+  // OPTION 12: Streets Relief (with terrain shading)
+  // const basemap = Basemap.fromId("streets-relief-vector");
 
   // ===== END BASEMAP OPTIONS =====
 
