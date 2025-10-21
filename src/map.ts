@@ -26,12 +26,12 @@ export async function initMap(containerId = "viewDiv") {
     qualityProfile: "low",
     environment: { 
       atmosphereEnabled: false, 
-      starsEnabled: true,
+      starsEnabled: false,
       lighting: {
         type: "virtual", 
         directShadowsEnabled: false
       },
-      background: { type: "color", color: [2, 6, 15, 1] }
+      background: { type: "color", color: [11, 30, 66, 1] }
     }
   });
 
