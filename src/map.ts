@@ -24,9 +24,6 @@ export async function initMap(containerId = "viewDiv") {
     map,
     camera: { position: { longitude: 0, latitude: 20, z: 3.0e7 }, tilt: 20 },
     qualityProfile: "low",
-    navigation: {
-      mouseWheelZoomEnabled: false
-    },
     environment: {
       atmosphereEnabled: false,
       starsEnabled: false,
@@ -39,6 +36,9 @@ export async function initMap(containerId = "viewDiv") {
   });
 
   await view.when();
+
+  // Disable mouse wheel zoom using new API
+  view.navigation.actionMap.mouseWheel = "none";
 
   // Move navigation controls to bottom-right
   view.ui.move("zoom", "bottom-right");
