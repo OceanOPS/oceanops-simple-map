@@ -13,14 +13,15 @@ function makeSwatch(cat: (typeof categories)[number]) {
   const container = document.createElement("div");
   container.className = "o-legend-swatch";
   container.style.cssText = `
-    width: 38px;
-    height: 38px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #0b1e42;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 1px solid #f8f8f8;
   `;
 
   if (cat.type === "point") {
@@ -122,9 +123,9 @@ export function attachLegend(
       <strong>GOOS Status report 2025</strong>
       <div>(in situ Networks)</div>
     </div>
-    <button class="o-legend-close" aria-label="Close filters" title="Close">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 1.41L12.59 0L7 5.59L1.41 0L0 1.41L5.59 7L0 12.59L1.41 14L7 8.41L12.59 14L14 12.59L8.41 7L14 1.41Z" fill="#333"/>
+    <button class="o-legend-close" aria-label="Close menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   `;

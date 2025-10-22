@@ -14,7 +14,7 @@
 .o-legend-toggle {
   width: 46px;
   height: 46px;
-  background-color: #ffffff;
+  background-color: #f8f8f8;
   border: 1px solid #e0e0e0;
   border-radius: 50%;
   display: flex;
@@ -57,7 +57,7 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  color: #fff;
+  color: #f8f8f8;
 }
 
 .o-legend-panel.open {
@@ -70,43 +70,46 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  /* border-bottom: 1px solid #e0e0e0; */
   background: #12336e;
-  color: #fff;
+  color: #f8f8f8;
 }
 
 .o-legend-title {
   flex: 1;
-  color: #fff;
+  color: #f8f8f8;
 }
 
 .o-legend-title strong {
   font-size: 16px;
-  color: #fff;
+  color: #f8f8f8;
   display: block;
   margin-bottom: 4px;
 }
 
 .o-legend-title div {
   font-size: 13px;
-  color: #fff;
+  color: #f8f8f8;
 }
 
 /* Close button */
 .o-legend-close {
+  width: 40px;
+  height: 40px;
   background: transparent;
   border: none;
-  padding: 8px;
+  padding: 0;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  color: #f8f8f8;
+  transition: background-color 0.2s ease;
 }
 
 .o-legend-close:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background-color: #0b1e42;
 }
 
 .o-legend-close:active {
@@ -117,17 +120,52 @@
 .o-legend-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  /* padding: 20px; */
 }
 
 .o-legend-content label {
   user-select: none;
+  padding: 10px 20px 10px 10px;
+  transition: background-color 0.2s ease;
+  margin: 0px !important;
+}
+
+.o-legend-content label:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .o-legend-content input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  border: 1px solid #f8f8f8;
+  /* border-radius: 4px; */
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.o-legend-content input[type="checkbox"]:hover {
+  border-color: #f48b25;
+}
+
+.o-legend-content input[type="checkbox"]:checked {
+  background-color: #0b1e42;
+  border-color: #0b1e42;
+}
+
+.o-legend-content input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid #f48b25;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* Stack navigation controls vertically in bottom-right */
