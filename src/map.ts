@@ -91,7 +91,7 @@ export async function initMap(containerId = "viewDiv") {
   const view = new SceneView({
     container: containerId,
     map,
-    camera: { position: { longitude: 0, latitude: 0, z: 2.5e7 }, tilt: 0 },
+    camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
     qualityProfile: "low",
     environment: {
       atmosphereEnabled: false,
