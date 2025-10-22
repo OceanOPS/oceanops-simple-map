@@ -5,9 +5,23 @@ import { categories } from "./categories";
 
 const BASE = import.meta.env.BASE_URL;
 
-/** Inline SVG / IMG swatch that matches each category’s symbology */
+/** Inline SVG / IMG swatch that matches each category's symbology */
 function makeSwatch(cat: (typeof categories)[number]) {
   const svgNS = "http://www.w3.org/2000/svg";
+
+  // Create container circle
+  const container = document.createElement("div");
+  container.className = "o-legend-swatch";
+  container.style.cssText = `
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #0b1e42;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  `;
 
   if (cat.type === "point") {
     const svg = document.createElementNS(svgNS, "svg");
@@ -19,27 +33,30 @@ function makeSwatch(cat: (typeof categories)[number]) {
       r.setAttribute("x", "2"); r.setAttribute("y", "2");
       r.setAttribute("width", "10"); r.setAttribute("height", "10");
       r.setAttribute("fill", cat.color);
-      r.setAttribute("stroke", "#000"); r.setAttribute("stroke-width", "1");
+      r.setAttribute("stroke", "#fff"); r.setAttribute("stroke-width", "1");
       svg.appendChild(r);
-      return svg;
+      container.appendChild(svg);
+      return container;
     }
 
     if (cat.shape === "triangle") {
       const p = document.createElementNS(svgNS, "polygon");
       p.setAttribute("points", "7,2 12,12 2,12");
       p.setAttribute("fill", cat.color);
-      p.setAttribute("stroke", "#000"); p.setAttribute("stroke-width", "1");
+      p.setAttribute("stroke", "#fff"); p.setAttribute("stroke-width", "1");
       svg.appendChild(p);
-      return svg;
+      container.appendChild(svg);
+      return container;
     }
 
     // default: circle
     const c = document.createElementNS(svgNS, "circle");
     c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "5");
     c.setAttribute("fill", cat.color);
-    c.setAttribute("stroke", "#1a1a1a"); c.setAttribute("stroke-width", "1");
+    c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "1");
     svg.appendChild(c);
-    return svg;
+    container.appendChild(svg);
+    return container;
   }
 
   if (cat.type === "image") {
@@ -47,8 +64,8 @@ function makeSwatch(cat: (typeof categories)[number]) {
     img.src = `${BASE}${cat.imagePath}`;
     img.width = 18; img.height = 18;
     img.style.objectFit = "contain";
-    img.style.borderRadius = "3px";
-    return img;
+    container.appendChild(img);
+    return container;
   }
 
   // line
@@ -62,7 +79,8 @@ function makeSwatch(cat: (typeof categories)[number]) {
   line.setAttribute("stroke-width", "3");
   line.setAttribute("stroke-linecap", "round");
   svg.appendChild(line);
-  return svg;
+  container.appendChild(svg);
+  return container;
 }
 
 /**
