@@ -91,7 +91,7 @@ export async function initMap(containerId = "viewDiv") {
   const view = new SceneView({
     container: containerId,
     map,
-    camera: { position: { longitude: 0, latitude: 20, z: 3.0e7 }, tilt: 20 },
+    camera: { position: { longitude: 0, latitude: 0, z: 2.5e7 }, tilt: 0 },
     qualityProfile: "low",
     environment: {
       atmosphereEnabled: false,
@@ -113,6 +113,37 @@ export async function initMap(containerId = "viewDiv") {
   view.ui.move("zoom", "bottom-right");
   view.ui.move("compass", "bottom-right");
   view.ui.remove("navigation-toggle");
+
+  // Auto-rotate globe until user interacts
+  let isRotating = true;
+  let rotationFrame: number;
+
+  const rotate = () => {
+    if (!isRotating) return;
+
+    const camera = view.camera.clone();
+    if (camera.position.longitude !== null && camera.position.longitude !== undefined) {
+      camera.position.longitude += 0.3; // Rotation speed
+      view.goTo(camera, { animate: false }).catch(() => {});
+    }
+    rotationFrame = requestAnimationFrame(rotate);
+  };
+
+  const stopRotation = () => {
+    if (isRotating) {
+      isRotating = false;
+      if (rotationFrame) cancelAnimationFrame(rotationFrame);
+    }
+  };
+
+  // Stop rotation on user interaction
+  view.on("drag", stopRotation);
+  view.on("mouse-wheel", stopRotation);
+  view.on("key-down", stopRotation);
+  view.on("double-click", stopRotation);
+
+  // Start rotation
+  rotate();
 
   return { map, view };
 }
