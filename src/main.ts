@@ -117,6 +117,7 @@ function makeLineRenderer(color: string) {
   // Change cursor to pointer when hovering over interactive features
   view.on("pointer-move", (event) => {
     view.hitTest(event).then((response) => {
+      if (!view.container) return;
       if (response.results.length > 0) {
         view.container.style.cursor = "pointer";
       } else {

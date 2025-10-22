@@ -91,31 +91,58 @@ export function attachLegend(
   `;
   view.ui.add(toggleButton, "top-left");
 
+  // Create legend panel (fixed sidebar)
   const legend = document.createElement("div");
   legend.id = "legend";
-  legend.className = "o-legend";
-  legend.innerHTML = `<strong>GOOS Status report 2025</strong>`;
-  legend.innerHTML += `<br>(in situ Networks)`;
-  legend.style.display = "none"; // Hidden by default
-  view.ui.add(legend, "top-left");
+  legend.className = "o-legend-panel";
+
+  // Create header with title and close button
+  const header = document.createElement("div");
+  header.className = "o-legend-header";
+  header.innerHTML = `
+    <div class="o-legend-title">
+      <strong>GOOS Status report 2025</strong>
+      <div>(in situ Networks)</div>
+    </div>
+    <button class="o-legend-close" aria-label="Close filters" title="Close">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 1.41L12.59 0L7 5.59L1.41 0L0 1.41L5.59 7L0 12.59L1.41 14L7 8.41L12.59 14L14 12.59L8.41 7L14 1.41Z" fill="#333"/>
+      </svg>
+    </button>
+  `;
+  legend.appendChild(header);
+
+  // Add to document body (not to ArcGIS view.ui)
+  document.body.appendChild(legend);
 
   // Toggle functionality
-  toggleButton.addEventListener("click", () => {
-    const isHidden = legend.style.display === "none";
-    legend.style.display = isHidden ? "block" : "none";
-    toggleButton.setAttribute("aria-expanded", isHidden ? "true" : "false");
-  });
+  const togglePanel = () => {
+    const isOpen = legend.classList.contains("open");
+    if (isOpen) {
+      legend.classList.remove("open");
+      toggleButton.setAttribute("aria-expanded", "false");
+    } else {
+      legend.classList.add("open");
+      toggleButton.setAttribute("aria-expanded", "true");
+    }
+  };
+
+  toggleButton.addEventListener("click", togglePanel);
+
+  const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
+  closeButton.addEventListener("click", togglePanel);
 
   const countNodes = new Map<string, HTMLSpanElement>();
-  const list = document.createElement("div");
-  list.style.marginTop = "8px";
+  const content = document.createElement("div");
+  content.className = "o-legend-content";
 
   for (const cat of categories) {
     const row = document.createElement("label");
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.gap = "8px";
-    row.style.margin = "6px 0";
+    row.style.margin = "12px 0";
+    row.style.cursor = "pointer";
 
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -125,10 +152,12 @@ export function attachLegend(
 
     const text = document.createElement("span");
     text.textContent = cat.label;
+    text.style.flex = "1";
 
     const count = document.createElement("span");
     count.textContent = " (…)";
     count.style.opacity = "0.7";
+    count.style.fontSize = "12px";
     countNodes.set(cat.id, count);
 
     cb.addEventListener("change", () => {
@@ -137,10 +166,10 @@ export function attachLegend(
     });
 
     row.append(cb, swatch, text, count);
-    list.appendChild(row);
+    content.appendChild(row);
   }
 
-  legend.appendChild(list);
+  legend.appendChild(content);
 
   // After UI is built, query counts from each layer when ready
   for (const [id, layer] of layerById) {
