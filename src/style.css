@@ -132,3 +132,7 @@
 .esri-attribution__powered-by {
   color: rgba(255, 255, 255, 0.8) !important;
 }
+
+.esri-ui-inner-container{
+  /* inset: 0px !important; */
+}

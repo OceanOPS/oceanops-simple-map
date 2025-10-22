@@ -79,9 +79,6 @@ export async function initMap(containerId = "viewDiv") {
   // OPTION 20: OSM 3D (OpenStreetMap for 3D)
   const basemap = Basemap.fromId("osm-3d");
 
-  // OPTION 21: CUSTOM DARK - Personalizable (dark blue style)
-  // const basemap = Basemap.fromId("dark-gray-3d");
-
   // ===== END BASEMAP OPTIONS =====
 
   const map = new Map({
@@ -123,7 +120,7 @@ export async function initMap(containerId = "viewDiv") {
 
     const camera = view.camera.clone();
     if (camera.position.longitude !== null && camera.position.longitude !== undefined) {
-      camera.position.longitude += 0.3; // Rotation speed
+      camera.position.longitude += 0.1; // Rotation speed
       view.goTo(camera, { animate: false }).catch(() => {});
     }
     rotationFrame = requestAnimationFrame(rotate);
