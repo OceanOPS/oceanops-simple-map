@@ -155,38 +155,69 @@ export function attachLegend(
   const content = document.createElement("div");
   content.className = "o-legend-content";
 
-  for (const cat of categories) {
-    const row = document.createElement("label");
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "8px";
-    row.style.margin = "12px 0";
-    row.style.cursor = "pointer";
+  // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
+  const groups = [
+    { title: "Ship", startIndex: 0, endIndex: 5 },
+    { title: "Fixed", startIndex: 5, endIndex: 10 },
+    { title: "Mobile", startIndex: 10, endIndex: categories.length }
+  ];
 
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = true;
+  groups.forEach((group) => {
+    // Add group title
+    const groupTitle = document.createElement("div");
+    groupTitle.className = "o-legend-group-title";
+    groupTitle.textContent = group.title;
+    groupTitle.style.cssText = `
+      padding: 16px 20px 8px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(248, 248, 248, 0.6);
+      border-top: 1px solid rgba(248, 248, 248, 0.1);
+      margin-top: 8px;
+    `;
+    if (group.startIndex === 0) {
+      groupTitle.style.marginTop = "0";
+      groupTitle.style.borderTop = "none";
+    }
+    content.appendChild(groupTitle);
 
-    const swatch = makeSwatch(cat);
+    // Add categories in this group
+    for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
+      const cat = categories[i];
+      const row = document.createElement("label");
+      row.style.display = "flex";
+      row.style.alignItems = "center";
+      row.style.gap = "8px";
+      row.style.margin = "12px 0";
+      row.style.cursor = "pointer";
 
-    const text = document.createElement("span");
-    text.textContent = cat.label;
-    text.style.flex = "1";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = true;
 
-    const count = document.createElement("span");
-    count.textContent = " (…)";
-    count.style.opacity = "0.7";
-    count.style.fontSize = "12px";
-    countNodes.set(cat.id, count);
+      const swatch = makeSwatch(cat);
 
-    cb.addEventListener("change", () => {
-      const layer = layerById.get(cat.id);
-      if (layer) (layer as any).visible = cb.checked;
-    });
+      const text = document.createElement("span");
+      text.textContent = cat.label;
+      text.style.flex = "1";
 
-    row.append(cb, swatch, text, count);
-    content.appendChild(row);
-  }
+      const count = document.createElement("span");
+      count.textContent = " (…)";
+      count.style.opacity = "0.7";
+      count.style.fontSize = "12px";
+      countNodes.set(cat.id, count);
+
+      cb.addEventListener("change", () => {
+        const layer = layerById.get(cat.id);
+        if (layer) (layer as any).visible = cb.checked;
+      });
+
+      row.append(cb, swatch, text, count);
+      content.appendChild(row);
+    }
+  });
 
   legend.appendChild(content);
 
