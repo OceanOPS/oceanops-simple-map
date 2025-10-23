@@ -102,6 +102,11 @@ export async function initMap(containerId = "viewDiv") {
         directShadowsEnabled: false
       },
       background: { type: "color", color: [11, 30, 66, 1] }
+    },
+    highlightOptions: {
+      color: [244, 139, 37, 1], // #f48b25 in RGBA
+      haloOpacity: 0.9,
+      fillOpacity: 0.2
     }
   });
 
