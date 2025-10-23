@@ -47,7 +47,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  /* width: 320px; */
+  width: 450px;
   height: 100vh;
   background: #12336e;
   box-shadow: 2px 0 12px rgba(0,0,0,0.15);
@@ -75,21 +75,30 @@
   color: #f8f8f8;
 }
 
-.o-legend-title {
+.o-legend-header-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.o-legend-logo {
+  width: 120px;
+  height: auto;
+  display: block;
+}
+
+.o-legend-title {
   color: #f8f8f8;
 }
 
-.o-legend-title strong {
+.o-legend-title h4 {
   font-size: 16px;
+  font-weight: 500;
   color: #f8f8f8;
   display: block;
-  margin-bottom: 4px;
-}
-
-.o-legend-title div {
-  font-size: 13px;
-  color: #f8f8f8;
+  line-height: 1.4;
+  margin: 0px;
 }
 
 /* Close button */
@@ -123,9 +132,23 @@
   /* padding: 20px; */
 }
 
+/* Legend footer */
+.o-legend-footer {
+  padding: 16px 20px;
+  background: rgba(11, 30, 66, 0.5);
+  border-top: 1px solid rgba(248, 248, 248, 0.1);
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(248, 248, 248, 0.7);
+}
+
+.o-legend-footer p {
+  margin: 0;
+}
+
 .o-legend-content label {
   user-select: none;
-  padding: 10px 20px 10px 10px;
+  padding: 4px 20px 4px 8px;
   transition: background-color 0.2s ease;
   margin: 0px !important;
 }
@@ -246,4 +269,14 @@
 
 .esri-ui-inner-container{
   inset: 64px 64px !important;
+}
+
+.esri-features__container {
+    background-color: red;
+    color: #fff;
+}
+
+.esri-features__container .container {
+    background-color: red;
+    color: #fff;
 }

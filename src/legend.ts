@@ -13,15 +13,15 @@ function makeSwatch(cat: (typeof categories)[number]) {
   const container = document.createElement("div");
   container.className = "o-legend-swatch";
   container.style.cssText = `
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: #0b1e42;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid #f8f8f8;
+    border: 1px solid #3a5995ff;
   `;
 
   if (cat.type === "point") {
@@ -115,13 +115,15 @@ export function attachLegend(
   legend.id = "legend";
   legend.className = "o-legend-panel";
 
-  // Create header with title and close button
+  // Create header with logo, title and close button
   const header = document.createElement("div");
   header.className = "o-legend-header";
   header.innerHTML = `
-    <div class="o-legend-title">
-      <strong>GOOS Status report 2025</strong>
-      <div>(in situ Networks)</div>
+    <div class="o-legend-header-content">
+      <img src="${BASE}img/oceanops-w.png" alt="OceanOPS" class="o-legend-logo" />
+      <div class="o-legend-title">
+        <h4>In Situ Networks as Monitored by OceanOPS</h4>
+      </div>
     </div>
     <button class="o-legend-close" aria-label="Close menu">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -220,6 +222,14 @@ export function attachLegend(
   });
 
   legend.appendChild(content);
+
+  // Create footer
+  const footer = document.createElement("div");
+  footer.className = "o-legend-footer";
+  footer.innerHTML = `
+    <p>Latest locations of operational platforms and ships as of October 2025; XBT reference lines sampled since 2024, and floating status of GO-SHIP decadal survey. Symbol sizes are not to scale; they are exaggerated to an order of hundreds of kilometers for readability. Data source: OceanOPS.</p>
+  `;
+  legend.appendChild(footer);
 
   // After UI is built, query counts from each layer when ready
   for (const [id, layer] of layerById) {
