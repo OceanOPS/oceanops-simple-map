@@ -270,13 +270,3 @@
 .esri-ui-inner-container{
   inset: 64px 64px !important;
 }
-
-.esri-features__container {
-    background-color: red;
-    color: #fff;
-}
-
-.esri-features__container .container {
-    background-color: red;
-    color: #fff;
-}
