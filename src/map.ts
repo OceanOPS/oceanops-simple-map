@@ -65,7 +65,7 @@ export async function initMap(containerId = "viewDiv") {
   // const basemap = Basemap.fromId("topo-3d");
 
   // OPTION 16: Navigation 3D (clean navigation for 3D)
-  const basemapId = "navigation-3d";
+  // const basemapId = "navigation-3d";
 
   // Pre-load both basemaps for smooth switching
   const navigationBasemap = Basemap.fromId("navigation-3d");
