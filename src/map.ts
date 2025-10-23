@@ -141,6 +141,71 @@ export async function initMap(containerId = "viewDiv") {
   view.ui.move("compass", "bottom-right");
   view.ui.remove("navigation-toggle");
 
+  // Add basemap selector
+  const basemapToggle = document.createElement("button");
+  basemapToggle.className = "o-basemap-toggle";
+  basemapToggle.title = "Change basemap";
+  basemapToggle.setAttribute("aria-label", "Change basemap");
+
+  let currentBasemap: "map" | "satellite" = "map";
+
+  const updateToggleContent = () => {
+    if (currentBasemap === "map") {
+      // Show satellite preview
+      basemapToggle.innerHTML = `
+        <div class="o-basemap-preview" style="background-image: url('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/1/0/0');"></div>
+        <span>Satellite</span>
+      `;
+    } else {
+      // Show map preview (using Canvas World Light Gray Base)
+      basemapToggle.innerHTML = `
+        <div class="o-basemap-preview" style="background-image: url('https://server.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/1/0/0');"></div>
+        <span>Map</span>
+      `;
+    }
+  };
+
+  updateToggleContent();
+
+  basemapToggle.addEventListener("click", async () => {
+    currentBasemap = currentBasemap === "map" ? "satellite" : "map";
+    updateToggleContent();
+
+    if (currentBasemap === "satellite") {
+      map.basemap = Basemap.fromId("satellite");
+    } else {
+      map.basemap = Basemap.fromId("navigation-3d");
+
+      // Reapply label removal for navigation-3d
+      setTimeout(() => {
+        if (map.basemap) {
+          map.basemap.referenceLayers.removeAll();
+          const baseLayers = map.basemap.baseLayers;
+          const removeLabels = async () => {
+            const loadPromises = baseLayers.map((layer: any) => layer.load?.() || Promise.resolve());
+            await Promise.all(loadPromises);
+
+            const layersToRemove: any[] = [];
+            baseLayers.forEach((layer: any) => {
+              const title = (layer.title || "").toLowerCase();
+              const id = (layer.id || "").toLowerCase();
+              const url = (layer.url || "").toLowerCase();
+              if (title.includes("label") || title.includes("reference") || title.includes("place") || title.includes("text") ||
+                  id.includes("label") || id.includes("reference") || id.includes("place") || id.includes("text") ||
+                  url.includes("label") || url.includes("reference") || url.includes("place") || url.includes("text")) {
+                layersToRemove.push(layer);
+              }
+            });
+            layersToRemove.forEach(layer => baseLayers.remove(layer));
+          };
+          removeLabels();
+        }
+      }, 100);
+    }
+  });
+
+  view.ui.add(basemapToggle, "bottom-left");
+
   // Auto-rotate globe until user interacts
   let isRotating = true;
   let rotationFrame: number;
