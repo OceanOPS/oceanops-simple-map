@@ -308,5 +308,5 @@
 }
 
 .esri-ui-inner-container{
-  inset: 64px 64px !important;
+  /* inset: 64px 64px !important; */
 }
