@@ -41,6 +41,16 @@
   transform: scale(0.95);
 }
 
+/* Add padding to top-left controls */
+.esri-ui-top-left {
+  margin-left: 54px !important;
+}
+
+/* Add padding to bottom-left controls */
+.esri-ui-bottom-left {
+  margin-left: 54px !important;
+}
+
 /* Basemap toggle button */
 .o-basemap-toggle {
   background-color: transparent;
@@ -236,6 +246,7 @@
   flex-direction: column !important;
   align-items: flex-end !important;
   gap: 8px !important;
+  margin-right: 54px !important;
 }
 
 /* Zoom container styling */
