@@ -66,7 +66,10 @@ export async function initMap(containerId = "viewDiv") {
 
   // OPTION 16: Navigation 3D (clean navigation for 3D)
   const basemapId = "navigation-3d";
-  const basemap = Basemap.fromId(basemapId);
+
+  // Pre-load both basemaps for smooth switching
+  const navigationBasemap = Basemap.fromId("navigation-3d");
+  const satelliteBasemap = Basemap.fromId("satellite");
 
   // OPTION 17: Navigation Dark 3D (dark navigation for 3D)
   // const basemap = Basemap.fromId("navigation-dark-3d");
@@ -83,7 +86,7 @@ export async function initMap(containerId = "viewDiv") {
   // ===== END BASEMAP OPTIONS =====
 
   const map = new Map({
-    basemap
+    basemap: navigationBasemap
   });
 
   const view = new SceneView({
@@ -172,35 +175,9 @@ export async function initMap(containerId = "viewDiv") {
     updateToggleContent();
 
     if (currentBasemap === "satellite") {
-      map.basemap = Basemap.fromId("satellite");
+      map.basemap = satelliteBasemap;
     } else {
-      map.basemap = Basemap.fromId("navigation-3d");
-
-      // Reapply label removal for navigation-3d
-      setTimeout(() => {
-        if (map.basemap) {
-          map.basemap.referenceLayers.removeAll();
-          const baseLayers = map.basemap.baseLayers;
-          const removeLabels = async () => {
-            const loadPromises = baseLayers.map((layer: any) => layer.load?.() || Promise.resolve());
-            await Promise.all(loadPromises);
-
-            const layersToRemove: any[] = [];
-            baseLayers.forEach((layer: any) => {
-              const title = (layer.title || "").toLowerCase();
-              const id = (layer.id || "").toLowerCase();
-              const url = (layer.url || "").toLowerCase();
-              if (title.includes("label") || title.includes("reference") || title.includes("place") || title.includes("text") ||
-                  id.includes("label") || id.includes("reference") || id.includes("place") || id.includes("text") ||
-                  url.includes("label") || url.includes("reference") || url.includes("place") || url.includes("text")) {
-                layersToRemove.push(layer);
-              }
-            });
-            layersToRemove.forEach(layer => baseLayers.remove(layer));
-          };
-          removeLabels();
-        }
-      }, 100);
+      map.basemap = navigationBasemap;
     }
   });
 
