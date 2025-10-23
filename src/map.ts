@@ -6,6 +6,8 @@ import Basemap from "@arcgis/core/Basemap.js";
 export async function initMap(containerId = "viewDiv") {
   esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
+  const BASE = import.meta.env.BASE_URL;
+
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
 
   // CURRENT: Ocean base (default)
@@ -161,13 +163,13 @@ export async function initMap(containerId = "viewDiv") {
     if (currentBasemap === "map") {
       // Show satellite preview
       basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('https://server.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/1/0/0');"></div>
+        <div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>
         <span>Satellite</span>
       `;
     } else {
-      // Show map preview (using Canvas World Light Gray Base)
+      // Show map preview
       basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('https://server.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/1/0/0');"></div>
+        <div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>
         <span>Map</span>
       `;
     }
