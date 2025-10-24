@@ -9,19 +9,16 @@ const BASE = import.meta.env.BASE_URL;
 function makeSwatch(cat: (typeof categories)[number]) {
   const svgNS = "http://www.w3.org/2000/svg";
 
-  // Create container circle
+  // Create container
   const container = document.createElement("div");
   container.className = "o-legend-swatch";
   container.style.cssText = `
     width: 24px;
     height: 24px;
-    border-radius: 50%;
-    background: #0b1e42;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid #3a5995ff;
   `;
 
   if (cat.type === "point") {

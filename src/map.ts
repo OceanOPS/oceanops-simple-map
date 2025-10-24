@@ -2,7 +2,7 @@ import esriConfig from "@arcgis/core/config.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import Basemap from "@arcgis/core/Basemap.js";
-// import TileLayer from "@arcgis/core/layers/TileLayer.js"; // Only needed for Ocean base
+import TileLayer from "@arcgis/core/layers/TileLayer.js";
 export async function initMap(containerId = "viewDiv") {
   esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
@@ -70,7 +70,14 @@ export async function initMap(containerId = "viewDiv") {
   // const basemapId = "navigation-3d";
 
   // Pre-load both basemaps for smooth switching
-  const navigationBasemap = Basemap.fromId("navigation-3d");
+  // Ocean base (default)
+  const oceanBase = new TileLayer({
+    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
+  });
+  const navigationBasemap = new Basemap({
+    baseLayers: [oceanBase],
+    referenceLayers: []
+  });
   const satelliteBasemap = Basemap.fromId("satellite");
 
   // OPTION 17: Navigation Dark 3D (dark navigation for 3D)
