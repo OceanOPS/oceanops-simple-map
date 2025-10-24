@@ -111,6 +111,18 @@ function makeLineRenderer(color: string) {
     if (ext) union = union ? union.union(ext) : ext;
   }
   if (union) view.goTo(union, { animate: false, duration: 0 }).catch(() => {});
-  
+
   attachLegend(view, layerById);
+
+  // Change cursor to pointer when hovering over interactive features
+  view.on("pointer-move", (event) => {
+    view.hitTest(event).then((response) => {
+      if (!view.container) return;
+      if (response.results.length > 0) {
+        view.container.style.cursor = "pointer";
+      } else {
+        view.container.style.cursor = "default";
+      }
+    });
+  });
 })();
