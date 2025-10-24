@@ -242,7 +242,7 @@ export function attachLegend(
       try {
         const n = await (layer as any).queryFeatureCount({ where: "1=1" });
         const node = countNodes.get(id);
-        if (node) node.textContent = ` (${n.toLocaleString()})`;
+        if (node) node.textContent = ` (${n.toLocaleString()} operational)`;
       } catch {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
