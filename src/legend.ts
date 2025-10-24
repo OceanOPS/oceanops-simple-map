@@ -224,7 +224,7 @@ export function attachLegend(
   const footer = document.createElement("div");
   footer.className = "o-legend-footer";
   footer.innerHTML = `
-    <p>Latest locations of operational platforms and ships as of October 2025; XBT reference lines sampled since 2024, and floating status of GO-SHIP decadal survey. Symbol sizes are not to scale; they are exaggerated to an order of hundreds of kilometers for readability. Data source: OceanOPS.</p>
+    <p>Latest locations of operational platforms and ships as of October 2025; XBT-SOOP reference lines sampled since 2024, and floating status of GO-SHIP decadal survey. Symbol sizes are not to scale; they are exaggerated to an order of hundreds of kilometers for readability. Data source: OceanOPS.</p>
   `;
   legend.appendChild(footer);
 
