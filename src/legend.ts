@@ -230,6 +230,14 @@ export function attachLegend(
 
   // After UI is built, query counts from each layer when ready
   for (const [id, layer] of layerById) {
+
+    // Hardcode goship count directly
+    if (id === "goship") {
+      const node = countNodes.get(id);
+      if (node) node.textContent = " (46 operational)";
+      continue; // skip querying this layer
+    }
+
     // guard: only layers with queryFeatureCount
     const canCount = typeof (layer as any).queryFeatureCount === "function";
     const when = (layer as any).when?.() ?? Promise.resolve();
