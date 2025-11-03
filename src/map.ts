@@ -221,7 +221,6 @@ export async function initMap(containerId = "viewDiv") {
 
   // Stop rotation on user interaction
   view.on("drag", stopRotation);
-  view.on("mouse-wheel", stopRotation);
   view.on("key-down", stopRotation);
   view.on("double-click", stopRotation);
 
