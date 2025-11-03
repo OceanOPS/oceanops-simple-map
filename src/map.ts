@@ -224,6 +224,41 @@ export async function initMap(containerId = "viewDiv") {
   view.on("key-down", stopRotation);
   view.on("double-click", stopRotation);
 
+  // Cursor management: grab for map, pointer for features
+  let isDragging = false;
+
+  // Set initial cursor
+  if (view.container) {
+    view.container.style.cursor = "grab";
+  }
+
+  // Change to grabbing cursor while dragging
+  view.on("drag", (event) => {
+    if (event.action === "start") {
+      isDragging = true;
+      if (view.container) view.container.style.cursor = "grabbing";
+    } else if (event.action === "end") {
+      isDragging = false;
+      if (view.container) view.container.style.cursor = "grab";
+    }
+  });
+
+  // Change cursor to pointer when hovering over features
+  view.on("pointer-move", async (event) => {
+    if (isDragging || !view.container) return;
+
+    try {
+      const response = await view.hitTest(event);
+      if (response.results.length > 0) {
+        view.container.style.cursor = "pointer";
+      } else {
+        view.container.style.cursor = "grab";
+      }
+    } catch {
+      // Ignore hitTest errors
+    }
+  });
+
   // Start rotation
   rotate();
 
