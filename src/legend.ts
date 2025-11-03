@@ -224,7 +224,7 @@ export function attachLegend(
   const footer = document.createElement("div");
   footer.className = "o-legend-footer";
   footer.innerHTML = `
-    <p>Latest locations of operational platforms and ships as of October 2025; XBT-SOOP reference lines sampled since 2024, and floating status of GO-SHIP decadal survey. Symbol sizes are not to scale; they are exaggerated to an order of hundreds of kilometers for readability. Data source: OceanOPS.</p>
+    <p>Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.</p>
   `;
   legend.appendChild(footer);
 
@@ -234,7 +234,7 @@ export function attachLegend(
     // Hardcode goship count directly
     if (id === "goship") {
       const node = countNodes.get(id);
-      if (node) node.textContent = " (46 operational)";
+      if (node) node.textContent = " (46)";
       continue; // skip querying this layer
     }
 
@@ -250,7 +250,7 @@ export function attachLegend(
       try {
         const n = await (layer as any).queryFeatureCount({ where: "1=1" });
         const node = countNodes.get(id);
-        if (node) node.textContent = ` (${n.toLocaleString()} operational)`;
+        if (node) node.textContent = ` (${n.toLocaleString()})`;
       } catch {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
