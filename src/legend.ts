@@ -89,9 +89,11 @@ export function attachLegend(
   view: SceneView,
   layerById: Map<string, Layer>
 ) {
-  // nuke any previous legend and toggle button
+  // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
+  document.getElementById("legend-backdrop")?.remove();
   document.getElementById("legend-toggle")?.remove();
+  document.body.classList.remove("menu-open");
 
   // Create toggle button
   const toggleButton = document.createElement("button");
@@ -106,6 +108,12 @@ export function attachLegend(
     </svg>
   `;
   view.ui.add(toggleButton, "top-left");
+
+  // Create backdrop for mobile
+  const backdrop = document.createElement("div");
+  backdrop.id = "legend-backdrop";
+  backdrop.className = "o-legend-backdrop";
+  document.body.appendChild(backdrop);
 
   // Create legend panel (fixed sidebar)
   const legend = document.createElement("div");
@@ -138,9 +146,13 @@ export function attachLegend(
     const isOpen = legend.classList.contains("open");
     if (isOpen) {
       legend.classList.remove("open");
+      backdrop.classList.remove("open");
+      document.body.classList.remove("menu-open");
       toggleButton.setAttribute("aria-expanded", "false");
     } else {
       legend.classList.add("open");
+      backdrop.classList.add("open");
+      document.body.classList.add("menu-open");
       toggleButton.setAttribute("aria-expanded", "true");
     }
   };
@@ -149,6 +161,9 @@ export function attachLegend(
 
   const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
   closeButton.addEventListener("click", togglePanel);
+
+  // Close menu when clicking on backdrop (mobile)
+  backdrop.addEventListener("click", togglePanel);
 
   const countNodes = new Map<string, HTMLSpanElement>();
   const content = document.createElement("div");
@@ -161,25 +176,11 @@ export function attachLegend(
     { title: "Mobile", startIndex: 10, endIndex: categories.length }
   ];
 
-  groups.forEach((group) => {
+  groups.forEach((group, index) => {
     // Add group title
     const groupTitle = document.createElement("div");
     groupTitle.className = "o-legend-group-title";
     groupTitle.textContent = group.title;
-    groupTitle.style.cssText = `
-      padding: 16px 20px 8px 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: rgba(248, 248, 248, 0.6);
-      border-top: 1px solid rgba(248, 248, 248, 0.1);
-      margin-top: 8px;
-    `;
-    if (group.startIndex === 0) {
-      groupTitle.style.marginTop = "0";
-      groupTitle.style.borderTop = "none";
-    }
     content.appendChild(groupTitle);
 
     // Add categories in this group

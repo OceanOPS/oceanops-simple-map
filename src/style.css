@@ -1,3 +1,27 @@
+/* CSS Variables for responsive padding */
+:root {
+  --padding-horizontal: 16px; /* Mobile default */
+  --container-max-width: 1280px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --padding-horizontal: 32px; /* Tablet */
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --padding-horizontal: 48px; /* Medium */
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --padding-horizontal: 64px; /* Desktop */
+  }
+}
+
 /* Remove focus outline from map */
 .esri-view {
   --esri-view-outline: none !important;
@@ -43,12 +67,20 @@
 
 /* Add padding to top-left controls */
 .esri-ui-top-left {
-  margin-left: 54px !important;
+  margin-left: var(--padding-horizontal) !important;
+  margin-top: var(--padding-horizontal) !important;
+}
+
+/* Add padding to top-right controls */
+.esri-ui-top-right {
+  margin-right: var(--padding-horizontal) !important;
+  margin-top: var(--padding-horizontal) !important;
 }
 
 /* Add padding to bottom-left controls */
 .esri-ui-bottom-left {
-  margin-left: 54px !important;
+  margin-left: var(--padding-horizontal) !important;
+  margin-bottom: var(--padding-horizontal) !important;
 }
 
 /* Basemap toggle button */
@@ -92,12 +124,39 @@
   transform: scale(0.98);
 }
 
+/* Legend panel backdrop (only on mobile) */
+.o-legend-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.o-legend-backdrop.open {
+  display: block;
+  opacity: 1;
+}
+
+/* Hide backdrop on larger screens */
+@media (min-width: 640px) {
+  .o-legend-backdrop {
+    display: none !important;
+  }
+}
+
 /* Legend panel - Fixed sidebar */
 .o-legend-panel {
   position: fixed;
   top: 0;
   left: 0;
-  width: 550px;
+  width: 100%;
+  max-width: 550px;
   height: 100vh;
   background: #12336e;
   box-shadow: 2px 0 12px rgba(0,0,0,0.15);
@@ -110,8 +169,29 @@
   color: #f8f8f8;
 }
 
+/* Responsive legend panel width */
+@media (max-width: 639px) {
+  .o-legend-panel {
+    max-width: 100vw;
+    width: 100vw;
+  }
+}
+
+@media (min-width: 640px) {
+  .o-legend-panel {
+    max-width: 550px;
+  }
+}
+
 .o-legend-panel.open {
   transform: translateX(0);
+}
+
+/* Prevent body scroll when menu is open on mobile */
+@media (max-width: 639px) {
+  body.menu-open {
+    overflow: hidden;
+  }
 }
 
 /* Legend header */
@@ -119,7 +199,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px;
+  padding: var(--padding-horizontal);
   /* border-bottom: 1px solid #e0e0e0; */
   background: #12336e;
   color: #f8f8f8;
@@ -184,7 +264,7 @@
 
 /* Legend footer */
 .o-legend-footer {
-  padding: 16px 20px;
+  padding: 16px var(--padding-horizontal);
   background: rgba(11, 30, 66, 0.5);
   border-top: 1px solid rgba(248, 248, 248, 0.1);
   font-size: 14px;
@@ -198,9 +278,25 @@
 
 .o-legend-content label {
   user-select: none;
-  padding: 4px 20px 4px 8px;
+  padding: 4px var(--padding-horizontal) 4px 8px;
   transition: background-color 0.2s ease;
   margin: 0px !important;
+}
+
+.o-legend-group-title {
+  padding: 16px var(--padding-horizontal) 8px var(--padding-horizontal) !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(248, 248, 248, 0.6);
+  border-top: 1px solid rgba(248, 248, 248, 0.1);
+  margin-top: 8px;
+}
+
+.o-legend-group-title:first-child {
+  margin-top: 0;
+  border-top: none;
 }
 
 .o-legend-content label:hover {
@@ -246,7 +342,8 @@
   flex-direction: column !important;
   align-items: flex-end !important;
   gap: 8px !important;
-  margin-right: 54px !important;
+  margin-right: var(--padding-horizontal) !important;
+  margin-bottom: var(--padding-horizontal) !important;
 }
 
 /* Zoom container styling */
