@@ -176,7 +176,7 @@ export function attachLegend(
     { title: "Mobile", startIndex: 10, endIndex: categories.length }
   ];
 
-  groups.forEach((group, index) => {
+  groups.forEach((group) => {
     // Add group title
     const groupTitle = document.createElement("div");
     groupTitle.className = "o-legend-group-title";
