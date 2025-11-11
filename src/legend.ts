@@ -87,7 +87,11 @@ function makeSwatch(cat: (typeof categories)[number]) {
  */
 export function attachLegend(
   view: SceneView,
-  layerById: Map<string, Layer>
+  layerById: Map<string, Layer>,
+  toggleRotation: () => boolean,
+  isRotating: () => boolean,
+  setRotationStateChangeCallback: (callback: () => void) => void,
+  stopRotation: () => void
 ) {
   // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
@@ -110,9 +114,54 @@ export function attachLegend(
   view.ui.add(toggleButton, { position: "top-left", index: 0 });
 
   // Move zoom and compass after the menu button
-  // Order: menu (0), zoom (1), compass (2), satellite (3)
+  // Order: menu (0), zoom (1), compass (2), play/pause (3), satellite (4)
   view.ui.move("zoom", { position: "top-left", index: 1 });
   view.ui.move("compass", { position: "top-left", index: 2 });
+
+  // Create play/pause button for rotation control
+  const playPauseButton = document.createElement("button");
+  playPauseButton.className = "o-rotation-toggle";
+  playPauseButton.title = "Toggle auto-rotation";
+  playPauseButton.setAttribute("aria-label", "Toggle auto-rotation");
+
+  const updatePlayPauseIcon = () => {
+    if (isRotating()) {
+      // Show pause icon
+      playPauseButton.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/>
+          <rect x="9" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/>
+        </svg>
+      `;
+    } else {
+      // Show play icon
+      playPauseButton.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 3L13 8L5 13V3Z" fill="#f8f8f8"/>
+        </svg>
+      `;
+    }
+  };
+
+  updatePlayPauseIcon();
+
+  // Register callback to update UI when rotation state changes
+  setRotationStateChangeCallback(updatePlayPauseIcon);
+
+  playPauseButton.addEventListener("click", () => {
+    toggleRotation();
+    updatePlayPauseIcon();
+  });
+
+  view.ui.add(playPauseButton, { position: "top-left", index: 3 });
+
+  // Stop rotation when compass is clicked
+  const compass = document.querySelector(".esri-compass") as HTMLElement;
+  if (compass) {
+    compass.addEventListener("click", () => {
+      stopRotation();
+    });
+  }
 
   // Create backdrop for mobile
   const backdrop = document.createElement("div");

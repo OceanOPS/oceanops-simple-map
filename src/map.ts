@@ -190,7 +190,7 @@ export async function initMap(containerId = "viewDiv") {
     }
   });
 
-  view.ui.add(basemapToggle, { position: "top-left", index: 3 });
+  view.ui.add(basemapToggle, { position: "top-left", index: 4 });
 
   // Remove navigation toggle
   view.ui.remove("navigation-toggle");
@@ -201,6 +201,7 @@ export async function initMap(containerId = "viewDiv") {
   // Auto-rotate globe until user interacts
   let isRotating = true;
   let rotationFrame: number;
+  let onRotationStateChange: (() => void) | null = null;
 
   const rotate = () => {
     if (!isRotating) return;
@@ -217,7 +218,29 @@ export async function initMap(containerId = "viewDiv") {
     if (isRotating) {
       isRotating = false;
       if (rotationFrame) cancelAnimationFrame(rotationFrame);
+      if (onRotationStateChange) onRotationStateChange();
     }
+  };
+
+  const startRotation = () => {
+    if (!isRotating) {
+      isRotating = true;
+      rotate();
+      if (onRotationStateChange) onRotationStateChange();
+    }
+  };
+
+  const toggleRotation = () => {
+    if (isRotating) {
+      stopRotation();
+    } else {
+      startRotation();
+    }
+    return isRotating;
+  };
+
+  const setRotationStateChangeCallback = (callback: () => void) => {
+    onRotationStateChange = callback;
   };
 
   // Stop rotation on user interaction
@@ -263,5 +286,12 @@ export async function initMap(containerId = "viewDiv") {
   // Start rotation
   rotate();
 
-  return { map, view };
+  return {
+    map,
+    view,
+    toggleRotation,
+    isRotating: () => isRotating,
+    setRotationStateChangeCallback,
+    stopRotation
+  };
 }

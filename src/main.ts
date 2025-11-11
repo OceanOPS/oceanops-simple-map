@@ -53,7 +53,7 @@ function makeLineRenderer(color: string) {
 
 
 (async () => {
-  const { map, view } = await initMap("viewDiv");
+  const { map, view, toggleRotation, isRotating, setRotationStateChangeCallback, stopRotation } = await initMap("viewDiv");
 
   const layerById = new Map<string, GeoJSONLayer>();
   const layerPromises: Promise<unknown>[] = [];
@@ -112,7 +112,7 @@ function makeLineRenderer(color: string) {
   }
   if (union) view.goTo(union, { animate: false, duration: 0 }).catch(() => {});
 
-  attachLegend(view, layerById);
+  attachLegend(view, layerById, toggleRotation, isRotating, setRotationStateChangeCallback, stopRotation);
 
   // Change cursor to pointer when hovering over interactive features
   view.on("pointer-move", (event) => {

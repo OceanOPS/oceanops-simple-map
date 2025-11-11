@@ -79,6 +79,50 @@
   transform: scale(0.95);
 }
 
+/* Rotation toggle button (play/pause) */
+.o-rotation-toggle {
+  width: 46px;
+  height: 46px;
+  background-color: #0b1e42;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  margin: 0;
+}
+
+.o-rotation-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.o-rotation-toggle:hover {
+  background-color: #0b1e42;
+  opacity: 0.8;
+}
+
+.o-rotation-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Reduce size on short screens */
+@media (max-height: 700px) {
+  .o-rotation-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .o-rotation-toggle svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 /* Add padding to top-left controls and center them vertically */
 .esri-ui-top-left {
   margin-left: var(--padding-horizontal) !important;
