@@ -332,6 +332,16 @@
   margin: 0px !important;
 }
 
+.o-legend-content label.o-legend-select-all {
+  padding: 16px var(--legend-padding) 8px 8px !important;
+  margin: 20px 0 0 0 !important;
+  border-top: 1px solid rgba(248, 248, 248, 0.1);
+}
+
+.o-legend-select-all:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 .o-legend-group-title {
   padding: 16px var(--legend-padding) 8px var(--legend-padding) !important;
   font-size: 12px;
@@ -386,6 +396,23 @@
   border: solid #f48b25;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
+}
+
+.o-legend-content input[type="checkbox"]:indeterminate {
+  background-color: #0b1e42;
+  border-color: #0b1e42;
+}
+
+.o-legend-content input[type="checkbox"]:indeterminate::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  width: 10px;
+  height: 2px;
+  background: #f48b25;
+  border: none;
+  transform: none;
 }
 
 /* Add padding to top-right controls (if any) */

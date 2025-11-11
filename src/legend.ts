@@ -150,6 +150,7 @@ export function attachLegend(
   backdrop.addEventListener("click", togglePanel);
 
   const countNodes = new Map<string, HTMLSpanElement>();
+  const layerCheckboxes: HTMLInputElement[] = [];
   const content = document.createElement("div");
   content.className = "o-legend-content";
 
@@ -173,6 +174,61 @@ export function attachLegend(
 
   const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
   closeButton.addEventListener("click", togglePanel);
+
+  // Function to update select all checkbox state (defined early)
+  const updateSelectAllState = () => {
+    const checkedCount = layerCheckboxes.filter(cb => cb.checked).length;
+    const totalCount = layerCheckboxes.length;
+
+    if (checkedCount === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === totalCount) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    }
+  };
+
+  // Add "Select All" checkbox
+  const selectAllRow = document.createElement("label");
+  selectAllRow.className = "o-legend-select-all";
+  selectAllRow.style.display = "flex";
+  selectAllRow.style.alignItems = "center";
+  selectAllRow.style.gap = "8px";
+  selectAllRow.style.cursor = "pointer";
+  selectAllRow.style.fontWeight = "600";
+
+  const selectAllCheckbox = document.createElement("input");
+  selectAllCheckbox.type = "checkbox";
+  selectAllCheckbox.checked = true;
+  selectAllCheckbox.id = "select-all-checkbox";
+
+  const selectAllText = document.createElement("span");
+  selectAllText.textContent = "Show/Hide All";
+  selectAllText.style.flex = "1";
+
+  selectAllRow.append(selectAllCheckbox, selectAllText);
+
+  // Select all checkbox click handler
+  selectAllCheckbox.addEventListener("change", () => {
+    const shouldCheck = selectAllCheckbox.checked || selectAllCheckbox.indeterminate;
+
+    layerCheckboxes.forEach(cb => {
+      if (cb.checked !== shouldCheck) {
+        cb.checked = shouldCheck;
+        // Trigger change event to update layer visibility
+        cb.dispatchEvent(new Event("change"));
+      }
+    });
+
+    updateSelectAllState();
+  });
+
+  // Add select all row to content (will be added before first group)
+  content.appendChild(selectAllRow);
 
   // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
   const groups = [
@@ -217,8 +273,10 @@ export function attachLegend(
       cb.addEventListener("change", () => {
         const layer = layerById.get(cat.id);
         if (layer) (layer as any).visible = cb.checked;
+        updateSelectAllState();
       });
 
+      layerCheckboxes.push(cb);
       row.append(cb, swatch, text, count);
       content.appendChild(row);
     }
