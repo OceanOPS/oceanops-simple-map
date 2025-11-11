@@ -48,8 +48,21 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 8px;
+  margin-bottom: 0;
   padding: 0;
+}
+
+/* Reduce size on short screens */
+@media (max-height: 700px) {
+  .o-legend-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .o-legend-toggle svg {
+    width: 20px;
+    height: 19px;
+  }
 }
 
 .o-legend-toggle svg {
@@ -66,23 +79,26 @@
   transform: scale(0.95);
 }
 
-/* Add padding to top-left controls */
+/* Add padding to top-left controls and center them vertically */
 .esri-ui-top-left {
   margin-left: var(--padding-horizontal) !important;
-  margin-top: var(--padding-horizontal) !important;
+  margin-top: 0 !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
-/* Add padding to top-right controls */
-.esri-ui-top-right {
-  margin-right: var(--padding-horizontal) !important;
-  margin-top: var(--padding-horizontal) !important;
+/* Reduce gap on short screens */
+@media (max-height: 700px) {
+  .esri-ui-top-left {
+    gap: 4px !important;
+  }
 }
 
-/* Add padding to bottom-left controls */
-.esri-ui-bottom-left {
-  margin-left: var(--padding-horizontal) !important;
-  margin-bottom: var(--padding-horizontal) !important;
-}
+
 
 /* Basemap toggle button */
 .o-basemap-toggle {
@@ -96,7 +112,15 @@
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
-  margin-bottom: 0px;
+  margin: 0;
+  margin-top: 12px;
+}
+
+/* Reduce gap on short screens */
+@media (max-height: 700px) {
+  .o-basemap-toggle {
+    gap: 2px;
+  }
 }
 
 .o-basemap-preview {
@@ -109,11 +133,26 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Reduce preview size on short screens */
+@media (max-height: 700px) {
+  .o-basemap-preview {
+    width: 46px;
+    height: 46px;
+  }
+}
+
 .o-basemap-toggle span {
   font-size: 12px;
   font-weight: 500;
   color: #f8f8f8;
   letter-spacing: 0.3px;
+}
+
+/* Reduce font size on short screens */
+@media (max-height: 700px) {
+  .o-basemap-toggle span {
+    font-size: 10px;
+  }
 }
 
 .o-basemap-toggle:hover .o-basemap-preview {
@@ -349,13 +388,10 @@
   transform: rotate(45deg);
 }
 
-/* Stack navigation controls vertically in bottom-right */
-.esri-ui-bottom-right {
-  flex-direction: column !important;
-  align-items: flex-end !important;
-  gap: 8px !important;
+/* Add padding to top-right controls (if any) */
+.esri-ui-top-right {
   margin-right: var(--padding-horizontal) !important;
-  margin-bottom: var(--padding-horizontal) !important;
+  margin-top: var(--padding-horizontal) !important;
 }
 
 /* Zoom container styling */
@@ -365,6 +401,19 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
+}
+
+/* Reduce zoom gap on short screens */
+@media (max-height: 700px) {
+  .esri-zoom {
+    gap: 4px !important;
+  }
+
+  .esri-zoom .esri-widget--button,
+  .esri-compass {
+    width: 40px !important;
+    height: 40px !important;
+  }
 }
 
 /* Override default widget button styles */
@@ -425,4 +474,8 @@
 /* Esri attribution bar - hidden */
 .esri-attribution {
   display: none !important;
+}
+
+.esri-ui-top-right .esri-component, .esri-ui-top-left .esri-component {
+    margin-bottom: 0px !important;
 }

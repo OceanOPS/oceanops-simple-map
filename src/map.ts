@@ -153,12 +153,7 @@ export async function initMap(containerId = "viewDiv") {
   // Disable mouse wheel zoom using new API
   view.navigation.actionMap.mouseWheel = "none";
 
-  // Move navigation controls to bottom-right
-  view.ui.move("zoom", "bottom-right");
-  view.ui.move("compass", "bottom-right");
-  view.ui.remove("navigation-toggle");
-
-  // Add basemap selector
+  // Add basemap selector FIRST so it appears at the top
   const basemapToggle = document.createElement("button");
   basemapToggle.className = "o-basemap-toggle";
   basemapToggle.title = "Change basemap";
@@ -195,7 +190,13 @@ export async function initMap(containerId = "viewDiv") {
     }
   });
 
-  view.ui.add(basemapToggle, "bottom-left");
+  view.ui.add(basemapToggle, { position: "top-left", index: 3 });
+
+  // Remove navigation toggle
+  view.ui.remove("navigation-toggle");
+
+  // NOTE: zoom and compass will be moved to specific positions after legend is added
+  // This happens in attachLegend function
 
   // Auto-rotate globe until user interacts
   let isRotating = true;
