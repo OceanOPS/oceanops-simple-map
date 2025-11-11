@@ -1,6 +1,7 @@
 /* CSS Variables for responsive padding */
 :root {
   --padding-horizontal: 16px; /* Mobile default */
+  --legend-padding: 16px; /* Fixed padding for legend */
   --container-max-width: 1280px;
 }
 
@@ -199,9 +200,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--padding-horizontal);
-  /* border-bottom: 1px solid #e0e0e0; */
-  background: #12336e;
+  padding: var(--legend-padding);
+  padding-bottom: 8px;
+  background: transparent;
   color: #f8f8f8;
 }
 
@@ -264,27 +265,36 @@
 
 /* Legend footer */
 .o-legend-footer {
-  padding: 16px var(--padding-horizontal);
-  background: rgba(11, 30, 66, 0.5);
+  padding: 24px var(--legend-padding) 24px var(--legend-padding);
+  background: transparent;
   border-top: 1px solid rgba(248, 248, 248, 0.1);
   font-size: 14px;
   line-height: 1.5;
   color: rgba(248, 248, 248, 0.7);
+  margin-top: 16px;
 }
 
 .o-legend-footer p {
   margin: 0;
 }
 
+.o-legend-disclaimer {
+  margin-top: 16px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: rgba(248, 248, 248, 0.7) !important;
+  font-style: italic;
+}
+
 .o-legend-content label {
   user-select: none;
-  padding: 4px var(--padding-horizontal) 4px 8px;
+  padding: 4px var(--legend-padding) 4px 8px;
   transition: background-color 0.2s ease;
   margin: 0px !important;
 }
 
 .o-legend-group-title {
-  padding: 16px var(--padding-horizontal) 8px var(--padding-horizontal) !important;
+  padding: 16px var(--legend-padding) 8px var(--legend-padding) !important;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -294,8 +304,10 @@
   margin-top: 8px;
 }
 
-.o-legend-group-title:first-child {
-  margin-top: 0;
+.o-legend-header + .o-legend-group-title,
+.o-legend-group-title:first-of-type {
+  margin-top: 8px;
+  padding-top: 8px !important;
   border-top: none;
 }
 

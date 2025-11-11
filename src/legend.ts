@@ -120,24 +120,6 @@ export function attachLegend(
   legend.id = "legend";
   legend.className = "o-legend-panel";
 
-  // Create header with logo, title and close button
-  const header = document.createElement("div");
-  header.className = "o-legend-header";
-  header.innerHTML = `
-    <div class="o-legend-header-content">
-      <img src="${BASE}img/oceanops-w.png" alt="OceanOPS" class="o-legend-logo" />
-      <div class="o-legend-title">
-        <h4>In Situ Networks as Monitored by OceanOPS</h4>
-      </div>
-    </div>
-    <button class="o-legend-close" aria-label="Close menu">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </button>
-  `;
-  legend.appendChild(header);
-
   // Add to document body (not to ArcGIS view.ui)
   document.body.appendChild(legend);
 
@@ -159,15 +141,33 @@ export function attachLegend(
 
   toggleButton.addEventListener("click", togglePanel);
 
-  const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
-  closeButton.addEventListener("click", togglePanel);
-
   // Close menu when clicking on backdrop (mobile)
   backdrop.addEventListener("click", togglePanel);
 
   const countNodes = new Map<string, HTMLSpanElement>();
   const content = document.createElement("div");
   content.className = "o-legend-content";
+
+  // Create header with logo, title and close button - now inside content
+  const header = document.createElement("div");
+  header.className = "o-legend-header";
+  header.innerHTML = `
+    <div class="o-legend-header-content">
+      <img src="${BASE}img/oceanops-w.png" alt="OceanOPS" class="o-legend-logo" />
+      <div class="o-legend-title">
+        <h4>In Situ Networks as Monitored by OceanOPS</h4>
+      </div>
+    </div>
+    <button class="o-legend-close" aria-label="Close menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  `;
+  content.appendChild(header);
+
+  const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
+  closeButton.addEventListener("click", togglePanel);
 
   // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
   const groups = [
@@ -219,15 +219,16 @@ export function attachLegend(
     }
   });
 
-  legend.appendChild(content);
-
-  // Create footer
+  // Create footer and add it to content (not legend)
   const footer = document.createElement("div");
   footer.className = "o-legend-footer";
   footer.innerHTML = `
     <p>Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.</p>
+    <p class="o-legend-disclaimer">Disclaimer: The depiction and use of boundaries, geographic names and related data shown on the OceanOPS map and included in country lists and tables are not warranted to be error free nor do they imply official endorsement or acceptance by the Intergovernmental Oceanographic Commission of UNESCO and the World Meteorological Organization.</p>
   `;
-  legend.appendChild(footer);
+  content.appendChild(footer);
+
+  legend.appendChild(content);
 
   // After UI is built, query counts from each layer when ready
   for (const [id, layer] of layerById) {
