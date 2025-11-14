@@ -369,6 +369,11 @@
   font-style: italic;
 }
 
+.o-legend-disclaimer a {
+  color: #f8f8f8 !important;
+  text-decoration: underline;
+}
+
 .o-legend-content label {
   user-select: none;
   padding: 4px var(--legend-padding) 4px 8px;
