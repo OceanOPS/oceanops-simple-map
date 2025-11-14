@@ -166,13 +166,13 @@ export async function initMap(containerId = "viewDiv") {
       // Show satellite preview
       basemapToggle.innerHTML = `
         <div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>
-        <span>Satellite</span>
+        <span>Satellite layer</span>
       `;
     } else {
       // Show map preview
       basemapToggle.innerHTML = `
         <div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>
-        <span>Map</span>
+        <span>Map layer</span>
       `;
     }
   };
