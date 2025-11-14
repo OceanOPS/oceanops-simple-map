@@ -7,12 +7,12 @@ export type Category =
   | { id: string; label: string; color: string; type: "point"; shape?: Shape };
 
 export const categories = [
-  { id: 'vos',                        label: 'Ship based meteorological  – SOT/VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
-  { id: 'ship_oceano',                        label: 'Ship based oceanographic – SOT/ XBT-SOOP',                 color: '#faa62d', type: 'line' },
-  { id: 'asap',                        label: 'Ship based aerological  – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
-  { id: 'goship',                      label: 'Repeated transects - GO-SHIP',         color: '#ee2f2b', type: 'line' },
-  { id: 'fvon',                      label: 'Fishing vessels - FVON',         color: '#9d39e0ff', type: 'point', shape: 'circle'  },
-  { id: 'gloss',                      label: 'Sea level gauges - GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
+  { id: 'vos',                        label: 'Ship based meteorological – SOT/VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
+  { id: 'ship_oceano',                        label: 'Ship based oceanographic – SOT/XBT-SOOP',                 color: '#faa62d', type: 'line' },
+  { id: 'asap',                        label: 'Ship based aerological – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
+  { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
+  { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'point', shape: 'circle'  },
+  { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square'  },
   { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square' },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – DBCP/TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
