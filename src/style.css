@@ -2,7 +2,21 @@
 :root {
   --padding-horizontal: 16px; /* Mobile default */
   --legend-padding: 16px; /* Fixed padding for legend */
+  --legend-panel-width: 550px;
   --container-max-width: 1280px;
+}
+
+#viewDiv {
+  width: 100%;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+/* On desktop, push the globe right when the filter menu is open */
+@media (min-width: 640px) {
+  body.menu-open #viewDiv {
+    margin-left: var(--legend-panel-width);
+    width: calc(100% - var(--legend-panel-width));
+  }
 }
 
 @media (min-width: 640px) {
