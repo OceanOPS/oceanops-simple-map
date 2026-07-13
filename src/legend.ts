@@ -5,6 +5,34 @@ import { categories } from "./categories";
 
 const BASE = import.meta.env.BASE_URL;
 
+const GROUP_PICTOS: Record<string, string> = {
+  ship: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 17h16l-1.8-3.6H5.8L4 17zm3.2-7.2 2.6-4.8h4.4l2.6 4.8H7.2z" fill="#f8f8f8"/>
+      <path d="M2 19h20" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  fixed: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="10" y="3" width="4" height="13" fill="#f8f8f8"/>
+      <path d="M5 18h14" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round"/>
+      <path d="M3 20h18" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  mobile: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="9" r="5" fill="#f8f8f8"/>
+      <path d="M2 19c2.5-2 5-3 10-3s7.5 1 10 3" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+};
+
+const CHEVRON_ICON = `
+  <svg class="o-legend-group-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
 /** Inline SVG / IMG swatch that matches each category's symbology */
 function makeSwatch(cat: (typeof categories)[number]) {
   const svgNS = "http://www.w3.org/2000/svg";
@@ -281,17 +309,35 @@ export function attachLegend(
 
   // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
   const groups = [
-    { title: "Ship", startIndex: 0, endIndex: 5 },
-    { title: "Fixed", startIndex: 5, endIndex: 10 },
-    { title: "Mobile", startIndex: 10, endIndex: categories.length }
+    { key: "ship", title: "Ship", startIndex: 0, endIndex: 5 },
+    { key: "fixed", title: "Fixed", startIndex: 5, endIndex: 10 },
+    { key: "mobile", title: "Mobile", startIndex: 10, endIndex: categories.length }
   ];
 
   groups.forEach((group) => {
-    // Add group title
-    const groupTitle = document.createElement("div");
-    groupTitle.className = "o-legend-group-title";
-    groupTitle.textContent = group.title;
-    content.appendChild(groupTitle);
+    const groupSection = document.createElement("div");
+    groupSection.className = "o-legend-group";
+
+    const groupHeader = document.createElement("button");
+    groupHeader.type = "button";
+    groupHeader.className = "o-legend-group-header";
+    groupHeader.setAttribute("aria-expanded", "false");
+    groupHeader.innerHTML = `
+      <span class="o-legend-group-icon">${GROUP_PICTOS[group.key]}</span>
+      <span class="o-legend-group-label">${group.title}</span>
+      ${CHEVRON_ICON}
+    `;
+
+    const groupBody = document.createElement("div");
+    groupBody.className = "o-legend-group-body";
+
+    groupHeader.addEventListener("click", () => {
+      const isOpen = groupSection.classList.toggle("open");
+      groupHeader.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    groupSection.append(groupHeader, groupBody);
+    content.appendChild(groupSection);
 
     // Add categories in this group
     for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
@@ -327,7 +373,7 @@ export function attachLegend(
 
       layerCheckboxes.push(cb);
       row.append(cb, swatch, text, count);
-      content.appendChild(row);
+      groupBody.appendChild(row);
     }
   });
 
