@@ -494,6 +494,25 @@
   display: block;
 }
 
+.o-legend-group-nested .o-legend-group-header {
+  padding-left: calc(var(--legend-padding) + 12px);
+  font-size: 11px;
+}
+
+.o-legend-group-nested .o-legend-country-row,
+.o-legend-group-nested .o-legend-filter-row {
+  padding-left: 12px;
+}
+
+.o-legend-country-select-all {
+  margin-top: 8px !important;
+  border-top: none !important;
+}
+
+.o-legend-country-row {
+  font-size: 13px;
+}
+
 .o-legend-content label:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }

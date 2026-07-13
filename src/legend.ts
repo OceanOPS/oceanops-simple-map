@@ -1,7 +1,18 @@
 // legend.ts
 import type SceneView from "@arcgis/core/views/SceneView";
 import type Layer from "@arcgis/core/layers/Layer";
+import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
+import {
+  ALL_COUNTRIES,
+  EU_COUNTRIES,
+  G7_COUNTRIES,
+  OTHER_COUNTRIES,
+  applyCountryFilter,
+  getCountryCountWhere,
+  getCountryLabel,
+  type CountryName,
+} from "./countryFilters";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -23,6 +34,12 @@ const GROUP_PICTOS: Record<string, string> = {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="9" r="5" fill="#f8f8f8"/>
       <path d="M2 19c2.5-2 5-3 10-3s7.5 1 10 3" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  country: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="#f8f8f8" stroke-width="1.5"/>
+      <path d="M3 12h18M12 3c2.5 2.8 3.8 6 4 9s-1.5 6.2-4 9M12 3c-2.5 2.8-3.8 6-4 9s1.5 6.2 4 9" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
   `,
 };
@@ -107,6 +124,69 @@ function makeSwatch(cat: (typeof categories)[number]) {
   svg.appendChild(line);
   container.appendChild(svg);
   return container;
+}
+
+function createCollapsibleGroup(
+  parent: HTMLElement,
+  options: {
+    key: string;
+    title: string;
+    nested?: boolean;
+    onToggle?: (isOpen: boolean) => void;
+  }
+) {
+  const groupSection = document.createElement("div");
+  groupSection.className = options.nested
+    ? "o-legend-group o-legend-group-nested"
+    : "o-legend-group";
+
+  const groupHeader = document.createElement("button");
+  groupHeader.type = "button";
+  groupHeader.className = "o-legend-group-header";
+  groupHeader.setAttribute("aria-expanded", "false");
+  groupHeader.innerHTML = `
+    ${GROUP_PICTOS[options.key] ? `<span class="o-legend-group-icon">${GROUP_PICTOS[options.key]}</span>` : ""}
+    <span class="o-legend-group-label">${options.title}</span>
+    ${CHEVRON_ICON}
+  `;
+
+  const groupBody = document.createElement("div");
+  groupBody.className = "o-legend-group-body";
+
+  groupHeader.addEventListener("click", () => {
+    const isOpen = groupSection.classList.toggle("open");
+    groupHeader.setAttribute("aria-expanded", String(isOpen));
+    options.onToggle?.(isOpen);
+  });
+
+  groupSection.append(groupHeader, groupBody);
+  parent.appendChild(groupSection);
+
+  return { groupSection, groupBody };
+}
+
+function createCheckboxRow(
+  labelText: string,
+  className = "o-legend-filter-row"
+) {
+  const row = document.createElement("label");
+  row.className = className;
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "8px";
+  row.style.margin = "12px 0";
+  row.style.cursor = "pointer";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+
+  const text = document.createElement("span");
+  text.textContent = labelText;
+  text.style.flex = "1";
+
+  row.append(checkbox, text);
+  return { row, checkbox, text };
 }
 
 /**
@@ -307,6 +387,95 @@ export function attachLegend(
   // Add select all row to content (will be added before first group)
   content.appendChild(selectAllRow);
 
+  const selectedCountries = new Set<string>(ALL_COUNTRIES);
+  const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
+
+  const updateLayerCounts = async () => {
+    const where = getCountryCountWhere(selectedCountries);
+
+    for (const [id, layer] of layerById) {
+      if (id === "goship") {
+        const node = countNodes.get(id);
+        if (node) node.textContent = " (46)";
+        continue;
+      }
+
+      const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+      if (!canCount) {
+        const node = countNodes.get(id);
+        if (node) node.textContent = "";
+        continue;
+      }
+
+      try {
+        const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
+        const node = countNodes.get(id);
+        if (node) node.textContent = ` (${n.toLocaleString()})`;
+      } catch {
+        const node = countNodes.get(id);
+        if (node) node.textContent = "";
+      }
+    }
+  };
+
+  const syncCountryCheckboxUI = (country: string) => {
+    const checked = selectedCountries.has(country);
+    for (const checkbox of countryCheckboxRefs.get(country) ?? []) {
+      checkbox.checked = checked;
+    }
+  };
+
+  const updateCountrySelectAllState = (selectAllCheckbox: HTMLInputElement) => {
+    const checkedCount = selectedCountries.size;
+    const totalCount = ALL_COUNTRIES.length;
+
+    if (checkedCount === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === totalCount) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    }
+  };
+
+  const applyCountrySelection = (selectAllCheckbox: HTMLInputElement) => {
+    applyCountryFilter(layerById as Map<string, GeoJSONLayer>, selectedCountries);
+    updateCountrySelectAllState(selectAllCheckbox);
+    updateLayerCounts();
+  };
+
+  const registerCountryCheckbox = (
+    country: CountryName,
+    checkbox: HTMLInputElement,
+    selectAllCheckbox: HTMLInputElement
+  ) => {
+    const refs = countryCheckboxRefs.get(country) ?? [];
+    refs.push(checkbox);
+    countryCheckboxRefs.set(country, refs);
+
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedCountries.add(country);
+      else selectedCountries.delete(country);
+      syncCountryCheckboxUI(country);
+      applyCountrySelection(selectAllCheckbox);
+    });
+  };
+
+  const addCountryRows = (
+    countries: CountryName[],
+    container: HTMLElement,
+    selectAllCheckbox: HTMLInputElement
+  ) => {
+    for (const country of countries) {
+      const { row, checkbox } = createCheckboxRow(getCountryLabel(country), "o-legend-country-row");
+      registerCountryCheckbox(country, checkbox, selectAllCheckbox);
+      container.appendChild(row);
+    }
+  };
+
   // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
   const groups = [
     { key: "ship", title: "Ship", startIndex: 0, endIndex: 5 },
@@ -315,67 +484,87 @@ export function attachLegend(
   ];
 
   groups.forEach((group) => {
-    const groupSection = document.createElement("div");
-    groupSection.className = "o-legend-group";
-
-    const groupHeader = document.createElement("button");
-    groupHeader.type = "button";
-    groupHeader.className = "o-legend-group-header";
-    groupHeader.setAttribute("aria-expanded", "false");
-    groupHeader.innerHTML = `
-      <span class="o-legend-group-icon">${GROUP_PICTOS[group.key]}</span>
-      <span class="o-legend-group-label">${group.title}</span>
-      ${CHEVRON_ICON}
-    `;
-
-    const groupBody = document.createElement("div");
-    groupBody.className = "o-legend-group-body";
-
-    groupHeader.addEventListener("click", () => {
-      const isOpen = groupSection.classList.toggle("open");
-      groupHeader.setAttribute("aria-expanded", String(isOpen));
+    const { groupBody } = createCollapsibleGroup(content, {
+      key: group.key,
+      title: group.title,
     });
-
-    groupSection.append(groupHeader, groupBody);
-    content.appendChild(groupSection);
 
     // Add categories in this group
     for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
       const cat = categories[i];
-      const row = document.createElement("label");
-      row.style.display = "flex";
-      row.style.alignItems = "center";
-      row.style.gap = "8px";
-      row.style.margin = "12px 0";
-      row.style.cursor = "pointer";
-
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = true;
+      const { row, checkbox: cb } = createCheckboxRow(cat.label);
 
       const swatch = makeSwatch(cat);
-
-      const text = document.createElement("span");
-      text.textContent = cat.label;
-      text.style.flex = "1";
+      row.insertBefore(swatch, row.children[1]);
 
       const count = document.createElement("span");
       count.textContent = " (…)";
       count.style.opacity = "0.7";
       count.style.fontSize = "12px";
       countNodes.set(cat.id, count);
+      row.appendChild(count);
 
       cb.addEventListener("change", () => {
         const layer = layerById.get(cat.id);
-        if (layer) (layer as any).visible = cb.checked;
+        if (layer) (layer as GeoJSONLayer).visible = cb.checked;
         updateSelectAllState();
       });
 
       layerCheckboxes.push(cb);
-      row.append(cb, swatch, text, count);
       groupBody.appendChild(row);
     }
   });
+
+  const { groupBody: countryBody } = createCollapsibleGroup(content, {
+    key: "country",
+    title: "Country",
+  });
+
+  const countrySelectAllRow = document.createElement("label");
+  countrySelectAllRow.className = "o-legend-select-all o-legend-country-select-all";
+  countrySelectAllRow.style.display = "flex";
+  countrySelectAllRow.style.alignItems = "center";
+  countrySelectAllRow.style.gap = "8px";
+  countrySelectAllRow.style.cursor = "pointer";
+  countrySelectAllRow.style.fontWeight = "600";
+
+  const countrySelectAllCheckbox = document.createElement("input");
+  countrySelectAllCheckbox.type = "checkbox";
+  countrySelectAllCheckbox.checked = true;
+
+  const countrySelectAllText = document.createElement("span");
+  countrySelectAllText.textContent = "Select all countries";
+  countrySelectAllText.style.flex = "1";
+
+  countrySelectAllRow.append(countrySelectAllCheckbox, countrySelectAllText);
+  countrySelectAllCheckbox.addEventListener("change", () => {
+    const shouldCheck =
+      countrySelectAllCheckbox.checked || countrySelectAllCheckbox.indeterminate;
+
+    for (const country of ALL_COUNTRIES) {
+      if (shouldCheck) selectedCountries.add(country);
+      else selectedCountries.delete(country);
+      syncCountryCheckboxUI(country);
+    }
+
+    applyCountrySelection(countrySelectAllCheckbox);
+  });
+  countryBody.appendChild(countrySelectAllRow);
+
+  const countryGroups = [
+    { key: "g7", title: "G7", countries: G7_COUNTRIES },
+    { key: "eu", title: "EU", countries: EU_COUNTRIES },
+    { key: "other", title: "Other", countries: OTHER_COUNTRIES },
+  ];
+
+  for (const countryGroup of countryGroups) {
+    const { groupBody } = createCollapsibleGroup(countryBody, {
+      key: countryGroup.key,
+      title: countryGroup.title,
+      nested: true,
+    });
+    addCountryRows(countryGroup.countries, groupBody, countrySelectAllCheckbox);
+  }
 
   // Create footer and add it to content (not legend)
   const footer = document.createElement("div");
@@ -388,33 +577,8 @@ export function attachLegend(
 
   legend.appendChild(content);
 
-  // After UI is built, query counts from each layer when ready
-  for (const [id, layer] of layerById) {
-
-    // Hardcode goship count directly
-    if (id === "goship") {
-      const node = countNodes.get(id);
-      if (node) node.textContent = " (46)";
-      continue; // skip querying this layer
-    }
-
-    // guard: only layers with queryFeatureCount
-    const canCount = typeof (layer as any).queryFeatureCount === "function";
-    const when = (layer as any).when?.() ?? Promise.resolve();
-    when.then(async () => {
-      if (!canCount) {
-        const node = countNodes.get(id);
-        if (node) node.textContent = "";
-        return;
-      }
-      try {
-        const n = await (layer as any).queryFeatureCount({ where: "1=1" });
-        const node = countNodes.get(id);
-        if (node) node.textContent = ` (${n.toLocaleString()})`;
-      } catch {
-        const node = countNodes.get(id);
-        if (node) node.textContent = "";
-      }
-    });
+  for (const layer of layerById.values()) {
+    const when = (layer as GeoJSONLayer).when?.() ?? Promise.resolve();
+    when.then(() => updateLayerCounts());
   }
 }
