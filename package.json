@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "export:geojson": "node scripts/export-geojson.mjs",
+    "export:geojson:dry-run": "node scripts/export-geojson.mjs --dry-run"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
