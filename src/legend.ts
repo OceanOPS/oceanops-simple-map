@@ -10,6 +10,7 @@ import {
   OTHER_COUNTRIES,
   applyCountryFilter,
   getCountryCountWhere,
+  getLineLayerCountWhere,
   getCountryLabel,
   type CountryName,
   COUNTRY_FILTER_LINE_LAYER_IDS,
@@ -383,6 +384,7 @@ export function attachLegend(
   });
 
   const filterableCountries = getFilterableCountryNames(getPartnerDataSnapshot());
+  const activeCountryCount = filterableCountries.length;
   const filterableCountrySet = new Set<string>(filterableCountries);
   const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
@@ -426,19 +428,32 @@ export function attachLegend(
   const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
 
   const updateLayerCounts = async () => {
-    const where = getCountryCountWhere(selectedCountries);
-    const noCountriesSelected = selectedCountries.size === 0;
+    const where = getCountryCountWhere(selectedCountries, activeCountryCount);
+    const lineCountWhere = getLineLayerCountWhere(selectedCountries);
 
     for (const [id, layer] of layerById) {
       if (lineLayerIds.has(id)) {
         const node = countNodes.get(id);
         if (!node) continue;
-        if (noCountriesSelected) {
-          node.textContent = " (0)";
+        if (id === "goship") {
+          node.textContent =
+            selectedCountries.size === 0 ? " (0)" : " (46)";
           continue;
         }
-        if (id === "goship") {
-          node.textContent = " (46)";
+        if (id === "ship_oceano") {
+          const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+          if (!canCount) {
+            node.textContent = "";
+            continue;
+          }
+          try {
+            const n = await (layer as GeoJSONLayer).queryFeatureCount({
+              where: lineCountWhere,
+            });
+            node.textContent = ` (${n.toLocaleString()})`;
+          } catch {
+            node.textContent = "";
+          }
           continue;
         }
       }
@@ -485,7 +500,11 @@ export function attachLegend(
   };
 
   const applyCountrySelection = (selectAllCheckbox: HTMLInputElement) => {
-    applyCountryFilter(layerById as Map<string, GeoJSONLayer>, selectedCountries);
+    applyCountryFilter(
+      layerById as Map<string, GeoJSONLayer>,
+      selectedCountries,
+      activeCountryCount
+    );
     updateCountrySelectAllState(selectAllCheckbox);
     updateLayerCounts();
     updateCountryRowCounts();

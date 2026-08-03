@@ -178,9 +178,11 @@ export function isAllCountriesSelected(
 
 export function applyCountryFilter(
   layerById: Map<string, GeoJSONLayer>,
-  selectedCountries: ReadonlySet<string>
+  selectedCountries: ReadonlySet<string>,
+  /** When the legend only lists filterable countries, pass that count (not ALL_COUNTRIES.length). */
+  activeCountryCount: number = ALL_COUNTRIES.length
 ): void {
-  const expression = isAllCountriesSelected(selectedCountries)
+  const expression = isAllCountriesSelected(selectedCountries, activeCountryCount)
     ? ""
     : buildCountryExpression(selectedCountries);
 
@@ -196,7 +198,15 @@ export function applyCountryFilter(
   }
 }
 
-export function getCountryCountWhere(selectedCountries: ReadonlySet<string>): string {
-  if (isAllCountriesSelected(selectedCountries)) return "1=1";
+export function getCountryCountWhere(
+  selectedCountries: ReadonlySet<string>,
+  activeCountryCount: number = ALL_COUNTRIES.length
+): string {
+  if (isAllCountriesSelected(selectedCountries, activeCountryCount)) return "1=1";
   return buildCountryExpression(selectedCountries);
+}
+
+/** Line layers without `country_name` — legend totals ignore country filter until step 2. */
+export function getLineLayerCountWhere(selectedCountries: ReadonlySet<string>): string {
+  return selectedCountries.size === 0 ? "1=0" : "1=1";
 }
