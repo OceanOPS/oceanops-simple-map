@@ -1,0 +1,48 @@
+# Build settings (same pattern as oceanops-report-card)
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Vite `base` is /demos/simple-arcgis-map/ — assets live at dist root; rewrite paths for Netlify.
+[[redirects]]
+  from = "/demos/simple-arcgis-map/assets/*"
+  to = "/assets/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map/geojson/*"
+  to = "/geojson/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map/data/*"
+  to = "/data/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map/icons/*"
+  to = "/icons/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map/img/*"
+  to = "/img/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/demos/simple-arcgis-map"
+  to = "/demos/simple-arcgis-map/"
+  status = 301
+
+[[redirects]]
+  from = "/"
+  to = "/demos/simple-arcgis-map/"
+  status = 302

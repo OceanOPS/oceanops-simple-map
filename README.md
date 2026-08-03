@@ -64,3 +64,35 @@ Lines must be densified for the 3D globe. The export script densifies automatica
 ```bash
 node densify.js public/geojson/goship_undensified.geojson public/geojson/goship.geojson
 ```
+
+## Netlify (deploy previews + production)
+
+This repo includes `netlify.toml` (`npm run build`, publish `dist`, Node 20). The app is served at **`/demos/simple-arcgis-map/`** (same path as [production](https://www.ocean-ops.org/demos/simple-arcgis-map/)) via path rewrites.
+
+### One-time setup (Netlify dashboard)
+
+1. **Add new site** → **Import from Git** → `OceanOPS/oceanops-simple-map`.
+2. Confirm build settings (Netlify reads `netlify.toml` automatically).
+3. **Deploy** production from your main branch (e.g. `main` or `staging`).
+4. **Site configuration → Build & deploy → Deploy contexts** → enable **Deploy Previews** for pull requests (same as report card).
+
+After deploy, open:
+
+`https://<your-site>.netlify.app/demos/simple-arcgis-map/`
+
+PR previews:
+
+`https://deploy-preview-<PR>--<your-site>.netlify.app/demos/simple-arcgis-map/`
+
+### Use a Netlify map in the report card iframe
+
+In **oceanops-report-card**, set at build time:
+
+```bash
+VITE_MAP_SRC=https://deploy-preview-42--oceanops-simple-map.netlify.app/demos/simple-arcgis-map/
+```
+
+- **Local:** `.env.local` (see report-card README).
+- **Netlify (report card site):** **Environment variables** → add `VITE_MAP_SRC` for **Deploy previews** (or a specific branch), then redeploy the report card.
+
+Trailing slash on `VITE_MAP_SRC` matches `App.tsx` defaults.
