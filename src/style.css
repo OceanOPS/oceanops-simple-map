@@ -261,10 +261,12 @@
   transform: translateX(-100%);
   transition: transform 0.3s ease;
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
   color: #f8f8f8;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #F38B25 rgba(255, 255, 255, 0.1);
 }
 
 /* Responsive legend panel width */
@@ -353,51 +355,47 @@
   transform: scale(0.95);
 }
 
-/* Legend content area */
+/* Legend content — natural height; panel scrolls (no flex gap above footer). */
 .o-legend-content {
-  flex: 1;
-  overflow-y: auto;
-  /* padding: 20px; */
-  scrollbar-width: thin;
-  scrollbar-color: #F38B25 rgba(255, 255, 255, 0.1);
+  display: block;
 }
 
-.o-legend-content::-webkit-scrollbar {
+.o-legend-panel::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.o-legend-content::-webkit-scrollbar-track {
+.o-legend-panel::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 5px;
 }
 
-.o-legend-content::-webkit-scrollbar-thumb {
+.o-legend-panel::-webkit-scrollbar-thumb {
   background: #F38B25;
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.o-legend-content::-webkit-scrollbar-thumb:hover {
+.o-legend-panel::-webkit-scrollbar-thumb:hover {
   background: #F6A555;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.o-legend-content::-webkit-scrollbar-thumb:active {
+.o-legend-panel::-webkit-scrollbar-thumb:active {
   background: #e07a1a;
 }
 
 /* Legend footer */
 .o-legend-footer {
-  padding: 24px var(--legend-padding) 24px var(--legend-padding);
+  padding: 16px var(--legend-padding) 24px var(--legend-padding);
   background: transparent;
   border-top: 1px solid rgba(248, 248, 248, 0.1);
   font-size: 14px;
   line-height: 1.5;
   color: rgba(248, 248, 248, 0.7);
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .o-legend-footer p {
@@ -499,6 +497,10 @@
 
 .o-legend-group-body {
   display: none;
+}
+
+.o-legend-group:not(.open) > .o-legend-group-body {
+  display: none !important;
 }
 
 .o-legend-group.open > .o-legend-group-body {
