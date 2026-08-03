@@ -12,6 +12,7 @@ import {
   getCountryCountWhere,
   getCountryLabel,
   type CountryName,
+  COUNTRY_FILTER_LINE_LAYER_IDS,
 } from "./countryFilters";
 import {
   getCountryTotal,
@@ -422,14 +423,24 @@ export function attachLegend(
     }
   };
 
+  const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
+
   const updateLayerCounts = async () => {
     const where = getCountryCountWhere(selectedCountries);
+    const noCountriesSelected = selectedCountries.size === 0;
 
     for (const [id, layer] of layerById) {
-      if (id === "goship") {
+      if (lineLayerIds.has(id)) {
         const node = countNodes.get(id);
-        if (node) node.textContent = " (46)";
-        continue;
+        if (!node) continue;
+        if (noCountriesSelected) {
+          node.textContent = " (0)";
+          continue;
+        }
+        if (id === "goship") {
+          node.textContent = " (46)";
+          continue;
+        }
       }
 
       const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";

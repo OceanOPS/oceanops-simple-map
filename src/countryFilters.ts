@@ -113,9 +113,13 @@ export const OTHER_COUNTRIES: CountryName[] = ALL_COUNTRIES.filter(
   (country) => !G7_SET.has(country) && !EU_SET.has(country)
 );
 
+/** Platform layers filtered by GeoJSON `country_name`. */
 export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "ship_oceano" && cat.id !== "goship")
   .map((cat) => cat.id);
+
+/** Line layers without `country_name` yet — hidden only when no country is selected (step 2 adds per-line country). */
+export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "ship_oceano"] as const;
 
 const COUNTRY_LABELS: Record<string, string> = {
   USA: "United States",
@@ -183,6 +187,12 @@ export function applyCountryFilter(
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     const layer = layerById.get(layerId);
     if (layer) layer.definitionExpression = expression;
+  }
+
+  const lineExpression = selectedCountries.size === 0 ? "1=0" : "";
+  for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    const layer = layerById.get(layerId);
+    if (layer) layer.definitionExpression = lineExpression;
   }
 }
 
