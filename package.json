@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "export:geojson": "node scripts/export-geojson.mjs",
-    "export:geojson:dry-run": "node scripts/export-geojson.mjs --dry-run"
+    "export:geojson": "npm run export:geojson --prefix ../oceanops-data-exports",
+    "export:geojson:dry-run": "npm run export:geojson:dry-run --prefix ../oceanops-data-exports",
+    "export:partners": "npm run export:partners --prefix ../oceanops-data-exports",
+    "export:partners:dry-run": "npm run export:partners:dry-run --prefix ../oceanops-data-exports"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

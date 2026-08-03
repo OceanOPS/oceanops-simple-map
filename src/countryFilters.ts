@@ -65,7 +65,6 @@ export const ALL_COUNTRIES = [
   "UK",
   "UKRAINE",
   "UN",
-  "UNKNOWN",
   "URUGUAY",
   "USA",
   "VANUATU",
@@ -137,8 +136,22 @@ const COUNTRY_LABELS: Record<string, string> = {
   UN: "United Nations",
 };
 
+/** Display label for filter UI (GeoJSON values are often ALL CAPS). */
+function titleCaseWords(value: string): string {
+  return value
+    .split(/(\s+|\/)/)
+    .map((part) => {
+      if (!part.trim() || part === "/") return part;
+      const lower = part.toLowerCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join("");
+}
+
 export function getCountryLabel(country: CountryName): string {
-  return COUNTRY_LABELS[country] ?? country;
+  const override = COUNTRY_LABELS[country];
+  if (override) return override;
+  return titleCaseWords(country);
 }
 
 export function buildCountryExpression(countries: Iterable<string>): string {
@@ -152,8 +165,11 @@ export function buildCountryExpression(countries: Iterable<string>): string {
   return `country_name IN (${list})`;
 }
 
-export function isAllCountriesSelected(selected: ReadonlySet<string>): boolean {
-  return selected.size === ALL_COUNTRIES.length;
+export function isAllCountriesSelected(
+  selected: ReadonlySet<string>,
+  expectedCount: number = ALL_COUNTRIES.length
+): boolean {
+  return selected.size === expectedCount;
 }
 
 export function applyCountryFilter(

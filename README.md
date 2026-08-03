@@ -13,7 +13,7 @@ Map layers load static GeoJSON from `public/geojson/{layerId}.geojson` (see `src
 
 ## GeoJSON export (build-time)
 
-Regenerate map layers from OceanOPS PostgreSQL instead of hand-editing JSON files.
+Regenerate map layers from OceanOPS PostgreSQL via **[oceanops-data-exports](https://github.com/OceanOPS/oceanops-data-exports)** (clone next to this repo).
 
 ```bash
 # Requires psql + Postgres with oceanops_gis.ptf_loc_n (local Docker or partial dump)
@@ -22,11 +22,15 @@ npm run export:geojson
 # Preview SQL without writing files
 npm run export:geojson:dry-run
 
-# Single layer
-node scripts/export-geojson.mjs --layer=argo
+# Partner country JSON for the globe filter (also updates report-card TS)
+npm run export:partners
+```
 
-# Skip country_ship / country_sensor_provider joins (when views are missing locally)
-node scripts/export-geojson.mjs --no-country-ship --no-country-sensor
+Advanced flags (run from `../oceanops-data-exports`):
+
+```bash
+node export-geojson.mjs --layer=argo
+node export-geojson.mjs --no-country-ship --no-country-sensor
 ```
 
 **Environment:**
@@ -34,7 +38,7 @@ node scripts/export-geojson.mjs --no-country-ship --no-country-sensor
 - `OCEANOPS_DATABASE_URL` — default `postgresql://oceanops:oceanops@127.0.0.1:5432/oceanops`
 - `GEOJSON_EXPORT_EDITION` — label in export summary
 
-**Configuration:** edit `scripts/geojson-export/exportConfig.mjs` before each edition:
+**Configuration:** edit `../oceanops-data-exports/geojson-export/exportConfig.mjs` before each edition:
 
 - `WHERE` clause per point layer (12 layers from `oceanops_gis.ptf_loc_n`)
 - `GO_SHIP_SELECTED_LINE_NAMES` / `SOOP_XBT_SELECTED_LINE_NAMES` for line layers

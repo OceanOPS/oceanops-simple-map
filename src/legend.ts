@@ -2,9 +2,9 @@
 import type SceneView from "@arcgis/core/views/SceneView";
 import type Layer from "@arcgis/core/layers/Layer";
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
-import { categories } from "./categories";
+import { categories, type Category } from "./categories";
+import { makeCategorySwatch } from "./categorySwatch";
 import {
-  ALL_COUNTRIES,
   EU_COUNTRIES,
   G7_COUNTRIES,
   OTHER_COUNTRIES,
@@ -13,6 +13,18 @@ import {
   getCountryLabel,
   type CountryName,
 } from "./countryFilters";
+import {
+  getCountryTotal,
+  getFilterableCountryNames,
+  getPartnerDataSnapshot,
+  loadPartnerCountriesData,
+  type PartnerCountriesFile,
+} from "./countryMetrics";
+import {
+  closeCountryMetricsModal,
+  openCountryMetricsModal,
+} from "./countryMetricsModal";
+import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -42,6 +54,11 @@ const GROUP_PICTOS: Record<string, string> = {
       <path d="M3 12h18M12 3c2.5 2.8 3.8 6 4 9s-1.5 6.2-4 9M12 3c-2.5 2.8-3.8 6-4 9s1.5 6.2 4 9" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
   `,
+  networks: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 6h6v5H4V6zm10 0h6v5h-6V6zM4 13h6v5H4v-5zm10 0h6v5h-6v-5z" stroke="#f8f8f8" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+  `,
 };
 
 const CHEVRON_ICON = `
@@ -50,88 +67,13 @@ const CHEVRON_ICON = `
   </svg>
 `;
 
-/** Inline SVG / IMG swatch that matches each category's symbology */
-function makeSwatch(cat: (typeof categories)[number]) {
-  const svgNS = "http://www.w3.org/2000/svg";
-
-  // Create container
-  const container = document.createElement("div");
-  container.className = "o-legend-swatch";
-  container.style.cssText = `
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  `;
-
-  if (cat.type === "point") {
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
-
-    if (cat.shape === "square") {
-      const r = document.createElementNS(svgNS, "rect");
-      r.setAttribute("x", "2"); r.setAttribute("y", "2");
-      r.setAttribute("width", "10"); r.setAttribute("height", "10");
-      r.setAttribute("fill", cat.color);
-      r.setAttribute("stroke", "#fff"); r.setAttribute("stroke-width", "1");
-      svg.appendChild(r);
-      container.appendChild(svg);
-      return container;
-    }
-
-    if (cat.shape === "triangle") {
-      const p = document.createElementNS(svgNS, "polygon");
-      p.setAttribute("points", "7,2 12,12 2,12");
-      p.setAttribute("fill", cat.color);
-      p.setAttribute("stroke", "#fff"); p.setAttribute("stroke-width", "1");
-      svg.appendChild(p);
-      container.appendChild(svg);
-      return container;
-    }
-
-    // default: circle
-    const c = document.createElementNS(svgNS, "circle");
-    c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "5");
-    c.setAttribute("fill", cat.color);
-    c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "1");
-    svg.appendChild(c);
-    container.appendChild(svg);
-    return container;
-  }
-
-  if (cat.type === "image") {
-    const img = document.createElement("img");
-    img.src = `${BASE}${cat.imagePath}`;
-    img.width = 18; img.height = 18;
-    img.style.objectFit = "contain";
-    container.appendChild(img);
-    return container;
-  }
-
-  // line
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "20");
-  svg.setAttribute("height", "12");
-  const line = document.createElementNS(svgNS, "line");
-  line.setAttribute("x1", "2"); line.setAttribute("y1", "6");
-  line.setAttribute("x2", "18"); line.setAttribute("y2", "6");
-  line.setAttribute("stroke", cat.color);
-  line.setAttribute("stroke-width", "3");
-  line.setAttribute("stroke-linecap", "round");
-  svg.appendChild(line);
-  container.appendChild(svg);
-  return container;
-}
-
 function createCollapsibleGroup(
   parent: HTMLElement,
   options: {
     key: string;
     title: string;
     nested?: boolean;
+    startOpen?: boolean;
     onToggle?: (isOpen: boolean) => void;
   }
 ) {
@@ -153,7 +95,8 @@ function createCollapsibleGroup(
   const groupBody = document.createElement("div");
   groupBody.className = "o-legend-group-body";
 
-  groupHeader.addEventListener("click", () => {
+  groupHeader.addEventListener("click", (event) => {
+    event.stopPropagation();
     const isOpen = groupSection.classList.toggle("open");
     groupHeader.setAttribute("aria-expanded", String(isOpen));
     options.onToggle?.(isOpen);
@@ -161,6 +104,11 @@ function createCollapsibleGroup(
 
   groupSection.append(groupHeader, groupBody);
   parent.appendChild(groupSection);
+
+  if (options.startOpen) {
+    groupSection.classList.add("open");
+    groupHeader.setAttribute("aria-expanded", "true");
+  }
 
   return { groupSection, groupBody };
 }
@@ -189,6 +137,54 @@ function createCheckboxRow(
   return { row, checkbox, text };
 }
 
+const DETAILS_ICON = `
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+`;
+
+function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
+  const row = document.createElement("div");
+  row.className = "o-legend-country-row";
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "8px";
+  row.style.margin = "12px 0";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+
+  const flag = document.createElement("span");
+  flag.className = "o-legend-country-flag";
+  appendCountryFlag(flag, getCountryIsoCode(geoCountry), labelText);
+
+  const name = document.createElement("span");
+  name.className = "o-legend-country-name";
+  name.textContent = labelText;
+  name.setAttribute("role", "button");
+  name.tabIndex = 0;
+
+  const total = document.createElement("span");
+  total.className = "o-legend-count o-legend-country-total";
+  total.textContent = " (…)";
+  total.setAttribute("aria-label", "Total platforms for this country");
+
+  const detailsBtn = document.createElement("button");
+  detailsBtn.type = "button";
+  detailsBtn.className = "o-legend-country-details-btn";
+  detailsBtn.setAttribute("aria-label", `View network breakdown for ${labelText}`);
+  detailsBtn.innerHTML = DETAILS_ICON;
+
+  row.append(checkbox, flag, name, total, detailsBtn);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "o-legend-country-block";
+  wrapper.append(row);
+
+  return { wrapper, row, checkbox, total, name, detailsBtn };
+}
+
 /**
  * Build the legend UI, wire up layer toggles, and show feature counts.
  * Pass the `layerById` map you already maintain in main.ts.
@@ -205,6 +201,7 @@ export function attachLegend(
   document.getElementById("legend")?.remove();
   document.getElementById("legend-backdrop")?.remove();
   document.getElementById("legend-toggle")?.remove();
+  closeCountryMetricsModal();
   document.body.classList.remove("menu-open");
 
   // Create toggle button
@@ -364,7 +361,7 @@ export function attachLegend(
   selectAllCheckbox.id = "select-all-checkbox";
 
   const selectAllText = document.createElement("span");
-  selectAllText.textContent = "Show/Hide All";
+  selectAllText.textContent = "Show/Hide All Networks";
   selectAllText.style.flex = "1";
 
   selectAllRow.append(selectAllCheckbox, selectAllText);
@@ -384,11 +381,46 @@ export function attachLegend(
     updateSelectAllState();
   });
 
-  // Add select all row to content (will be added before first group)
-  content.appendChild(selectAllRow);
-
-  const selectedCountries = new Set<string>(ALL_COUNTRIES);
+  const filterableCountries = getFilterableCountryNames(getPartnerDataSnapshot());
+  const filterableCountrySet = new Set<string>(filterableCountries);
+  const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
+  const countryTotalNodes = new Map<string, HTMLSpanElement[]>();
+  let partnerData: PartnerCountriesFile | null = null;
+
+  const registerCountryTotalNode = (country: CountryName, node: HTMLSpanElement) => {
+    const refs = countryTotalNodes.get(country) ?? [];
+    refs.push(node);
+    countryTotalNodes.set(country, refs);
+  };
+
+  const setCountryTotalDisplay = (country: CountryName, text: string) => {
+    for (const node of countryTotalNodes.get(country) ?? []) {
+      node.textContent = text;
+    }
+  };
+
+  const getVisibleLayerIds = (): Set<string> => {
+    const visible = new Set<string>();
+    categories.forEach((cat, i) => {
+      if (layerCheckboxes[i]?.checked) visible.add(cat.id);
+    });
+    return visible;
+  };
+
+  const updateCountryRowCounts = () => {
+    if (!partnerData) return;
+    for (const country of filterableCountries) {
+      if (!countryTotalNodes.has(country)) continue;
+      const iso = partnerData.byGeoCountryName[country];
+      if (!iso) {
+        setCountryTotalDisplay(country, "");
+        continue;
+      }
+      const total = getCountryTotal(country, partnerData, getVisibleLayerIds());
+      setCountryTotalDisplay(country, ` (${total.toLocaleString()})`);
+    }
+  };
 
   const updateLayerCounts = async () => {
     const where = getCountryCountWhere(selectedCountries);
@@ -427,7 +459,7 @@ export function attachLegend(
 
   const updateCountrySelectAllState = (selectAllCheckbox: HTMLInputElement) => {
     const checkedCount = selectedCountries.size;
-    const totalCount = ALL_COUNTRIES.length;
+    const totalCount = filterableCountries.length;
 
     if (checkedCount === 0) {
       selectAllCheckbox.checked = false;
@@ -445,6 +477,7 @@ export function attachLegend(
     applyCountryFilter(layerById as Map<string, GeoJSONLayer>, selectedCountries);
     updateCountrySelectAllState(selectAllCheckbox);
     updateLayerCounts();
+    updateCountryRowCounts();
   };
 
   const registerCountryCheckbox = (
@@ -470,23 +503,74 @@ export function attachLegend(
     selectAllCheckbox: HTMLInputElement
   ) => {
     for (const country of countries) {
-      const { row, checkbox } = createCheckboxRow(getCountryLabel(country), "o-legend-country-row");
+      const { wrapper, checkbox, total, name, detailsBtn } =
+        createCountryFilterRow(getCountryLabel(country), country);
+
+      wrapper.setAttribute("data-country", country);
+      registerCountryTotalNode(country, total);
       registerCountryCheckbox(country, checkbox, selectAllCheckbox);
-      container.appendChild(row);
+
+      const toggleCountryFromName = () => {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event("change"));
+      };
+
+      name.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleCountryFromName();
+      });
+
+      name.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleCountryFromName();
+        }
+      });
+
+      const openDetails = (event: Event) => {
+        event.stopPropagation();
+        void openCountryMetricsModal(country, getVisibleLayerIds);
+      };
+
+      detailsBtn.addEventListener("click", openDetails);
+      total.addEventListener("click", openDetails);
+      total.style.cursor = "pointer";
+      total.setAttribute("role", "button");
+      total.tabIndex = 0;
+      total.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openDetails(event);
+        }
+      });
+
+      container.appendChild(wrapper);
     }
   };
 
-  // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
+  // Ship / Fixed / Mobile nested under Networks
   const groups = [
     { key: "ship", title: "Ship", startIndex: 0, endIndex: 5 },
     { key: "fixed", title: "Fixed", startIndex: 5, endIndex: 10 },
-    { key: "mobile", title: "Mobile", startIndex: 10, endIndex: categories.length }
+    { key: "mobile", title: "Mobile", startIndex: 10, endIndex: categories.length },
   ];
 
+  selectAllRow.classList.add("o-legend-networks-select-all");
+
+  const { groupBody: networksBody } = createCollapsibleGroup(content, {
+    key: "networks",
+    title: "Networks",
+    startOpen: true,
+  });
+  networksBody.prepend(selectAllRow);
+
   groups.forEach((group) => {
-    const { groupBody } = createCollapsibleGroup(content, {
+    const { groupBody } = createCollapsibleGroup(networksBody, {
       key: group.key,
       title: group.title,
+      nested: true,
+      startOpen: true,
     });
 
     // Add categories in this group
@@ -494,13 +578,12 @@ export function attachLegend(
       const cat = categories[i];
       const { row, checkbox: cb } = createCheckboxRow(cat.label);
 
-      const swatch = makeSwatch(cat);
+      const swatch = makeCategorySwatch(cat as Category);
       row.insertBefore(swatch, row.children[1]);
 
       const count = document.createElement("span");
+      count.className = "o-legend-count";
       count.textContent = " (…)";
-      count.style.opacity = "0.7";
-      count.style.fontSize = "12px";
       countNodes.set(cat.id, count);
       row.appendChild(count);
 
@@ -508,6 +591,8 @@ export function attachLegend(
         const layer = layerById.get(cat.id);
         if (layer) (layer as GeoJSONLayer).visible = cb.checked;
         updateSelectAllState();
+        updateLayerCounts();
+        updateCountryRowCounts();
       });
 
       layerCheckboxes.push(cb);
@@ -518,6 +603,7 @@ export function attachLegend(
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
     title: "Country",
+    startOpen: true,
   });
 
   const countrySelectAllRow = document.createElement("label");
@@ -541,7 +627,7 @@ export function attachLegend(
     const shouldCheck =
       countrySelectAllCheckbox.checked || countrySelectAllCheckbox.indeterminate;
 
-    for (const country of ALL_COUNTRIES) {
+    for (const country of filterableCountries) {
       if (shouldCheck) selectedCountries.add(country);
       else selectedCountries.delete(country);
       syncCountryCheckboxUI(country);
@@ -557,13 +643,20 @@ export function attachLegend(
     { key: "other", title: "Other", countries: OTHER_COUNTRIES },
   ];
 
+  const filterCountryList = (countries: CountryName[]) =>
+    countries.filter((c) => filterableCountrySet.has(c));
+
   for (const countryGroup of countryGroups) {
+    const visible = filterCountryList(countryGroup.countries);
+    if (visible.length === 0) continue;
+
     const { groupBody } = createCollapsibleGroup(countryBody, {
       key: countryGroup.key,
       title: countryGroup.title,
       nested: true,
+      startOpen: true,
     });
-    addCountryRows(countryGroup.countries, groupBody, countrySelectAllCheckbox);
+    addCountryRows(visible, groupBody, countrySelectAllCheckbox);
   }
 
   // Create footer and add it to content (not legend)
@@ -576,6 +669,18 @@ export function attachLegend(
   content.appendChild(footer);
 
   legend.appendChild(content);
+
+  void loadPartnerCountriesData()
+    .then((data) => {
+      partnerData = data;
+      updateCountryRowCounts();
+    })
+    .catch((err) => {
+      console.error(err);
+      for (const country of filterableCountries) {
+        setCountryTotalDisplay(country, "");
+      }
+    });
 
   for (const layer of layerById.values()) {
     const when = (layer as GeoJSONLayer).when?.() ?? Promise.resolve();

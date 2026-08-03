@@ -1,0 +1,1716 @@
+{
+  "generatedAt": "2026-08-03",
+  "edition": "report-card",
+  "source": "OceanOPS partner export (program country attribution)",
+  "countries": [
+    {
+      "name": "AQ",
+      "countryCode": "AQ",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Argentina",
+      "countryCode": "AR",
+      "geoCountryNames": [
+        "ARGENTINA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 4,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Australia",
+      "countryCode": "AU",
+      "geoCountryNames": [
+        "AUSTRALIA"
+      ],
+      "networks": {
+        "driftingBuoys": 49,
+        "argo": 284,
+        "oceanGliders": 60,
+        "aniBOS": 90,
+        "fvon": 238,
+        "sotVos": 27,
+        "sotAsap": 0,
+        "sot": 6,
+        "goShip": 0,
+        "gloss": 15,
+        "oceanSites": 2,
+        "mooredBuoys": 33,
+        "tsunamiBuoys": 3,
+        "hfRadars": 12
+      }
+    },
+    {
+      "name": "Bahamas",
+      "countryCode": "BS",
+      "geoCountryNames": [
+        "BAHAMAS"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 9,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Bangladesh",
+      "countryCode": "BD",
+      "geoCountryNames": [
+        "BANGLADESH"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 4,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Belgium",
+      "countryCode": "BE",
+      "geoCountryNames": [
+        "BELGIUM"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 1,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Bermuda",
+      "countryCode": "BM",
+      "geoCountryNames": [
+        "BERMUDA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 1,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Brazil",
+      "countryCode": "BR",
+      "geoCountryNames": [
+        "BRAZIL"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 11,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 1,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 1,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "Bulgaria",
+      "countryCode": "BG",
+      "geoCountryNames": [
+        "BULGARIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 9,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Canada",
+      "countryCode": "CA",
+      "geoCountryNames": [
+        "CANADA"
+      ],
+      "networks": {
+        "driftingBuoys": 32,
+        "argo": 208,
+        "oceanGliders": 107,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 36,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 5,
+        "oceanSites": 5,
+        "mooredBuoys": 34,
+        "tsunamiBuoys": 0,
+        "hfRadars": 13
+      }
+    },
+    {
+      "name": "Chile",
+      "countryCode": "CL",
+      "geoCountryNames": [
+        "CHILE"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 2,
+        "sotVos": 2,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 5,
+        "oceanSites": 0,
+        "mooredBuoys": 2,
+        "tsunamiBuoys": 2,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "China",
+      "countryCode": "CN",
+      "geoCountryNames": [
+        "CHINA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 78,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 72,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 7,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 19
+      }
+    },
+    {
+      "name": "Colombia",
+      "countryCode": "CO",
+      "geoCountryNames": [
+        "COLOMBIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 1,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Cook Islands",
+      "countryCode": "CK",
+      "geoCountryNames": [
+        "COOK ISLANDS"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Croatia",
+      "countryCode": "HR",
+      "geoCountryNames": [
+        "CROATIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 6
+      }
+    },
+    {
+      "name": "Cuba",
+      "countryCode": "CU",
+      "geoCountryNames": [
+        "CUBA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Denmark",
+      "countryCode": "DK",
+      "geoCountryNames": [
+        "DENMARK"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 8,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 4,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "EN",
+      "countryCode": "EN",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 1,
+        "sotAsap": 12,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "European Union",
+      "countryCode": "EU",
+      "description": "Platforms operated by Euro-Argo ERIC, EMSO ERIC, EUMETNET, EUMETSAT.",
+      "geoCountryNames": [
+        "EUMETNET",
+        "EUROPE"
+      ],
+      "networks": {
+        "driftingBuoys": 134,
+        "argo": 27,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 2,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Finland",
+      "countryCode": "FI",
+      "geoCountryNames": [
+        "FINLAND"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 3,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "FJ",
+      "countryCode": "FJ",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 27,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "FO",
+      "countryCode": "FO",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 12,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "France",
+      "countryCode": "FR",
+      "geoCountryNames": [
+        "FRANCE"
+      ],
+      "networks": {
+        "driftingBuoys": 2,
+        "argo": 306,
+        "oceanGliders": 89,
+        "aniBOS": 3,
+        "fvon": 0,
+        "sotVos": 51,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 12,
+        "oceanSites": 6,
+        "mooredBuoys": 32,
+        "tsunamiBuoys": 0,
+        "hfRadars": 9
+      }
+    },
+    {
+      "name": "Germany",
+      "countryCode": "DE",
+      "geoCountryNames": [
+        "GERMANY"
+      ],
+      "networks": {
+        "driftingBuoys": 11,
+        "argo": 289,
+        "oceanGliders": 10,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 358,
+        "sotAsap": 1,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 43,
+        "mooredBuoys": 5,
+        "tsunamiBuoys": 0,
+        "hfRadars": 3
+      }
+    },
+    {
+      "name": "Greece",
+      "countryCode": "GR",
+      "geoCountryNames": [
+        "GREECE"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 6,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 1,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 1,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "GW",
+      "countryCode": "GW",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 1,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "HK",
+      "countryCode": "HK",
+      "geoCountryNames": [
+        "HONG KONG"
+      ],
+      "networks": {
+        "driftingBuoys": 3,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Iceland",
+      "countryCode": "IS",
+      "geoCountryNames": [
+        "ICELAND"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 4,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 1,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "India",
+      "countryCode": "IN",
+      "geoCountryNames": [
+        "INDIA"
+      ],
+      "networks": {
+        "driftingBuoys": 3,
+        "argo": 116,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 5,
+        "oceanSites": 12,
+        "mooredBuoys": 11,
+        "tsunamiBuoys": 1,
+        "hfRadars": 10
+      }
+    },
+    {
+      "name": "Indonesia",
+      "countryCode": "ID",
+      "geoCountryNames": [
+        "INDONESIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 1,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "Ireland",
+      "countryCode": "IE",
+      "geoCountryNames": [
+        "IRELAND"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 11,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 4,
+        "tsunamiBuoys": 0,
+        "hfRadars": 4
+      }
+    },
+    {
+      "name": "Israel",
+      "countryCode": "IL",
+      "geoCountryNames": [
+        "ISRAEL"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 4
+      }
+    },
+    {
+      "name": "Italy",
+      "countryCode": "IT",
+      "geoCountryNames": [
+        "ITALY"
+      ],
+      "networks": {
+        "driftingBuoys": 33,
+        "argo": 96,
+        "oceanGliders": 6,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 2,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 27
+      }
+    },
+    {
+      "name": "Japan",
+      "countryCode": "JP",
+      "geoCountryNames": [
+        "JAPAN"
+      ],
+      "networks": {
+        "driftingBuoys": 13,
+        "argo": 147,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 150,
+        "sotAsap": 1,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 14,
+        "oceanSites": 5,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 22
+      }
+    },
+    {
+      "name": "Jordan",
+      "countryCode": "JO",
+      "geoCountryNames": [
+        "JORDAN"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 1
+      }
+    },
+    {
+      "name": "Kiribati",
+      "countryCode": "KI",
+      "geoCountryNames": [
+        "KIRIBATI"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Korea (Republic Of)",
+      "countryCode": "KR",
+      "geoCountryNames": [
+        "SOUTH KOREA"
+      ],
+      "networks": {
+        "driftingBuoys": 12,
+        "argo": 18,
+        "oceanGliders": 15,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 20,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 27,
+        "mooredBuoys": 34,
+        "tsunamiBuoys": 0,
+        "hfRadars": 25
+      }
+    },
+    {
+      "name": "Malta",
+      "countryCode": "MT",
+      "geoCountryNames": [
+        "MALTA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 4
+      }
+    },
+    {
+      "name": "Marshall Islands",
+      "countryCode": "MH",
+      "geoCountryNames": [
+        "MARSHALL IS."
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Mauritius",
+      "countryCode": "MU",
+      "geoCountryNames": [
+        "MAURITIUS"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Mexico",
+      "countryCode": "MX",
+      "geoCountryNames": [
+        "MEXICO"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 5,
+        "aniBOS": 0,
+        "fvon": 14,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 1
+      }
+    },
+    {
+      "name": "Micronesia, Federated States Of",
+      "countryCode": "FM",
+      "geoCountryNames": [
+        "MICRONESIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Nauru",
+      "countryCode": "NR",
+      "geoCountryNames": [
+        "NAURU"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Netherlands",
+      "countryCode": "NL",
+      "geoCountryNames": [
+        "NETHERLANDS"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 28,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 10,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 8,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "New Zealand",
+      "countryCode": "NZ",
+      "geoCountryNames": [
+        "NEW ZEALAND"
+      ],
+      "networks": {
+        "driftingBuoys": 2,
+        "argo": 16,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 4,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Norway",
+      "countryCode": "NO",
+      "geoCountryNames": [
+        "NORWAY"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 37,
+        "oceanGliders": 5,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 2,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 6,
+        "oceanSites": 5,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 8
+      }
+    },
+    {
+      "name": "Papua New Guinea",
+      "countryCode": "PG",
+      "geoCountryNames": [
+        "PNG"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Peru",
+      "countryCode": "PE",
+      "geoCountryNames": [
+        "PERU"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 4,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 2,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Philippines",
+      "countryCode": "PH",
+      "geoCountryNames": [
+        "PHILIPPINES"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Poland",
+      "countryCode": "PL",
+      "geoCountryNames": [
+        "POLAND"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 10,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Portugal",
+      "countryCode": "PT",
+      "geoCountryNames": [
+        "PORTUGAL"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 4,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 2,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 3,
+        "tsunamiBuoys": 0,
+        "hfRadars": 10
+      }
+    },
+    {
+      "name": "Puerto Rico",
+      "countryCode": "PR",
+      "geoCountryNames": [
+        "PUERTO RICO"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Russian Federation",
+      "countryCode": "RU",
+      "geoCountryNames": [
+        "RUSSIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 8,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 4,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 1
+      }
+    },
+    {
+      "name": "Singapore",
+      "countryCode": "SG",
+      "geoCountryNames": [
+        "SINGAPORE"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Slovenia",
+      "countryCode": "SI",
+      "geoCountryNames": [
+        "SLOVENIA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "South Africa",
+      "countryCode": "ZA",
+      "geoCountryNames": [
+        "SOUTH AFRICA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 2,
+        "oceanGliders": 3,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 1,
+        "sotAsap": 0,
+        "sot": 1,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Spain",
+      "countryCode": "ES",
+      "geoCountryNames": [
+        "SPAIN"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 37,
+        "oceanGliders": 45,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 2,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 2,
+        "mooredBuoys": 15,
+        "tsunamiBuoys": 0,
+        "hfRadars": 32
+      }
+    },
+    {
+      "name": "Sweden",
+      "countryCode": "SE",
+      "geoCountryNames": [
+        "SWEDEN"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 146,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 2,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "Thailand",
+      "countryCode": "TH",
+      "geoCountryNames": [
+        "THAILAND"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 2,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 6
+      }
+    },
+    {
+      "name": "Tonga",
+      "countryCode": "TO",
+      "geoCountryNames": [
+        "TONGA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Tuvalu",
+      "countryCode": "TV",
+      "geoCountryNames": [
+        "TUVALU"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "TZ",
+      "countryCode": "TZ",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 25,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "U-",
+      "countryCode": "U-",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 4,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Ukraine",
+      "countryCode": "UA",
+      "geoCountryNames": [
+        "UKRAINE"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 6,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "UN",
+      "countryCode": "UN",
+      "geoCountryNames": [],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 10,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "United Arab Emirates",
+      "countryCode": "AE",
+      "geoCountryNames": [
+        "UAE"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 2
+      }
+    },
+    {
+      "name": "United Kingdom",
+      "countryCode": "GB",
+      "geoCountryNames": [
+        "UK"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 138,
+        "oceanGliders": 56,
+        "aniBOS": 15,
+        "fvon": 6,
+        "sotVos": 180,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 3,
+        "oceanSites": 41,
+        "mooredBuoys": 10,
+        "tsunamiBuoys": 0,
+        "hfRadars": 4
+      }
+    },
+    {
+      "name": "United States",
+      "countryCode": "US",
+      "geoCountryNames": [
+        "USA"
+      ],
+      "networks": {
+        "driftingBuoys": 936,
+        "argo": 2475,
+        "oceanGliders": 431,
+        "aniBOS": 10,
+        "fvon": 334,
+        "sotVos": 615,
+        "sotAsap": 0,
+        "sot": 18,
+        "goShip": 0,
+        "gloss": 24,
+        "oceanSites": 181,
+        "mooredBuoys": 181,
+        "tsunamiBuoys": 32,
+        "hfRadars": 172
+      }
+    },
+    {
+      "name": "Uruguay",
+      "countryCode": "UY",
+      "geoCountryNames": [
+        "URUGUAY"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Vanuatu",
+      "countryCode": "VU",
+      "geoCountryNames": [
+        "VANUATU"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    },
+    {
+      "name": "Viet Nam",
+      "countryCode": "VN",
+      "geoCountryNames": [
+        "VIET NAM"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 0,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 3
+      }
+    },
+    {
+      "name": "Wallis And Futuna Islands",
+      "countryCode": "WF",
+      "geoCountryNames": [
+        "WALLIS/FUTUNA"
+      ],
+      "networks": {
+        "driftingBuoys": 0,
+        "argo": 0,
+        "oceanGliders": 0,
+        "aniBOS": 0,
+        "fvon": 0,
+        "sotVos": 0,
+        "sotAsap": 0,
+        "sot": 0,
+        "goShip": 0,
+        "gloss": 1,
+        "oceanSites": 0,
+        "mooredBuoys": 0,
+        "tsunamiBuoys": 0,
+        "hfRadars": 0
+      }
+    }
+  ],
+  "byGeoCountryName": {
+    "USA": "US",
+    "SOUTH KOREA": "KR",
+    "JAPAN": "JP",
+    "NEW ZEALAND": "NZ",
+    "AUSTRALIA": "AU",
+    "INDIA": "IN",
+    "HONG KONG": "HK",
+    "GERMANY": "DE",
+    "CANADA": "CA",
+    "FRANCE": "FR",
+    "ITALY": "IT",
+    "EUMETNET": "EU",
+    "EUROPE": "EU",
+    "DENMARK": "DK",
+    "NETHERLANDS": "NL",
+    "CHINA": "CN",
+    "BRAZIL": "BR",
+    "POLAND": "PL",
+    "FINLAND": "FI",
+    "INDONESIA": "ID",
+    "IRELAND": "IE",
+    "SOUTH AFRICA": "ZA",
+    "UKRAINE": "UA",
+    "PORTUGAL": "PT",
+    "SPAIN": "ES",
+    "NORWAY": "NO",
+    "BULGARIA": "BG",
+    "UK": "GB",
+    "GREECE": "GR",
+    "COLOMBIA": "CO",
+    "BELGIUM": "BE",
+    "BERMUDA": "BM",
+    "MEXICO": "MX",
+    "PERU": "PE",
+    "SWEDEN": "SE",
+    "BANGLADESH": "BD",
+    "BAHAMAS": "BS",
+    "CHILE": "CL",
+    "ICELAND": "IS",
+    "RUSSIA": "RU",
+    "ARGENTINA": "AR",
+    "COOK ISLANDS": "CK",
+    "CUBA": "CU",
+    "MICRONESIA": "FM",
+    "ISRAEL": "IL",
+    "KIRIBATI": "KI",
+    "MARSHALL IS.": "MH",
+    "MAURITIUS": "MU",
+    "NAURU": "NR",
+    "PNG": "PG",
+    "PHILIPPINES": "PH",
+    "PUERTO RICO": "PR",
+    "SINGAPORE": "SG",
+    "THAILAND": "TH",
+    "TONGA": "TO",
+    "TUVALU": "TV",
+    "URUGUAY": "UY",
+    "VANUATU": "VU",
+    "WALLIS/FUTUNA": "WF",
+    "UAE": "AE",
+    "CROATIA": "HR",
+    "JORDAN": "JO",
+    "MALTA": "MT",
+    "SLOVENIA": "SI",
+    "VIET NAM": "VN"
+  }
+}
