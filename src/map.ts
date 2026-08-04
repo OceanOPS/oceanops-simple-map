@@ -204,6 +204,18 @@ function zoomOutGlobeAtPoint(sceneView: SceneView, mapPoint: __esri.Point): void
   );
 }
 
+export function applyPopupDefaults(view: GlobeView): void {
+  if (!view.popup) return;
+  view.popup.visibleElements = {
+    closeButton: true,
+    collapseButton: true,
+    featureNavigation: true,
+    heading: true,
+    spinner: true,
+    actionBar: true,
+  };
+}
+
 export function applyViewNavigationDefaults(view: GlobeView) {
   view.navigation.actionMap.mouseWheel = "none";
   if ("ui" in view) {

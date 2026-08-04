@@ -5,6 +5,7 @@ import { categories, type Category, type Shape } from "./categories";
 import { attachLegend } from "./legend";
 import {
   applyViewNavigationDefaults,
+  applyPopupDefaults,
   createGlobeView,
   mountBasemapProjectionControl,
   stripBasemapLabels,
@@ -42,19 +43,23 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
         ? {
             title: "{line_name}",
             content: `
-          <b>Type:</b> ${cat.label}<br>
-          <b>Name:</b> {line_name}<br><br>
-          <a target="_blank" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a>
+          <div class="o-map-popup">
+          <p><b>Type:</b> ${cat.label}</p>
+          <p><b>Name:</b> {line_name}</p>
+          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a></p>
+          </div>
         `,
           }
         : {
             title: "{ptf_ref}",
             content: `
-          <b>Type:</b> ${cat.label}<br>
-          <b>Reference:</b> {ptf_ref}<br>
-          <b>Model:</b> {ptf_model}<br>
-          <b>Country:</b> {country_name}<br><br>
-          <a target="_blank" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a>
+          <div class="o-map-popup">
+          <p><b>Type:</b> ${cat.label}</p>
+          <p><b>Reference:</b> {ptf_ref}</p>
+          <p><b>Model:</b> {ptf_model}</p>
+          <p><b>Country:</b> {country_name}</p>
+          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a></p>
+          </div>
         `,
           },
   });
@@ -222,6 +227,7 @@ function createRotationController(
     );
     viewHolder.view = view;
     applyViewNavigationDefaults(view);
+    applyPopupDefaults(view);
     await refreshViewLayout(view);
     await stripBasemapLabels(map);
     await addOperationalLayers(map, projection, layerById);

@@ -977,3 +977,172 @@ body.o-country-modal-open {
 .esri-ui-top-right .esri-component, .esri-ui-top-left .esri-component {
     margin-bottom: 0px !important;
 }
+
+/* Feature popups — match legend / OceanOPS navy + orange */
+.esri-view .esri-popup {
+  --calcite-color-foreground-1: #0b1e42;
+  --calcite-color-foreground-2: #0b1e42;
+  --calcite-color-foreground-3: #0b1e42;
+  --calcite-color-background: #0b1e42;
+  --calcite-color-text-1: #f8f8f8;
+  --calcite-color-text-2: rgba(248, 248, 248, 0.92);
+  --calcite-color-text-3: rgba(248, 248, 248, 0.85);
+  --calcite-color-border-1: rgba(248, 248, 248, 0.2);
+  --calcite-color-border-2: rgba(248, 248, 248, 0.2);
+  --calcite-color-border-3: rgba(248, 248, 248, 0.25);
+  --calcite-color-brand: #f48b25;
+  --calcite-link-color: #f48b25;
+  --calcite-ui-icon-color: #f8f8f8;
+}
+
+.esri-view .esri-popup calcite-panel,
+.esri-view .esri-popup calcite-flow-item {
+  --calcite-color-foreground-1: #0b1e42;
+  --calcite-color-foreground-2: #0b1e42;
+  --calcite-color-foreground-3: #0b1e42;
+  --calcite-color-background: #0b1e42;
+  --calcite-color-text-1: #f8f8f8;
+  --calcite-color-text-2: rgba(248, 248, 248, 0.92);
+  --calcite-color-text-3: rgba(248, 248, 248, 0.85);
+  --calcite-color-border-1: rgba(248, 248, 248, 0.2);
+  --calcite-color-border-2: rgba(248, 248, 248, 0.2);
+  --calcite-color-border-3: rgba(248, 248, 248, 0.25);
+  --calcite-color-brand: #f48b25;
+  --calcite-link-color: #f48b25;
+  --calcite-ui-icon-color: #f8f8f8;
+}
+
+.esri-view .esri-popup__main-container {
+  background-color: #0b1e42 !important;
+  color: #f8f8f8 !important;
+  border: 1px solid rgba(248, 248, 248, 0.25) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.esri-view .esri-popup--shadow {
+  box-shadow: none !important;
+}
+
+.esri-view .esri-popup__header-container,
+.esri-view .esri-popup__header,
+.esri-view .esri-popup__footer,
+.esri-view .esri-popup__footer--has-pagination {
+  background-color: #0b1e42 !important;
+  color: #f8f8f8 !important;
+  border-color: rgba(248, 248, 248, 0.15) !important;
+}
+
+.esri-view .esri-popup__header-title,
+.esri-view .esri-popup .esri-widget__heading,
+.esri-view .esri-feature__title,
+.esri-view .esri-feature__heading {
+  color: #f8f8f8 !important;
+  font-weight: 600 !important;
+}
+
+.esri-view .esri-popup__content,
+.esri-view .esri-feature-content,
+.esri-view .esri-feature-fields,
+.esri-view .esri-feature__content-node {
+  background: transparent !important;
+  color: rgba(248, 248, 248, 0.92) !important;
+}
+
+.esri-view .esri-popup__pointer-direction {
+  background-color: #0b1e42 !important;
+}
+
+.esri-view .esri-popup__button,
+.esri-view .esri-popup calcite-action,
+.esri-view .esri-popup calcite-button {
+  --calcite-color-foreground-1: #0b1e42;
+  --calcite-color-foreground-2: #0b1e42;
+  --calcite-color-foreground-3: #0b1e42;
+  --calcite-color-text-1: #f8f8f8;
+  --calcite-ui-icon-color: #f8f8f8;
+}
+
+.esri-view .esri-popup__button:hover,
+.esri-view .esri-popup calcite-action:hover {
+  background-color: rgba(244, 139, 37, 0.2) !important;
+}
+
+.esri-view .esri-popup__navigation,
+.esri-view .esri-popup__pagination-page-text {
+  color: rgba(248, 248, 248, 0.85) !important;
+}
+
+.esri-view .esri-popup__action-text {
+  color: #f48b25 !important;
+}
+
+/* Multi-feature bar (prev/next, “1 of N”) — often stays white without this */
+.esri-view .esri-popup .esri-features,
+.esri-view .esri-popup .esri-features__container {
+  background-color: #0b1e42 !important;
+  --calcite-color-background: #0b1e42;
+}
+
+.esri-view .esri-popup .esri-features__header,
+.esri-view .esri-popup .esri-features__footer {
+  background-color: #0b1e42 !important;
+  border-color: rgba(248, 248, 248, 0.15) !important;
+}
+
+.esri-view .esri-popup .esri-features__pagination-text {
+  color: rgba(248, 248, 248, 0.85) !important;
+}
+
+.esri-view .esri-popup .esri-features__pagination-menu-button {
+  border-color: rgba(248, 248, 248, 0.15) !important;
+}
+
+.esri-view .esri-popup .esri-features calcite-action-bar,
+.esri-view .esri-popup .esri-features calcite-action-group,
+.esri-view .esri-popup calcite-action-bar {
+  --calcite-color-foreground-1: #0b1e42;
+  --calcite-color-foreground-2: #0b1e42;
+  --calcite-color-foreground-3: #0b1e42;
+  --calcite-color-background: #0b1e42;
+  --calcite-color-text-1: #f8f8f8;
+  --calcite-ui-icon-color: #f8f8f8;
+  background-color: #0b1e42 !important;
+}
+
+.esri-view .esri-popup calcite-flow,
+.esri-view .esri-popup calcite-flow-item::part(header) {
+  background-color: #0b1e42;
+}
+
+.esri-view .o-map-popup {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.esri-view .o-map-popup p {
+  margin: 0 0 8px;
+}
+
+.esri-view .o-map-popup p:last-child {
+  margin-bottom: 0;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(248, 248, 248, 0.12);
+}
+
+.esri-view .o-map-popup b {
+  color: #f8f8f8;
+  font-weight: 700;
+}
+
+.esri-view .o-map-popup a {
+  color: #f48b25;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.esri-view .o-map-popup a:hover {
+  color: #f6a555;
+  text-decoration: underline;
+}
