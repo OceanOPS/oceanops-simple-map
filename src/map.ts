@@ -1,23 +1,45 @@
 import esriConfig from "@arcgis/core/config.js";
+import Extent from "@arcgis/core/geometry/Extent.js";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
+import MapView from "@arcgis/core/views/MapView.js";
 import Basemap from "@arcgis/core/Basemap.js";
 import TileLayer from "@arcgis/core/layers/TileLayer.js";
-export async function initMap(containerId = "viewDiv") {
-  esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
+import {
+  is3dProjection,
+  PROJECTION_3D_GLOBE,
+  PROJECTION_WEB_MERCATOR,
+  type ProjectionId,
+} from "./projections";
+import type { GlobeView, ViewHolder } from "./viewHolder";
 
-  const BASE = import.meta.env.BASE_URL;
+esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
+export type BasemapKind = "map" | "satellite";
+
+const BASE = import.meta.env.BASE_URL;
+
+/** Web Mercator valid world (matches ~±85° latitude). */
+export const WEB_MERCATOR_NAV_BOUNDS = new Extent({
+  xmin: -20037508.342787,
+  ymin: -19971868.88040863,
+  xmax: 20037508.342787,
+  ymax: 19971868.88040863,
+  spatialReference: SpatialReference.WebMercator,
+});
+
+export function createNavigationBasemap() {
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
 
   // CURRENT: Ocean base (default)
-  // const oceanBase = new TileLayer({
-  //   url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
-  // });
-  // const basemap = new Basemap({
-  //   baseLayers: [oceanBase],
-  //   referenceLayers: []
-  // });
+  const oceanBase = new TileLayer({
+    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer",
+  });
+  const basemap = new Basemap({
+    baseLayers: [oceanBase],
+    referenceLayers: [],
+  });
 
   // OPTION 1: Gray Vector (light minimalist)
   // const basemap = Basemap.fromId("gray-vector");
@@ -55,7 +77,7 @@ export async function initMap(containerId = "viewDiv") {
   // OPTION 12: Streets Relief (with terrain shading)
   // const basemap = Basemap.fromId("streets-relief-vector");
 
-   // ===== 3D OPTIMIZED BASEMAPS (Best for SceneView/Globe) =====
+  // ===== 3D OPTIMIZED BASEMAPS (Best for SceneView/Globe) =====
 
   // OPTION 13: Gray 3D (ultra minimal light - RECOMMENDED for clean look)
   // const basemap = Basemap.fromId("gray-3d");
@@ -68,17 +90,6 @@ export async function initMap(containerId = "viewDiv") {
 
   // OPTION 16: Navigation 3D (clean navigation for 3D)
   // const basemapId = "navigation-3d";
-
-  // Pre-load both basemaps for smooth switching
-  // Ocean base (default)
-  const oceanBase = new TileLayer({
-    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
-  });
-  const navigationBasemap = new Basemap({
-    baseLayers: [oceanBase],
-    referenceLayers: []
-  });
-  const satelliteBasemap = Basemap.fromId("satellite");
 
   // OPTION 17: Navigation Dark 3D (dark navigation for 3D)
   // const basemap = Basemap.fromId("navigation-dark-3d");
@@ -94,204 +105,227 @@ export async function initMap(containerId = "viewDiv") {
 
   // ===== END BASEMAP OPTIONS =====
 
+  return basemap;
+}
+
+export function createSatelliteBasemap() {
+  return Basemap.fromId("satellite");
+}
+
+export function basemapForKind(kind: BasemapKind) {
+  return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemap();
+}
+
+export async function stripBasemapLabels(map: Map) {
+  if (!map.basemap) return;
+  map.basemap.referenceLayers.removeAll();
+  const baseLayers = map.basemap.baseLayers;
+  const loadPromises = baseLayers.map((layer: __esri.Layer) => layer.load?.() ?? Promise.resolve());
+  await Promise.all(loadPromises);
+
+  const layersToRemove: __esri.Layer[] = [];
+  baseLayers.forEach((layer: __esri.Layer) => {
+    const title = (layer.title || "").toLowerCase();
+    const id = (layer.id || "").toLowerCase();
+    const url = ("url" in layer ? String(layer.url) : "").toLowerCase();
+    if (
+      /label|reference|place|text/.test(title) ||
+      /label|reference|place|text/.test(id) ||
+      /label|reference|place|text/.test(url)
+    ) {
+      layersToRemove.push(layer);
+    }
+  });
+  layersToRemove.forEach((layer) => baseLayers.remove(layer));
+}
+
+export function createGlobeView(
+  projection: ProjectionId,
+  basemapKind: BasemapKind,
+  container: HTMLDivElement | string
+): { map: Map; view: GlobeView } {
   const map = new Map({
-    basemap: navigationBasemap
+    basemap: basemapForKind(basemapKind),
   });
 
-  const view = new SceneView({
-    container: containerId,
-    map,
-    camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
-    qualityProfile: "low",
-    environment: {
-      atmosphereEnabled: false,
-      starsEnabled: false,
-      lighting: {
-        type: "virtual",
-        directShadowsEnabled: false
+  if (is3dProjection(projection)) {
+    const view = new SceneView({
+      container,
+      map,
+      camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
+      qualityProfile: "low",
+      environment: {
+        atmosphereEnabled: false,
+        starsEnabled: false,
+        lighting: {
+          type: "virtual",
+          directShadowsEnabled: false,
+        },
+        background: { type: "color", color: [11, 30, 66, 1] },
       },
-      background: { type: "color", color: [11, 30, 66, 1] }
+      highlightOptions: {
+        color: [244, 139, 37, 1],
+        haloOpacity: 0.9,
+        fillOpacity: 0.2,
+      },
+    });
+    return { map, view };
+  }
+
+  const view = new MapView({
+    container,
+    map,
+    center: [0, 20],
+    zoom: 3,
+    constraints: {
+      geometry: WEB_MERCATOR_NAV_BOUNDS,
+      rotationEnabled: false,
+      minZoom: 3,
+      snapToZoom: false,
     },
     highlightOptions: {
-      color: [244, 139, 37, 1], // #f48b25 in RGBA
+      color: [244, 139, 37, 1],
       haloOpacity: 0.9,
-      fillOpacity: 0.2
-    }
+      fillOpacity: 0.2,
+    },
   });
+  return { map, view };
+}
 
-  await view.when();
-
-  // Remove labels and boundaries from basemap after it loads
-  if (map.basemap) {
-    // Remove all reference layers (labels, place names, boundaries)
-    map.basemap.referenceLayers.removeAll();
-
-    // Wait for base layers to load, then filter out label layers
-    const baseLayers = map.basemap.baseLayers;
-    const removeLabels = async () => {
-      // Wait for all layers to load
-      const loadPromises = baseLayers.map((layer: any) => layer.load?.() || Promise.resolve());
-      await Promise.all(loadPromises);
-
-      const layersToRemove: any[] = [];
-      baseLayers.forEach((layer: any) => {
-        // Remove layers that contain "label", "reference", "place", or "text" in their title/id/url
-        const title = (layer.title || "").toLowerCase();
-        const id = (layer.id || "").toLowerCase();
-        const url = (layer.url || "").toLowerCase();
-        if (title.includes("label") || title.includes("reference") || title.includes("place") || title.includes("text") ||
-            id.includes("label") || id.includes("reference") || id.includes("place") || id.includes("text") ||
-            url.includes("label") || url.includes("reference") || url.includes("place") || url.includes("text")) {
-          layersToRemove.push(layer);
-        }
-      });
-      layersToRemove.forEach(layer => baseLayers.remove(layer));
-    };
-    removeLabels();
-  }
-
-  // Disable mouse wheel zoom using new API
+export function applyViewNavigationDefaults(view: GlobeView) {
   view.navigation.actionMap.mouseWheel = "none";
-
-  // Add basemap selector FIRST so it appears at the top
-  const basemapToggle = document.createElement("button");
-  basemapToggle.className = "o-basemap-toggle";
-  basemapToggle.title = "Change basemap";
-  basemapToggle.setAttribute("aria-label", "Change basemap");
-
-  let currentBasemap: "map" | "satellite" = "map";
-
-  const updateToggleContent = () => {
-    if (currentBasemap === "map") {
-      // Show satellite preview
-      basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>
-        <span>Satellite layer</span>
-      `;
-    } else {
-      // Show map preview
-      basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>
-        <span>Map layer</span>
-      `;
-    }
-  };
-
-  updateToggleContent();
-
-  basemapToggle.addEventListener("click", async () => {
-    currentBasemap = currentBasemap === "map" ? "satellite" : "map";
-    updateToggleContent();
-
-    if (currentBasemap === "satellite") {
-      map.basemap = satelliteBasemap;
-    } else {
-      map.basemap = navigationBasemap;
-    }
-  });
-
-  view.ui.add(basemapToggle, { position: "top-left", index: 4 });
-
-  // Remove navigation toggle
-  view.ui.remove("navigation-toggle");
-
-  // NOTE: zoom and compass will be moved to specific positions after legend is added
-  // This happens in attachLegend function
-
-  // Auto-rotate globe until user interacts
-  let isRotating = true;
-  let rotationFrame: number;
-  let onRotationStateChange: (() => void) | null = null;
-
-  const rotate = () => {
-    if (!isRotating) return;
-
-    const camera = view.camera.clone();
-    if (camera.position.longitude !== null && camera.position.longitude !== undefined) {
-      camera.position.longitude += 0.1; // Rotation speed
-      view.goTo(camera, { animate: false }).catch(() => {});
-    }
-    rotationFrame = requestAnimationFrame(rotate);
-  };
-
-  const stopRotation = () => {
-    if (isRotating) {
-      isRotating = false;
-      if (rotationFrame) cancelAnimationFrame(rotationFrame);
-      if (onRotationStateChange) onRotationStateChange();
-    }
-  };
-
-  const startRotation = () => {
-    if (!isRotating) {
-      isRotating = true;
-      rotate();
-      if (onRotationStateChange) onRotationStateChange();
-    }
-  };
-
-  const toggleRotation = () => {
-    if (isRotating) {
-      stopRotation();
-    } else {
-      startRotation();
-    }
-    return isRotating;
-  };
-
-  const setRotationStateChangeCallback = (callback: () => void) => {
-    onRotationStateChange = callback;
-  };
-
-  // Stop rotation on user interaction
-  view.on("drag", stopRotation);
-  view.on("key-down", stopRotation);
-  view.on("double-click", stopRotation);
-
-  // Cursor management: grab for map, pointer for features
-  let isDragging = false;
-
-  // Set initial cursor
-  if (view.container) {
-    view.container.style.cursor = "grab";
+  if ("ui" in view) {
+    view.ui.remove("navigation-toggle");
   }
+}
 
-  // Change to grabbing cursor while dragging
-  view.on("drag", (event) => {
-    if (event.action === "start") {
-      isDragging = true;
-      if (view.container) view.container.style.cursor = "grabbing";
-    } else if (event.action === "end") {
-      isDragging = false;
-      if (view.container) view.container.style.cursor = "grab";
-    }
-  });
+export interface MapChromeOptions {
+  viewHolder: ViewHolder;
+  getProjection: () => ProjectionId;
+  getBasemapKind: () => BasemapKind;
+  onBasemapKindChange: (kind: BasemapKind) => void;
+  onProjectionChange: (projection: ProjectionId) => Promise<void>;
+}
 
-  // Change cursor to pointer when hovering over features
-  view.on("pointer-move", async (event) => {
-    if (isDragging || !view.container) return;
+/** Basemap preview + projection picker (bottom-left stack). */
+export function mountBasemapProjectionControl(
+  view: GlobeView,
+  options: MapChromeOptions
+): void {
+  const menu = document.createElement("div");
+  menu.className = "o-map-display-menu";
 
-    try {
-      const response = await view.hitTest(event);
-      if (response.results.length > 0) {
-        view.container.style.cursor = "pointer";
-      } else {
-        view.container.style.cursor = "grab";
-      }
-    } catch {
-      // Ignore hitTest errors
-    }
-  });
+  // —— Basemap (layer) ——
+  const basemapSection = document.createElement("div");
+  basemapSection.className = "o-map-display-section o-map-display-section--basemap";
 
-  // Start rotation
-  rotate();
+  const basemapHeading = document.createElement("span");
+  basemapHeading.className = "o-map-display-heading";
+  basemapHeading.textContent = "Basemap";
 
-  return {
-    map,
-    view,
-    toggleRotation,
-    isRotating: () => isRotating,
-    setRotationStateChangeCallback,
-    stopRotation
+  const previewBtn = document.createElement("button");
+  previewBtn.type = "button";
+  previewBtn.className = "o-basemap-preview-btn";
+  previewBtn.title = "Switch ocean / satellite basemap";
+  previewBtn.setAttribute("aria-label", "Switch basemap");
+
+  const basemapHint = document.createElement("span");
+  basemapHint.className = "o-basemap-kind-label";
+
+  basemapSection.append(basemapHeading, previewBtn, basemapHint);
+
+  const divider = document.createElement("div");
+  divider.className = "o-map-display-divider";
+  divider.setAttribute("aria-hidden", "true");
+
+  // —— Projection ——
+  const projectionSection = document.createElement("div");
+  projectionSection.className = "o-map-display-section o-map-display-section--projection";
+
+  const projectionHeading = document.createElement("span");
+  projectionHeading.className = "o-map-display-heading";
+  projectionHeading.textContent = "Projection";
+
+  const projectionChoices = document.createElement("div");
+  projectionChoices.className = "o-projection-choices";
+  projectionChoices.setAttribute("role", "group");
+  projectionChoices.setAttribute("aria-label", "Map projection");
+
+  const globeBtn = document.createElement("button");
+  globeBtn.type = "button";
+  globeBtn.className = "o-projection-choice";
+  globeBtn.dataset.projection = PROJECTION_3D_GLOBE;
+  globeBtn.textContent = "3D Globe";
+
+  const mercatorBtn = document.createElement("button");
+  mercatorBtn.type = "button";
+  mercatorBtn.className = "o-projection-choice";
+  mercatorBtn.dataset.projection = PROJECTION_WEB_MERCATOR;
+  mercatorBtn.textContent = "Web Mercator";
+
+  projectionChoices.append(globeBtn, mercatorBtn);
+  projectionSection.append(projectionHeading, projectionChoices);
+
+  const syncProjectionButtons = (projection: ProjectionId) => {
+    const is3d = projection === PROJECTION_3D_GLOBE;
+    globeBtn.classList.toggle("is-active", is3d);
+    mercatorBtn.classList.toggle("is-active", !is3d);
+    globeBtn.setAttribute("aria-pressed", String(is3d));
+    mercatorBtn.setAttribute("aria-pressed", String(!is3d));
   };
+
+  const updateBasemapUi = () => {
+    const basemapKind = options.getBasemapKind();
+
+    if (basemapKind === "map") {
+      previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>`;
+      basemapHint.textContent = "Tap for satellite";
+    } else {
+      previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>`;
+      basemapHint.textContent = "Tap for ocean map";
+    }
+  };
+
+  const updateUi = () => {
+    updateBasemapUi();
+    syncProjectionButtons(options.getProjection());
+  };
+
+  updateUi();
+
+  previewBtn.addEventListener("click", () => {
+    const next = options.getBasemapKind() === "map" ? "satellite" : "map";
+    options.onBasemapKindChange(next);
+    const map = options.viewHolder.view.map;
+    if (map) map.basemap = basemapForKind(next);
+    updateBasemapUi();
+  });
+
+  const onProjectionPick = async (target: ProjectionId) => {
+    if (target === options.getProjection()) return;
+    projectionChoices.classList.add("is-busy");
+    globeBtn.disabled = true;
+    mercatorBtn.disabled = true;
+    try {
+      await options.onProjectionChange(target);
+      updateUi();
+    } finally {
+      projectionChoices.classList.remove("is-busy");
+      globeBtn.disabled = false;
+      mercatorBtn.disabled = false;
+    }
+  };
+
+  globeBtn.addEventListener("click", () => void onProjectionPick(PROJECTION_3D_GLOBE));
+  mercatorBtn.addEventListener("click", () => void onProjectionPick(PROJECTION_WEB_MERCATOR));
+
+  menu.append(basemapSection, divider, projectionSection);
+  view.ui.add(menu, { position: "top-left", index: 4 });
+}
+
+export function mountBasemapControlOnView(
+  view: GlobeView,
+  options: MapChromeOptions
+): void {
+  mountBasemapProjectionControl(view, options);
 }

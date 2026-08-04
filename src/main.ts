@@ -1,128 +1,270 @@
-import { initMap } from "./map";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
-import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer.js";
-import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D.js";
-import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer.js";
-import { categories, type Shape } from "./categories";
+import EsriMap from "@arcgis/core/Map.js";
+import type SceneView from "@arcgis/core/views/SceneView.js";
+import { categories, type Category, type Shape } from "./categories";
 import { attachLegend } from "./legend";
+import {
+  applyViewNavigationDefaults,
+  createGlobeView,
+  mountBasemapProjectionControl,
+  stripBasemapLabels,
+  type BasemapKind,
+} from "./map";
+import {
+  is3dProjection,
+  PROJECTION_3D_GLOBE,
+  type ProjectionId,
+} from "./projections";
+import { makeCategoryRenderer } from "./renderers";
+import type { GlobeView, ViewHolder } from "./viewHolder";
+import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 
 const BASE = import.meta.env.BASE_URL;
 
-export function makeImageRenderer(imagePath: string) {
-  return new SimpleRenderer({
-    symbol: new PointSymbol3D({
-      symbolLayers: [
-        new IconSymbol3DLayer({
-          resource: { href: `${BASE}${imagePath}` },
-          size: 11,
-          anchor: "center",
-        })
-      ]
-    })
-  });
-}
+function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLayer {
+  const kind =
+    cat.type === "image" ? "image" : cat.type === "line" ? "line" : "point";
+  const renderer = makeCategoryRenderer(
+    projection,
+    kind,
+    cat.color,
+    cat.type === "image" ? cat.imagePath : undefined,
+    cat.type === "point" ? ((cat.shape ?? "circle") as Shape) : undefined
+  );
 
-export function makePointRenderer3D(color: string, shape: Shape = "circle") {
-  return new SimpleRenderer({
-    symbol: new PointSymbol3D({
-      symbolLayers: [
-        new IconSymbol3DLayer({
-          resource: { primitive: shape },
-          material: { color },
-          size: 5,
-          outline: { color: "black", size: 0.5 },
-        }),
-      ],
-    })
-  });
-}
-
-function makeLineRenderer(color: string) {
-  return new SimpleRenderer({
-    symbol: {
-      type: "line-3d",
-      symbolLayers: [{
-        type: "path",
-        material: { color },
-        width: 20000,
-      }]
-    } as any
-  });
-}
-
-
-
-(async () => {
-  const { map, view, toggleRotation, isRotating, setRotationStateChangeCallback, stopRotation } = await initMap("viewDiv");
-
-  const layerById = new Map<string, GeoJSONLayer>();
-  const layerPromises: Promise<unknown>[] = [];
-  const BASE = import.meta.env.BASE_URL;
-
-  for (const cat of categories) {
-
-    const renderer =
-  cat.type === "image"
-    ? makeImageRenderer(cat.imagePath ?? '') 
-    : cat.type === "line"
-    ? makeLineRenderer(cat.color)
-    : makePointRenderer3D(cat.color, (cat.shape ?? "circle") as Shape);
-
-
-    const layer = new GeoJSONLayer({
-      url: `${BASE}geojson/${cat.id}.geojson`,
-      title: cat.label,
-      outFields: ["*"],
-      renderer: renderer,
-      elevationInfo: cat.type === 'line'
-        ? { mode: "on-the-ground" }
-        : { mode: "absolute-height", featureExpressionInfo: { expression: "0" }, offset: 0 },
-      screenSizePerspectiveEnabled: true,
-      popupTemplate: cat.type === 'line' ? 
-      {
-        title: "{line_name}",
-        content: `
+  const layer = new GeoJSONLayer({
+    url: `${BASE}geojson/${cat.id}.geojson`,
+    title: cat.label,
+    outFields: ["*"],
+    renderer,
+    popupTemplate:
+      cat.type === "line"
+        ? {
+            title: "{line_name}",
+            content: `
           <b>Type:</b> ${cat.label}<br>
           <b>Name:</b> {line_name}<br><br>
           <a target="_blank" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a>
         `,
-      } : {
-        title: "{ptf_ref}",
-        content: `
+          }
+        : {
+            title: "{ptf_ref}",
+            content: `
           <b>Type:</b> ${cat.label}<br>
           <b>Reference:</b> {ptf_ref}<br>
           <b>Model:</b> {ptf_model}<br>
           <b>Country:</b> {country_name}<br><br>
           <a target="_blank" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a>
         `,
-      },
-    });
+          },
+  });
 
+  if (is3dProjection(projection)) {
+    layer.elevationInfo =
+      cat.type === "line"
+        ? { mode: "on-the-ground" }
+        : {
+            mode: "absolute-height",
+            featureExpressionInfo: { expression: "0" },
+            offset: 0,
+          };
+    layer.screenSizePerspectiveEnabled = true;
+  }
+
+  return layer;
+}
+
+async function addOperationalLayers(
+  map: EsriMap,
+  projection: ProjectionId,
+  layerById: Map<string, GeoJSONLayer>
+): Promise<void> {
+  layerById.clear();
+  const layerPromises: Promise<unknown>[] = [];
+
+  for (const cat of categories) {
+    const layer = createGeoJsonLayer(cat as Category, projection);
     map.add(layer);
     layerById.set(cat.id, layer);
     layerPromises.push(layer.when());
   }
 
   await Promise.all(layerPromises);
+}
 
-   let union: __esri.Extent | null = null;
+async function computeLayerUnion(layerById: Map<string, GeoJSONLayer>) {
+  let union: __esri.Extent | null = null;
   for (const layer of layerById.values()) {
     const ext = layer.fullExtent ?? null;
     if (ext) union = union ? union.union(ext) : ext;
   }
-  if (union) view.goTo(union, { animate: false, duration: 0 }).catch(() => {});
+  return union;
+}
 
-  attachLegend(view, layerById, toggleRotation, isRotating, setRotationStateChangeCallback, stopRotation);
+function wirePointerCursor(view: GlobeView) {
+  let isDragging = false;
 
-  // Change cursor to pointer when hovering over interactive features
-  view.on("pointer-move", (event) => {
-    view.hitTest(event).then((response) => {
-      if (!view.container) return;
-      if (response.results.length > 0) {
-        view.container.style.cursor = "pointer";
-      } else {
-        view.container.style.cursor = "default";
-      }
-    });
+  if (view.container) {
+    view.container.style.cursor = "grab";
+  }
+
+  view.on("drag", (event) => {
+    if (event.action === "start") {
+      isDragging = true;
+      if (view.container) view.container.style.cursor = "grabbing";
+    } else if (event.action === "end") {
+      isDragging = false;
+      if (view.container) view.container.style.cursor = "grab";
+    }
   });
+
+  view.on("pointer-move", async (event) => {
+    if (isDragging || !view.container) return;
+    try {
+      const response = await view.hitTest(event);
+      view.container.style.cursor =
+        response.results.length > 0 ? "pointer" : "grab";
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+function createRotationController(
+  viewHolder: ViewHolder,
+  getProjection: () => ProjectionId
+) {
+  let isRotating = true;
+  let rotationFrame: number | undefined;
+  let onRotationStateChange: (() => void) | null = null;
+
+  const rotate = () => {
+    if (!isRotating || !is3dProjection(getProjection())) return;
+    const view = viewHolder.view;
+    if (view.type !== "3d") return;
+
+    const sceneView = view as SceneView;
+    const camera = sceneView.camera.clone();
+    if (camera.position.longitude != null) {
+      camera.position.longitude += 0.1;
+      sceneView.goTo(camera, { animate: false }).catch(() => {});
+    }
+    rotationFrame = requestAnimationFrame(rotate);
+  };
+
+  const stopRotation = () => {
+    if (!isRotating) return;
+    isRotating = false;
+    if (rotationFrame !== undefined) cancelAnimationFrame(rotationFrame);
+    onRotationStateChange?.();
+  };
+
+  const toggleRotation = () => {
+    if (!is3dProjection(getProjection())) return false;
+    if (isRotating) stopRotation();
+    else {
+      isRotating = true;
+      rotate();
+      onRotationStateChange?.();
+    }
+    return isRotating;
+  };
+
+  viewHolder.view.on("drag", stopRotation);
+  viewHolder.view.on("key-down", stopRotation);
+  viewHolder.view.on("double-click", stopRotation);
+
+  rotate();
+
+  return {
+    toggleRotation,
+    isRotating: () => isRotating,
+    setRotationStateChangeCallback: (cb: () => void) => {
+      onRotationStateChange = cb;
+    },
+    stopRotation,
+  };
+}
+
+(async () => {
+  const viewHolder: ViewHolder = { view: null! };
+  const layerById = new Map<string, GeoJSONLayer>();
+
+  let currentProjection: ProjectionId = PROJECTION_3D_GLOBE;
+  let currentBasemapKind: BasemapKind = "map";
+  let rotationApi = {
+    toggleRotation: () => false,
+    isRotating: () => false,
+    setRotationStateChangeCallback: (_cb: () => void) => {},
+    stopRotation: () => {},
+  };
+
+  const attachLegendToView = () => {
+    attachLegend(
+      viewHolder,
+      layerById,
+      () => rotationApi.toggleRotation(),
+      () => rotationApi.isRotating(),
+      (cb) => rotationApi.setRotationStateChangeCallback(cb),
+      () => rotationApi.stopRotation(),
+      () => currentProjection
+    );
+  };
+
+  async function initView(projection: ProjectionId, basemapKind: BasemapKind) {
+    const container = document.getElementById("viewDiv");
+    if (!container) throw new Error("viewDiv not found");
+
+    const { map, view } = createGlobeView(
+      projection,
+      basemapKind,
+      container as HTMLDivElement
+    );
+    viewHolder.view = view;
+    applyViewNavigationDefaults(view);
+    await refreshViewLayout(view);
+    await stripBasemapLabels(map);
+    await addOperationalLayers(map, projection, layerById);
+    wirePointerCursor(view);
+    await refreshViewLayout(view);
+    const layerUnion = await computeLayerUnion(layerById);
+    await fitViewInitialExtent(view, projection, layerUnion);
+    await refreshViewLayout(view);
+
+    mountBasemapProjectionControl(view, {
+      viewHolder,
+      getProjection: () => currentProjection,
+      getBasemapKind: () => currentBasemapKind,
+      onBasemapKindChange: (kind) => {
+        currentBasemapKind = kind;
+      },
+      onProjectionChange: async (next) => {
+        await swapProjection(next);
+      },
+    });
+
+    rotationApi = createRotationController(viewHolder, () => currentProjection);
+    if (!is3dProjection(projection)) {
+      rotationApi.stopRotation();
+    }
+    attachLegendToView();
+  }
+
+  async function swapProjection(projection: ProjectionId) {
+    rotationApi.stopRotation();
+
+    const oldView = viewHolder.view;
+    const oldMap = oldView.map;
+    oldView.container = null;
+    oldView.destroy();
+    oldMap?.destroy();
+
+    currentProjection = projection;
+    await new Promise((r) => setTimeout(r, 100));
+
+    await initView(projection, currentBasemapKind);
+    await refreshViewLayout(viewHolder.view);
+  }
+
+  await initView(currentProjection, currentBasemapKind);
 })();

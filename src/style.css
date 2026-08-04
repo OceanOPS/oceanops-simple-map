@@ -8,7 +8,16 @@
 
 #viewDiv {
   width: 100%;
+  height: 100%;
+  position: relative;
   transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+#viewDiv .esri-view-root,
+#viewDiv .esri-view-surface,
+#viewDiv .esri-view-surface--inset-outline::after {
+  width: 100%;
+  height: 100%;
 }
 
 /* On desktop, push the globe right when the filter menu is open */
@@ -158,27 +167,105 @@
 
 
 
-/* Basemap toggle button */
-.o-basemap-toggle {
-  background-color: transparent;
-  border: none;
-  border-radius: 4px;
+/* Map display menu: basemap preview + projection (bottom of tool stack) */
+.o-map-display-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 0;
+  min-width: 72px;
+}
+
+.o-map-display-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0;
-  margin: 0;
-  margin-top: 12px;
+  width: 100%;
 }
 
-/* Reduce gap on short screens */
-@media (max-height: 700px) {
-  .o-basemap-toggle {
-    gap: 2px;
-  }
+.o-map-display-heading {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(248, 248, 248, 0.65);
+}
+
+.o-map-display-divider {
+  width: 48px;
+  height: 1px;
+  background: rgba(248, 248, 248, 0.25);
+}
+
+.o-basemap-preview-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.o-basemap-kind-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(248, 248, 248, 0.9);
+  letter-spacing: 0.2px;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 72px;
+}
+
+.o-projection-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.o-projection-choices.is-busy {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.o-projection-choice {
+  background: rgba(11, 30, 66, 0.85);
+  border: 1px solid rgba(248, 248, 248, 0.35);
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: #f8f8f8;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-align: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.o-projection-choice:hover:not(:disabled) {
+  border-color: #f48b25;
+  color: #f48b25;
+}
+
+.o-projection-choice.is-active {
+  background: rgba(244, 139, 37, 0.2);
+  border-color: #f48b25;
+  color: #f8f8f8;
+}
+
+.o-projection-choice:disabled {
+  cursor: wait;
+}
+
+/* Legacy wrapper (unused) */
+.o-basemap-toggle {
+  display: contents;
 }
 
 .o-basemap-preview {
@@ -199,26 +286,23 @@
   }
 }
 
-.o-basemap-toggle span {
-  font-size: 12px;
-  font-weight: 500;
-  color: #f8f8f8;
-  letter-spacing: 0.3px;
-}
-
-/* Reduce font size on short screens */
 @media (max-height: 700px) {
-  .o-basemap-toggle span {
-    font-size: 10px;
+  .o-map-display-menu {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .o-map-display-section {
+    gap: 4px;
   }
 }
 
-.o-basemap-toggle:hover .o-basemap-preview {
+.o-basemap-preview-btn:hover .o-basemap-preview {
   border-color: #f48b25;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-.o-basemap-toggle:active {
+.o-basemap-preview-btn:active {
   transform: scale(0.98);
 }
 

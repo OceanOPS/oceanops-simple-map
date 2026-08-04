@@ -1,7 +1,7 @@
 // legend.ts
-import type SceneView from "@arcgis/core/views/SceneView";
-import type Layer from "@arcgis/core/layers/Layer";
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
+import { is3dProjection, type ProjectionId } from "./projections";
+import type { ViewHolder } from "./viewHolder";
 import { categories, type Category } from "./categories";
 import { makeCategorySwatch } from "./categorySwatch";
 import {
@@ -192,13 +192,15 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
  * Pass the `layerById` map you already maintain in main.ts.
  */
 export function attachLegend(
-  view: SceneView,
-  layerById: Map<string, Layer>,
+  viewHolder: ViewHolder,
+  layerById: Map<string, GeoJSONLayer>,
   toggleRotation: () => boolean,
   isRotating: () => boolean,
   setRotationStateChangeCallback: (callback: () => void) => void,
-  stopRotation: () => void
+  stopRotation: () => void,
+  getProjection: () => ProjectionId
 ) {
+  const view = viewHolder.view;
   // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
   document.getElementById("legend-backdrop")?.remove();
@@ -261,6 +263,13 @@ export function attachLegend(
   });
 
   view.ui.add(playPauseButton, { position: "top-left", index: 3 });
+
+  const syncRotationControlVisibility = () => {
+    const show = is3dProjection(getProjection());
+    playPauseButton.style.display = show ? "" : "none";
+    if (!show) stopRotation();
+  };
+  syncRotationControlVisibility();
 
   // Stop rotation when compass is clicked
   const compass = document.querySelector(".esri-compass") as HTMLElement;
@@ -713,7 +722,9 @@ export function attachLegend(
     });
 
   for (const layer of layerById.values()) {
-    const when = (layer as GeoJSONLayer).when?.() ?? Promise.resolve();
+    const when = layer.when?.() ?? Promise.resolve();
     when.then(() => updateLayerCounts());
   }
+
+  syncRotationControlVisibility();
 }
