@@ -22,6 +22,17 @@ import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 
 const BASE = import.meta.env.BASE_URL;
 
+function platformPopupContent(cat: Category): string {
+  return `<div class="o-map-popup">
+          <p><b>Type:</b> ${cat.label}</p>
+          <p><b>Reference:</b> {ptf_ref}</p>
+          <p><b>Model:</b> {ptf_model}</p>
+          <p><b>Program country:</b> {country_name}</p>
+          <p><b>Ship country:</b> {country_ship}</p>
+          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a></p>
+          </div>`;
+}
+
 function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLayer {
   const kind =
     cat.type === "image" ? "image" : cat.type === "line" ? "line" : "point";
@@ -52,15 +63,7 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
           }
         : {
             title: "{ptf_ref}",
-            content: `
-          <div class="o-map-popup">
-          <p><b>Type:</b> ${cat.label}</p>
-          <p><b>Reference:</b> {ptf_ref}</p>
-          <p><b>Model:</b> {ptf_model}</p>
-          <p><b>Country:</b> {country_name}</p>
-          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a></p>
-          </div>
-        `,
+            content: platformPopupContent(cat),
           },
   });
 

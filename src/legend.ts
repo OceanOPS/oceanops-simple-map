@@ -641,7 +641,7 @@ export function attachLegend(
 
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
-    title: "Country",
+    title: "Program country",
     startOpen: true,
   });
 
