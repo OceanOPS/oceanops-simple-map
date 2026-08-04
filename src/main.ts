@@ -16,7 +16,7 @@ import {
   PROJECTION_3D_GLOBE,
   type ProjectionId,
 } from "./projections";
-import { makeCategoryRenderer } from "./renderers";
+import { LINE_3D_WIDTH_METERS, makeCategoryRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 
@@ -74,7 +74,8 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
         : {
             mode: "absolute-height",
             featureExpressionInfo: { expression: "0" },
-            offset: 0,
+            // Clear the line path tubes so platforms never z-fight with them while the globe rotates.
+            offset: LINE_3D_WIDTH_METERS,
           };
     layer.screenSizePerspectiveEnabled = true;
   }

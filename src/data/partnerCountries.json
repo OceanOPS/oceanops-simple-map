@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-03",
+  "generatedAt": "2026-08-04",
   "edition": "report-card",
   "source": "OceanOPS partner export (program country attribution)",
   "countries": [
@@ -647,7 +647,7 @@
       ],
       "networks": {
         "driftingBuoys": 3,
-        "argo": 116,
+        "argo": 117,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -766,7 +766,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 150,
+        "sotVos": 151,
         "sotAsap": 1,
         "sot": 0,
         "goShip": 0,
@@ -1537,8 +1537,8 @@
         "USA"
       ],
       "networks": {
-        "driftingBuoys": 936,
-        "argo": 2475,
+        "driftingBuoys": 935,
+        "argo": 2473,
         "oceanGliders": 431,
         "aniBOS": 10,
         "fvon": 334,
@@ -1588,7 +1588,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 0,
+        "sotVos": 1,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 0,
@@ -1687,6 +1687,7 @@
     "CHILE": "CL",
     "ICELAND": "IS",
     "RUSSIA": "RU",
+    "VANUATU": "VU",
     "ARGENTINA": "AR",
     "COOK ISLANDS": "CK",
     "CUBA": "CU",
@@ -1704,7 +1705,6 @@
     "TONGA": "TO",
     "TUVALU": "TV",
     "URUGUAY": "UY",
-    "VANUATU": "VU",
     "WALLIS/FUTUNA": "WF",
     "UAE": "AE",
     "CROATIA": "HR",

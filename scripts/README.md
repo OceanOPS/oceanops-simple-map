@@ -10,4 +10,4 @@ npm run export:geojson
 
 Or from `../oceanops-data-exports`: `npm run export:geojson` / `npm run export:all`.
 
-Partner JSON is written to `public/data/partnerCountries.json` by `npm run export:partners`.
+Partner JSON is written to `src/data/partnerCountries.json` by `npm run export:partners`.

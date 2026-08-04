@@ -38,6 +38,9 @@ export function makePointRenderer3D(color: string, shape: Shape = "circle") {
   });
 }
 
+/** Diameter of the 3D path tube used for line layers, in meters. */
+export const LINE_3D_WIDTH_METERS = 20000;
+
 export function makeLineRenderer3D(color: string) {
   return new SimpleRenderer({
     symbol: {
@@ -46,7 +49,7 @@ export function makeLineRenderer3D(color: string) {
         {
           type: "path",
           material: { color },
-          width: 20000,
+          width: LINE_3D_WIDTH_METERS,
         },
       ],
     } as any,

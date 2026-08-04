@@ -1,13 +1,11 @@
 import type { CountryName } from "./countryFilters";
 import { ALL_COUNTRIES } from "./countryFilters";
-import partnerSnapshot from "../public/data/partnerCountries.json";
+import partnerSnapshot from "./data/partnerCountries.json";
 import { categories } from "./categories";
 import {
   PARTNER_NETWORK_ORDER,
   PARTNER_NETWORK_TO_LAYER,
 } from "./partnerNetworkMap";
-
-const BASE = import.meta.env.BASE_URL;
 
 export type PartnerNetworkCounts = Record<string, number>;
 
@@ -49,16 +47,10 @@ export async function loadPartnerCountriesData(): Promise<PartnerCountriesFile> 
   if (cached) return cached;
   if (loadPromise) return loadPromise;
 
-  loadPromise = (async () => {
-    const res = await fetch(`${BASE}data/partnerCountries.json`, {
-      cache: "no-cache",
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to load partnerCountries.json (${res.status})`);
-    }
-    cached = (await res.json()) as PartnerCountriesFile;
-    return cached;
-  })();
+  loadPromise = Promise.resolve(getPartnerDataSnapshot()).then((data) => {
+    cached = data;
+    return data;
+  });
 
   return loadPromise;
 }

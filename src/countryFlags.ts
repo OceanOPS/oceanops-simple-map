@@ -1,9 +1,9 @@
 import type { CountryName } from "./countryFilters";
-import partnerMeta from "../public/data/partnerCountries.json";
+import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 /** ISO 3166-1 alpha-2 for GeoJSON `country_name` (from partner export index). */
 export function getCountryIsoCode(country: CountryName): string | undefined {
-  const iso = partnerMeta.byGeoCountryName[country as keyof typeof partnerMeta.byGeoCountryName];
+  const iso = getPartnerDataSnapshot().byGeoCountryName[country];
   return iso || undefined;
 }
 
