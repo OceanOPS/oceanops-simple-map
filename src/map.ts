@@ -192,11 +192,43 @@ export function createGlobeView(
   return { map, view };
 }
 
+const GLOBE_DOUBLE_CLICK_ZOOM_OUT_STEP = 1;
+
+function zoomOutGlobeAtPoint(sceneView: SceneView, mapPoint: __esri.Point): void {
+  void sceneView.goTo(
+    {
+      target: mapPoint,
+      zoom: sceneView.zoom - GLOBE_DOUBLE_CLICK_ZOOM_OUT_STEP,
+    },
+    { animate: true, duration: 600 }
+  );
+}
+
 export function applyViewNavigationDefaults(view: GlobeView) {
   view.navigation.actionMap.mouseWheel = "none";
   if ("ui" in view) {
     view.ui.remove("navigation-toggle");
   }
+
+  view.on("double-click", (event) => {
+    if (event.button !== 2) return;
+    event.stopPropagation();
+
+    if (view.type === "2d") {
+      const mapView = view as MapView;
+      const minZoom = mapView.constraints.minZoom ?? 0;
+      void mapView.goTo(
+        {
+          center: event.mapPoint,
+          zoom: Math.max(minZoom, mapView.zoom - 1),
+        },
+        { animate: true, duration: 250 }
+      );
+      return;
+    }
+
+    zoomOutGlobeAtPoint(view as SceneView, event.mapPoint);
+  });
 }
 
 export interface MapChromeOptions {
