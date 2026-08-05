@@ -1115,6 +1115,60 @@ body.o-country-modal-open {
   background-color: #0b1e42;
 }
 
+/* Scrollbars in popup / “Select feature” flow (Calcite panel + item list) */
+.esri-view .esri-popup,
+.esri-view .esri-popup calcite-flow,
+.esri-view .esri-popup calcite-flow-item,
+.esri-view .esri-popup calcite-panel,
+.esri-view .esri-popup calcite-list {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: #f48b25 rgba(255, 255, 255, 0.12);
+}
+
+.esri-view .esri-popup .esri-popup__content,
+.esri-view .esri-popup .esri-features__container,
+.esri-view .esri-popup .esri-features__content-container,
+.esri-view .esri-popup .esri-item-list__scroller {
+  scrollbar-width: thin;
+  scrollbar-color: #f48b25 rgba(255, 255, 255, 0.12);
+}
+
+.esri-view .esri-popup .esri-popup__content::-webkit-scrollbar,
+.esri-view .esri-popup .esri-features__container::-webkit-scrollbar,
+.esri-view .esri-popup .esri-features__content-container::-webkit-scrollbar,
+.esri-view .esri-popup .esri-item-list__scroller::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.esri-view .esri-popup .esri-popup__content::-webkit-scrollbar-track,
+.esri-view .esri-popup .esri-features__container::-webkit-scrollbar-track,
+.esri-view .esri-popup .esri-features__content-container::-webkit-scrollbar-track,
+.esri-view .esri-popup .esri-item-list__scroller::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.esri-view .esri-popup .esri-popup__content::-webkit-scrollbar-thumb,
+.esri-view .esri-popup .esri-features__container::-webkit-scrollbar-thumb,
+.esri-view .esri-popup .esri-features__content-container::-webkit-scrollbar-thumb,
+.esri-view .esri-popup .esri-item-list__scroller::-webkit-scrollbar-thumb {
+  background: #f48b25;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.esri-view .esri-popup .esri-popup__content::-webkit-scrollbar-thumb:hover,
+.esri-view .esri-popup .esri-features__container::-webkit-scrollbar-thumb:hover,
+.esri-view .esri-popup .esri-features__content-container::-webkit-scrollbar-thumb:hover,
+.esri-view .esri-popup .esri-item-list__scroller::-webkit-scrollbar-thumb:hover {
+  background: #f6a555;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
 .esri-view .o-map-popup {
   font-size: 13px;
   line-height: 1.45;

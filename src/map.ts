@@ -6,6 +6,7 @@ import SceneView from "@arcgis/core/views/SceneView.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import Basemap from "@arcgis/core/Basemap.js";
 import TileLayer from "@arcgis/core/layers/TileLayer.js";
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import {
   is3dProjection,
   PROJECTION_3D_GLOBE,
@@ -204,6 +205,57 @@ function zoomOutGlobeAtPoint(sceneView: SceneView, mapPoint: __esri.Point): void
   );
 }
 
+const POPUP_SHADOW_SCROLLBAR_STYLE_ID = "o-popup-scrollbar-styles";
+
+/** Scrollbar styling for Calcite panel content inside Esri popup shadow DOM. */
+const POPUP_SHADOW_SCROLLBAR_CSS = `
+.content-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #f48b25 rgba(255, 255, 255, 0.12);
+}
+.content-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.content-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+.content-wrapper::-webkit-scrollbar-thumb {
+  background: #f48b25;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #f6a555;
+}
+`;
+
+function injectPopupShadowScrollbarStyles(shadowRoot: ShadowRoot): void {
+  if (!shadowRoot.querySelector(".content-wrapper")) return;
+  if (shadowRoot.getElementById(POPUP_SHADOW_SCROLLBAR_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = POPUP_SHADOW_SCROLLBAR_STYLE_ID;
+  style.textContent = POPUP_SHADOW_SCROLLBAR_CSS;
+  shadowRoot.appendChild(style);
+}
+
+function traverseShadowTree(node: Node, visitElement: (el: Element) => void): void {
+  if (node instanceof Element) {
+    visitElement(node);
+    node.shadowRoot?.childNodes.forEach((child) => traverseShadowTree(child, visitElement));
+  }
+  node.childNodes.forEach((child) => traverseShadowTree(child, visitElement));
+}
+
+function patchPopupCalciteScrollbars(popupRoot: Element): void {
+  traverseShadowTree(popupRoot, (el) => {
+    const shadow = (el as HTMLElement).shadowRoot;
+    if (shadow) injectPopupShadowScrollbarStyles(shadow);
+  });
+}
+
 export function applyPopupDefaults(view: GlobeView): void {
   if (!view.popup) return;
   view.popup.visibleElements = {
@@ -214,6 +266,31 @@ export function applyPopupDefaults(view: GlobeView): void {
     spinner: true,
     actionBar: true,
   };
+
+  let patchScheduled = false;
+  const schedulePopupScrollbarPatch = () => {
+    if (patchScheduled) return;
+    patchScheduled = true;
+    requestAnimationFrame(() => {
+      patchScheduled = false;
+      const popupEl = view.container?.querySelector(".esri-popup");
+      if (popupEl) patchPopupCalciteScrollbars(popupEl);
+    });
+  };
+
+  reactiveUtils.watch(
+    () => view.popup?.visible,
+    (visible) => {
+      if (visible) schedulePopupScrollbarPatch();
+    }
+  );
+
+  if (view.container) {
+    const observer = new MutationObserver(() => {
+      if (view.popup?.visible) schedulePopupScrollbarPatch();
+    });
+    observer.observe(view.container, { childList: true, subtree: true });
+  }
 }
 
 export function applyViewNavigationDefaults(view: GlobeView) {
