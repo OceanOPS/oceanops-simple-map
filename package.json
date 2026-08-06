@@ -10,14 +10,14 @@
     "export:geojson": "npm run export:geojson --prefix ../oceanops-data-exports",
     "export:geojson:dry-run": "npm run export:geojson:dry-run --prefix ../oceanops-data-exports",
     "export:partners": "npm run export:partners --prefix ../oceanops-data-exports",
-    "export:partners:dry-run": "npm run export:partners:dry-run --prefix ../oceanops-data-exports"
+    "export:partners:dry-run": "npm run export:partners:dry-run --prefix ../oceanops-data-exports",
+    "densify:geojson": "npm run densify:geojson --prefix ../oceanops-data-exports --"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   },
   "dependencies": {
-    "@arcgis/core": "^4.33.14",
-    "@turf/turf": "^7.2.0"
+    "@arcgis/core": "^4.33.14"
   }
 }

@@ -59,10 +59,17 @@ Criteria mirror `oceanops-report-card/scripts/partner-export/exportConfig.mjs` (
 
 ## Line densification (manual fallback)
 
-Lines must be densified for the 3D globe. The export script densifies automatically. For manual edits:
+Line layers are densified automatically during `export:geojson`. Logic lives in **`oceanops-data-exports/geojson-export/densifyLayer.mjs`** (default **rhumb**, 80 km).
+
+After hand-editing `*_undensified.geojson`:
 
 ```bash
-node densify.js public/geojson/goship_undensified.geojson public/geojson/goship.geojson
+# From oceanops-data-exports (canonical)
+npm run densify:geojson -- public/geojson/goship_undensified.geojson public/geojson/goship.geojson
+
+# From simple-map (same CLI via wrapper)
+npm run densify:geojson -- public/geojson/goship_undensified.geojson public/geojson/goship.geojson
+# or: node densify.js public/geojson/goship_undensified.geojson public/geojson/goship.geojson
 ```
 
 ## Netlify (deploy previews + production)
