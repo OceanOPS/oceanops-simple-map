@@ -141,7 +141,3 @@ export function getCountryBreakdownFromPartner(
 
   return rows;
 }
-
-export function partnerDataFootnote(data: PartnerCountriesFile): string {
-  return `Counts from OceanOPS partner export (${data.generatedAt}, ${data.edition}). Shown for visible networks on the map.`;
-}

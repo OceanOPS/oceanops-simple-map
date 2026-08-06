@@ -31,12 +31,6 @@ import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 const BASE = import.meta.env.BASE_URL;
 
 const GROUP_PICTOS: Record<string, string> = {
-  ship: `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 17h16l-1.8-3.6H5.8L4 17zm3.2-7.2 2.6-4.8h4.4l2.6 4.8H7.2z" fill="#f8f8f8"/>
-      <path d="M2 19h20" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  `,
   fixed: `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="10" y="3" width="4" height="13" fill="#f8f8f8"/>
@@ -63,6 +57,14 @@ const GROUP_PICTOS: Record<string, string> = {
   `,
 };
 
+/** Same ship silhouette as VOS/ASAP/FVON map markers (white on legend). */
+function getGroupPicto(key: string): string {
+  if (key === "ship") {
+    return `<img src="${BASE}img/ship_yellow.png" alt="" class="o-legend-group-ship-icon" decoding="async" />`;
+  }
+  return GROUP_PICTOS[key] ?? "";
+}
+
 const CHEVRON_ICON = `
   <svg class="o-legend-group-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -88,8 +90,9 @@ function createCollapsibleGroup(
   groupHeader.type = "button";
   groupHeader.className = "o-legend-group-header";
   groupHeader.setAttribute("aria-expanded", "false");
+  const groupPicto = getGroupPicto(options.key);
   groupHeader.innerHTML = `
-    ${GROUP_PICTOS[options.key] ? `<span class="o-legend-group-icon">${GROUP_PICTOS[options.key]}</span>` : ""}
+    ${groupPicto ? `<span class="o-legend-group-icon">${groupPicto}</span>` : ""}
     <span class="o-legend-group-label">${options.title}</span>
     ${CHEVRON_ICON}
   `;

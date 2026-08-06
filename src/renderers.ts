@@ -62,12 +62,16 @@ function markerStyle(shape: Shape): "circle" | "square" | "triangle" {
   return "circle";
 }
 
+/** Native ship PNG aspect (38×21). */
+const SHIP_MARKER_WIDTH = 16;
+const SHIP_MARKER_HEIGHT = 9;
+
 export function makeImageRenderer2D(imagePath: string) {
   return new SimpleRenderer({
     symbol: new PictureMarkerSymbol({
       url: `${BASE}${imagePath}`,
-      width: 14,
-      height: 14,
+      width: SHIP_MARKER_WIDTH,
+      height: SHIP_MARKER_HEIGHT,
     }),
   });
 }

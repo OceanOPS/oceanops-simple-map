@@ -5,6 +5,5 @@ export {
   getFilterableCountryNames,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
-  partnerDataFootnote,
   type PartnerCountriesFile,
 } from "./partnerCountriesData";

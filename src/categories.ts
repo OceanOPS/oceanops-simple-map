@@ -11,7 +11,7 @@ export const categories = [
   { id: 'ship_oceano',                        label: 'Ship based oceanographic – SOT/XBT-SOOP',                 color: '#faa62d', type: 'line' },
   { id: 'asap',                        label: 'Ship based aerological – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
-  { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'point', shape: 'circle'  },
+  { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square'  },
   { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square' },

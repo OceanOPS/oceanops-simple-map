@@ -60,8 +60,7 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   if (cat.type === "image") {
     const img = document.createElement("img");
     img.src = `${BASE}${cat.imagePath}`;
-    img.width = 18;
-    img.height = 18;
+    img.className = "o-legend-swatch-img";
     img.alt = "";
     img.decoding = "async";
     container.appendChild(img);

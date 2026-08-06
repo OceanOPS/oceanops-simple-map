@@ -5,7 +5,6 @@ import {
   getCountryNetworkBreakdown,
   getCountryTotal,
   loadPartnerCountriesData,
-  partnerDataFootnote,
 } from "./countryMetrics";
 
 const MODAL_ID = "country-metrics-modal";
@@ -75,11 +74,7 @@ export async function openCountryMetricsModal(
   body.className = "o-country-modal-body";
   body.innerHTML = `<p class="o-country-modal-loading">Loading network breakdown…</p>`;
 
-  const footnote = document.createElement("p");
-  footnote.className = "o-country-modal-footnote";
-  footnote.textContent = "Loading…";
-
-  dialog.append(header, totalEl, body, footnote);
+  dialog.append(header, totalEl, body);
   backdrop.appendChild(dialog);
   document.body.appendChild(backdrop);
 
@@ -109,8 +104,7 @@ export async function openCountryMetricsModal(
     const total = getCountryTotal(country, data, visible);
     const rows = getCountryNetworkBreakdown(country, data, visible);
 
-    footnote.textContent = partnerDataFootnote(data);
-    totalEl.textContent = `${total.toLocaleString()} platforms across visible networks`;
+    totalEl.textContent = `${total.toLocaleString()} operational platforms across GOOS in situ networks`;
 
     if (rows.length === 0) {
       body.innerHTML =
@@ -137,7 +131,6 @@ export async function openCountryMetricsModal(
     body.replaceChildren(list);
   } catch {
     totalEl.textContent = "";
-    footnote.textContent = "";
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;
   }
 }
