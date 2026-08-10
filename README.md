@@ -37,7 +37,7 @@ node export-geojson.mjs --layer=argo
 - `OCEANOPS_DATABASE_URL` — default `postgresql://oceanops:oceanops@127.0.0.1:5432/oceanops`
 - `GEOJSON_EXPORT_EDITION` — label in export summary
 
-**Configuration:** edit `../oceanops-data-exports/geojson-export/sql/*.sql` before each edition (see that folder’s README). Layer list: `layers.manifest.json`.
+**Configuration:** edit `../oceanops-data-exports/sql/*.sql` before each edition (see `sql/README.md`). Layer list: `../oceanops-data-exports/geojson-export/layers.manifest.json`.
 
 - Point layers: `WHERE` on `oceanops_gis.ptf_loc_n` (+ joins for ship/sensor country in the SQL file)
 - Line layers: GO-SHIP / SOOP tables and `t.name IN (...)` in `goship.sql` / `ship_oceano.sql`
@@ -50,7 +50,7 @@ node export-geojson.mjs --layer=argo
 | Points (12) | `public/geojson/{id}.geojson` |
 | Lines (GO-SHIP, SOOP XBT) | `{id}_undensified.geojson` + densified `{id}.geojson` |
 
-Point layers join `oceanops.v_ptf_depl_rv` (`country_ship`) and `oceanops.v_sensor_provider` (`country_sensor_provider`) when views exist locally.
+Point layers join `oceanops.v_ptf_depl_rv` for `country_ship` (only when `deployment_date` is within ship commissioned/decommissioned dates; excludes `UNKNOWN`) and `oceanops.v_sensor_provider` for `country_sensor_provider` when those views exist.
 
 Line layers do not include ship/sensor country fields.
 

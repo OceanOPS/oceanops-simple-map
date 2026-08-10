@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-08-10",
   "edition": "isival-prod",
-  "source": "OceanOPS PostgreSQL partner export (geojson-export/sql criteria)",
+  "source": "OceanOPS PostgreSQL partner export (sql/*.sql criteria)",
   "countries": [
     {
       "name": "AQ",
