@@ -1,9 +1,10 @@
+import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import {
-  getCountryNetworkBreakdown,
-  getCountryTotal,
+  getCountryBreakdownFromMap,
+  getCountryTotalFromMap,
   loadPartnerCountriesData,
 } from "./countryMetrics";
 
@@ -20,7 +21,8 @@ export function closeCountryMetricsModal(): void {
 
 export async function openCountryMetricsModal(
   country: CountryName,
-  getVisibleLayerIds: () => ReadonlySet<string>
+  getVisibleLayerIds: () => ReadonlySet<string>,
+  layerById: Map<string, GeoJSONLayer>
 ): Promise<void> {
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
@@ -99,10 +101,10 @@ export async function openCountryMetricsModal(
   closeBtn.focus();
 
   try {
-    const data = await loadPartnerCountriesData();
+    await loadPartnerCountriesData();
     const visible = getVisibleLayerIds();
-    const total = getCountryTotal(country, data, visible);
-    const rows = getCountryNetworkBreakdown(country, data, visible);
+    const total = await getCountryTotalFromMap(country, layerById, visible);
+    const rows = await getCountryBreakdownFromMap(country, layerById, visible);
 
     totalEl.textContent = `${total.toLocaleString()} operational platforms across GOOS in situ networks`;
 

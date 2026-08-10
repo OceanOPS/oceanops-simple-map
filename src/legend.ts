@@ -16,11 +16,10 @@ import {
   COUNTRY_FILTER_LINE_LAYER_IDS,
 } from "./countryFilters";
 import {
-  getCountryTotal,
+  getCountryTotalFromMap,
   getFilterableCountryNames,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
-  type PartnerCountriesFile,
 } from "./countryMetrics";
 import {
   closeCountryMetricsModal,
@@ -401,7 +400,6 @@ export function attachLegend(
   const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
   const countryTotalNodes = new Map<string, HTMLSpanElement[]>();
-  let partnerData: PartnerCountriesFile | null = null;
 
   const registerCountryTotalNode = (country: CountryName, node: HTMLSpanElement) => {
     const refs = countryTotalNodes.get(country) ?? [];
@@ -423,16 +421,12 @@ export function attachLegend(
     return visible;
   };
 
-  const updateCountryRowCounts = () => {
-    if (!partnerData) return;
+  const updateCountryRowCounts = async () => {
+    const visible = getVisibleLayerIds();
+    const layers = layerById as Map<string, GeoJSONLayer>;
     for (const country of filterableCountries) {
       if (!countryTotalNodes.has(country)) continue;
-      const iso = partnerData.byGeoCountryName[country];
-      if (!iso) {
-        setCountryTotalDisplay(country, "");
-        continue;
-      }
-      const total = getCountryTotal(country, partnerData, getVisibleLayerIds());
+      const total = await getCountryTotalFromMap(country, layers, visible);
       setCountryTotalDisplay(country, ` (${total.toLocaleString()})`);
     }
   };
@@ -519,7 +513,7 @@ export function attachLegend(
     );
     updateCountrySelectAllState(selectAllCheckbox);
     updateLayerCounts();
-    updateCountryRowCounts();
+    void updateCountryRowCounts();
   };
 
   const registerCountryCheckbox = (
@@ -572,7 +566,11 @@ export function attachLegend(
 
       const openDetails = (event: Event) => {
         event.stopPropagation();
-        void openCountryMetricsModal(country, getVisibleLayerIds);
+        void openCountryMetricsModal(
+          country,
+          getVisibleLayerIds,
+          layerById as Map<string, GeoJSONLayer>
+        );
       };
 
       detailsBtn.addEventListener("click", openDetails);
@@ -634,7 +632,7 @@ export function attachLegend(
         if (layer) (layer as GeoJSONLayer).visible = cb.checked;
         updateSelectAllState();
         updateLayerCounts();
-        updateCountryRowCounts();
+        void updateCountryRowCounts();
       });
 
       layerCheckboxes.push(cb);
@@ -713,9 +711,8 @@ export function attachLegend(
   legend.appendChild(content);
 
   void loadPartnerCountriesData()
-    .then((data) => {
-      partnerData = data;
-      updateCountryRowCounts();
+    .then(() => {
+      void updateCountryRowCounts();
     })
     .catch((err) => {
       console.error(err);
