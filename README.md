@@ -30,7 +30,6 @@ Advanced flags (run from `../oceanops-data-exports`):
 
 ```bash
 node export-geojson.mjs --layer=argo
-node export-geojson.mjs --no-country-ship --no-country-sensor
 ```
 
 **Environment:**
@@ -38,11 +37,11 @@ node export-geojson.mjs --no-country-ship --no-country-sensor
 - `OCEANOPS_DATABASE_URL` — default `postgresql://oceanops:oceanops@127.0.0.1:5432/oceanops`
 - `GEOJSON_EXPORT_EDITION` — label in export summary
 
-**Configuration:** edit `../oceanops-data-exports/geojson-export/exportConfig.mjs` before each edition:
+**Configuration:** edit `../oceanops-data-exports/geojson-export/sql/*.sql` before each edition (see that folder’s README). Layer list: `layers.manifest.json`.
 
-- `WHERE` clause per point layer (12 layers from `oceanops_gis.ptf_loc_n`)
-- `GO_SHIP_SELECTED_LINE_NAMES` / `SOOP_XBT_SELECTED_LINE_NAMES` for line layers
-- Date cutoffs for OceanGliders, AniBOS, FVON
+- Point layers: `WHERE` on `oceanops_gis.ptf_loc_n` (+ joins for ship/sensor country in the SQL file)
+- Line layers: GO-SHIP / SOOP tables and `t.name IN (...)` in `goship.sql` / `ship_oceano.sql`
+- Date cutoffs and status filters: edit directly in the relevant `.sql` file
 
 **Output:**
 
