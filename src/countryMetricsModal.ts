@@ -4,9 +4,12 @@ import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
+  getCountryShipBreakdownFromMap,
+  getCountryShipTotalFromMap,
   getCountryTotalFromMap,
   loadPartnerCountriesData,
 } from "./countryMetrics";
+import type { CountryLayerCount } from "./partnerCountriesData";
 
 const MODAL_ID = "country-metrics-modal";
 
@@ -17,6 +20,52 @@ function removeExistingModal(): void {
 export function closeCountryMetricsModal(): void {
   removeExistingModal();
   document.body.classList.remove("o-country-modal-open");
+}
+
+function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): void {
+  const list = document.createElement("ul");
+  list.className = "o-country-modal-list";
+
+  for (const row of rows) {
+    const item = document.createElement("li");
+    const picto = makeNetworkPicto(row.layerId);
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "o-country-modal-network";
+    nameSpan.textContent = row.label;
+    const countSpan = document.createElement("span");
+    countSpan.className = "o-legend-count";
+    countSpan.textContent = row.displayCount;
+    item.append(picto, nameSpan, countSpan);
+    list.appendChild(item);
+  }
+
+  parent.appendChild(list);
+}
+
+function appendBreakdownSection(
+  parent: HTMLElement,
+  title: string,
+  rows: CountryLayerCount[],
+  emptyMessage: string
+): void {
+  const section = document.createElement("section");
+  section.className = "o-country-modal-section";
+
+  const heading = document.createElement("h3");
+  heading.className = "o-country-modal-section-title";
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  if (rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "o-country-modal-empty";
+    empty.textContent = emptyMessage;
+    section.appendChild(empty);
+  } else {
+    appendBreakdownList(section, rows);
+  }
+
+  parent.appendChild(section);
 }
 
 export async function openCountryMetricsModal(
@@ -56,8 +105,8 @@ export async function openCountryMetricsModal(
 
   titleWrap.append(titleFlag, title);
 
-  const totalEl = document.createElement("p");
-  totalEl.className = "o-country-modal-total";
+  const totalEl = document.createElement("div");
+  totalEl.className = "o-country-modal-totals";
   totalEl.textContent = "Loading totals…";
 
   const closeBtn = document.createElement("button");
@@ -103,34 +152,40 @@ export async function openCountryMetricsModal(
   try {
     await loadPartnerCountriesData();
     const visible = getVisibleLayerIds();
-    const total = await getCountryTotalFromMap(country, layerById, visible);
-    const rows = await getCountryBreakdownFromMap(country, layerById, visible);
+    const [programTotal, shipTotal, programRows, shipRows] = await Promise.all([
+      getCountryTotalFromMap(country, layerById, visible),
+      getCountryShipTotalFromMap(country, layerById, visible),
+      getCountryBreakdownFromMap(country, layerById, visible),
+      getCountryShipBreakdownFromMap(country, layerById, visible),
+    ]);
 
-    totalEl.textContent = `${total.toLocaleString()} operational platforms across GOOS in situ networks`;
+    totalEl.replaceChildren();
+    const programLine = document.createElement("p");
+    programLine.className = "o-country-modal-total-line";
+    programLine.textContent = `${programTotal.toLocaleString()} contributing country platforms`;
+    totalEl.appendChild(programLine);
 
-    if (rows.length === 0) {
-      body.innerHTML =
-        `<p class="o-country-modal-empty">No platforms for this country on the visible networks.</p>`;
-      return;
-    }
+    const shipLine = document.createElement("p");
+    shipLine.className = "o-country-modal-total-line o-country-modal-total-line-ship";
+    shipLine.textContent =
+      shipTotal > 0
+        ? `${shipTotal.toLocaleString()} on ships flagged to this country`
+        : "No ship-flag deployments on visible networks";
+    totalEl.appendChild(shipLine);
 
-    const list = document.createElement("ul");
-    list.className = "o-country-modal-list";
-
-    for (const row of rows) {
-      const item = document.createElement("li");
-      const picto = makeNetworkPicto(row.layerId);
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "o-country-modal-network";
-      nameSpan.textContent = row.label;
-      const countSpan = document.createElement("span");
-      countSpan.className = "o-legend-count";
-      countSpan.textContent = row.displayCount;
-      item.append(picto, nameSpan, countSpan);
-      list.appendChild(item);
-    }
-
-    body.replaceChildren(list);
+    body.replaceChildren();
+    appendBreakdownSection(
+      body,
+      "By contributing country",
+      programRows,
+      "No platforms for this contributing country on the visible networks."
+    );
+    appendBreakdownSection(
+      body,
+      "By ship country",
+      shipRows,
+      "No platforms on ships flagged to this country on the visible networks."
+    );
   } catch {
     totalEl.textContent = "";
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;

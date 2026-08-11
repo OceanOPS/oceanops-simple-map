@@ -10,7 +10,7 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import {
   is3dProjection,
   PROJECTION_3D_GLOBE,
-  PROJECTION_WEB_MERCATOR,
+  toggleProjection,
   type ProjectionId,
 } from "./projections";
 import type { GlobeView, ViewHolder } from "./viewHolder";
@@ -340,10 +340,6 @@ export function mountBasemapProjectionControl(
   const basemapSection = document.createElement("div");
   basemapSection.className = "o-map-display-section o-map-display-section--basemap";
 
-  const basemapHeading = document.createElement("span");
-  basemapHeading.className = "o-map-display-heading";
-  basemapHeading.textContent = "Basemap";
-
   const previewBtn = document.createElement("button");
   previewBtn.type = "button";
   previewBtn.className = "o-basemap-preview-btn";
@@ -353,46 +349,36 @@ export function mountBasemapProjectionControl(
   const basemapHint = document.createElement("span");
   basemapHint.className = "o-basemap-kind-label";
 
-  basemapSection.append(basemapHeading, previewBtn, basemapHint);
+  basemapSection.append(previewBtn, basemapHint);
 
   const divider = document.createElement("div");
   divider.className = "o-map-display-divider";
   divider.setAttribute("aria-hidden", "true");
 
-  // —— Projection ——
+  // —— Projection (single toggle: show only the non-default option) ——
   const projectionSection = document.createElement("div");
   projectionSection.className = "o-map-display-section o-map-display-section--projection";
 
-  const projectionHeading = document.createElement("span");
-  projectionHeading.className = "o-map-display-heading";
-  projectionHeading.textContent = "Projection";
+  const projectionBtn = document.createElement("button");
+  projectionBtn.type = "button";
+  projectionBtn.className = "o-projection-toggle-btn";
 
-  const projectionChoices = document.createElement("div");
-  projectionChoices.className = "o-projection-choices";
-  projectionChoices.setAttribute("role", "group");
-  projectionChoices.setAttribute("aria-label", "Map projection");
+  projectionSection.append(projectionBtn);
 
-  const globeBtn = document.createElement("button");
-  globeBtn.type = "button";
-  globeBtn.className = "o-projection-choice";
-  globeBtn.dataset.projection = PROJECTION_3D_GLOBE;
-  globeBtn.textContent = "3D Globe";
-
-  const mercatorBtn = document.createElement("button");
-  mercatorBtn.type = "button";
-  mercatorBtn.className = "o-projection-choice";
-  mercatorBtn.dataset.projection = PROJECTION_WEB_MERCATOR;
-  mercatorBtn.textContent = "Web Mercator";
-
-  projectionChoices.append(globeBtn, mercatorBtn);
-  projectionSection.append(projectionHeading, projectionChoices);
-
-  const syncProjectionButtons = (projection: ProjectionId) => {
+  const syncProjectionUi = (projection: ProjectionId) => {
     const is3d = projection === PROJECTION_3D_GLOBE;
-    globeBtn.classList.toggle("is-active", is3d);
-    mercatorBtn.classList.toggle("is-active", !is3d);
-    globeBtn.setAttribute("aria-pressed", String(is3d));
-    mercatorBtn.setAttribute("aria-pressed", String(!is3d));
+    if (is3d) {
+      projectionBtn.textContent = "Web Mercator";
+      projectionBtn.title = "Switch to Web Mercator projection";
+      projectionBtn.setAttribute(
+        "aria-label",
+        "Switch to Web Mercator projection"
+      );
+    } else {
+      projectionBtn.textContent = "3D Globe";
+      projectionBtn.title = "Switch to 3D globe";
+      projectionBtn.setAttribute("aria-label", "Switch to 3D globe");
+    }
   };
 
   const updateBasemapUi = () => {
@@ -400,16 +386,16 @@ export function mountBasemapProjectionControl(
 
     if (basemapKind === "map") {
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>`;
-      basemapHint.textContent = "Tap for satellite";
+      basemapHint.textContent = "Satellite layer";
     } else {
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>`;
-      basemapHint.textContent = "Tap for ocean map";
+      basemapHint.textContent = "Map layer";
     }
   };
 
   const updateUi = () => {
     updateBasemapUi();
-    syncProjectionButtons(options.getProjection());
+    syncProjectionUi(options.getProjection());
   };
 
   updateUi();
@@ -422,23 +408,20 @@ export function mountBasemapProjectionControl(
     updateBasemapUi();
   });
 
-  const onProjectionPick = async (target: ProjectionId) => {
-    if (target === options.getProjection()) return;
-    projectionChoices.classList.add("is-busy");
-    globeBtn.disabled = true;
-    mercatorBtn.disabled = true;
-    try {
-      await options.onProjectionChange(target);
-      updateUi();
-    } finally {
-      projectionChoices.classList.remove("is-busy");
-      globeBtn.disabled = false;
-      mercatorBtn.disabled = false;
-    }
-  };
-
-  globeBtn.addEventListener("click", () => void onProjectionPick(PROJECTION_3D_GLOBE));
-  mercatorBtn.addEventListener("click", () => void onProjectionPick(PROJECTION_WEB_MERCATOR));
+  projectionBtn.addEventListener("click", () => {
+    void (async () => {
+      const target = toggleProjection(options.getProjection());
+      projectionSection.classList.add("is-busy");
+      projectionBtn.disabled = true;
+      try {
+        await options.onProjectionChange(target);
+        updateUi();
+      } finally {
+        projectionSection.classList.remove("is-busy");
+        projectionBtn.disabled = false;
+      }
+    })();
+  });
 
   menu.append(basemapSection, divider, projectionSection);
   view.ui.add(menu, { position: "top-left", index: 4 });

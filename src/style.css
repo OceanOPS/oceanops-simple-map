@@ -186,12 +186,9 @@
   width: 100%;
 }
 
-.o-map-display-heading {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: rgba(248, 248, 248, 0.65);
+.o-map-display-section.is-busy {
+  opacity: 0.65;
+  pointer-events: none;
 }
 
 .o-map-display-divider {
@@ -218,20 +215,7 @@
   max-width: 72px;
 }
 
-.o-projection-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  align-items: stretch;
-}
-
-.o-projection-choices.is-busy {
-  opacity: 0.65;
-  pointer-events: none;
-}
-
-.o-projection-choice {
+.o-projection-toggle-btn {
   background: rgba(11, 30, 66, 0.85);
   border: 1px solid rgba(248, 248, 248, 0.35);
   border-radius: 4px;
@@ -242,24 +226,21 @@
   font-weight: 600;
   letter-spacing: 0.2px;
   text-align: center;
+  width: 100%;
+  max-width: 72px;
+  line-height: 1.25;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease;
 }
 
-.o-projection-choice:hover:not(:disabled) {
+.o-projection-toggle-btn:hover:not(:disabled) {
   border-color: #f48b25;
   color: #f48b25;
 }
 
-.o-projection-choice.is-active {
-  background: rgba(244, 139, 37, 0.2);
-  border-color: #f48b25;
-  color: #f8f8f8;
-}
-
-.o-projection-choice:disabled {
+.o-projection-toggle-btn:disabled {
   cursor: wait;
 }
 
@@ -617,6 +598,117 @@
   border-top: none !important;
 }
 
+.o-legend-country-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.o-legend-country-program-count,
+.o-legend-country-ship-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.o-legend-country-program-count {
+  opacity: 0.85;
+}
+
+.o-legend-country-ship-count {
+  opacity: 0.65;
+}
+
+.o-legend-country-program-count[role="button"]:hover,
+.o-legend-country-ship-count[role="button"]:hover,
+.o-legend-country-total[role="button"]:hover {
+  opacity: 1;
+}
+
+.o-legend-country-program-pin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: #f8f8f8;
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.o-legend-country-program-pin-icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.o-legend-country-ship-flag-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: #f48b25;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.o-legend-country-ship-flag-icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.o-legend-country-count-hint {
+  margin: 4px var(--legend-padding) 12px calc(var(--legend-padding) + 12px);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.65;
+}
+
+.o-legend-country-group-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px var(--legend-padding) 12px calc(var(--legend-padding) + 12px);
+}
+
+.o-legend-country-group-btn {
+  background: rgba(11, 30, 66, 0.85);
+  border: 1px solid rgba(248, 248, 248, 0.35);
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #f8f8f8;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.o-legend-country-group-btn:hover,
+.o-legend-country-group-btn:focus-visible {
+  border-color: #f48b25;
+  color: #f48b25;
+  outline: none;
+}
+
+.o-legend-country-group-btn.active {
+  background: rgba(244, 139, 37, 0.2);
+  border-color: #f48b25;
+  color: #f8f8f8;
+}
+
+.o-legend-country-list {
+  padding-bottom: 4px;
+}
+
 .o-legend-country-row {
   font-size: 13px;
 }
@@ -684,10 +776,6 @@
   background: rgba(255, 255, 255, 0.08);
   opacity: 1;
   outline: none;
-}
-
-.o-legend-country-total[role="button"]:hover {
-  opacity: 1;
 }
 
 body.o-country-modal-open {
@@ -772,11 +860,41 @@ body.o-country-modal-open {
   outline: none;
 }
 
+.o-country-modal-totals,
 .o-country-modal-total {
   margin: 0;
   padding: 0 20px 12px;
   font-size: 13px;
   opacity: 0.85;
+}
+
+.o-country-modal-total-line {
+  margin: 0 0 4px;
+}
+
+.o-country-modal-total-line:last-child {
+  margin-bottom: 0;
+}
+
+.o-country-modal-total-line-ship {
+  opacity: 0.75;
+}
+
+.o-country-modal-section {
+  margin-bottom: 16px;
+}
+
+.o-country-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.o-country-modal-section-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
 }
 
 .o-country-modal-body {

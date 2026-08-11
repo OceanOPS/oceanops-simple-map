@@ -7,7 +7,6 @@ import { makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
-  OTHER_COUNTRIES,
   applyCountryFilter,
   getCountryCountWhere,
   getLineLayerCountWhere,
@@ -17,6 +16,7 @@ import {
 } from "./countryFilters";
 import {
   getCountryTotalFromMap,
+  getCountryShipTotalFromMap,
   getFilterableCountryNames,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
@@ -147,6 +147,22 @@ const DETAILS_ICON = `
   </svg>
 `;
 
+/** Map pin — program country attribution. */
+const PROGRAM_PIN_ICON = `
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M8 14.25s4.75-4.15 4.75-8A4.75 4.75 0 1 0 3.25 6.25c0 3.85 4.75 8 4.75 8z" fill="currentColor" opacity="0.92"/>
+    <circle cx="8" cy="6.25" r="1.65" fill="#0b1e42"/>
+  </svg>
+`;
+
+/** Ensign on a pole — ship flag country (not the ship-network picto). */
+const SHIP_FLAG_ICON = `
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M3.5 2.5v11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M3.5 3.5h8.5l-2 2.25 2 2.25-2 2.25-2 2.25H3.5V3.5z" fill="currentColor" opacity="0.9"/>
+  </svg>
+`;
+
 function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   const row = document.createElement("div");
   row.className = "o-legend-country-row";
@@ -169,10 +185,42 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   name.setAttribute("role", "button");
   name.tabIndex = 0;
 
+  const counts = document.createElement("span");
+  counts.className = "o-legend-country-counts";
+
+  const programWrap = document.createElement("span");
+  programWrap.className = "o-legend-country-program-count";
+  programWrap.title = "Contributing country — platforms attributed to this country";
+
+  const programPinIcon = document.createElement("span");
+  programPinIcon.className = "o-legend-country-program-pin-icon";
+  programPinIcon.innerHTML = PROGRAM_PIN_ICON;
+  programPinIcon.setAttribute("aria-hidden", "true");
+
   const total = document.createElement("span");
   total.className = "o-legend-count o-legend-country-total";
-  total.textContent = " (…)";
-  total.setAttribute("aria-label", "Total platforms for this country");
+  total.textContent = "(…)";
+  total.setAttribute("aria-label", "Platforms by contributing country");
+
+  programWrap.append(programPinIcon, total);
+
+  const shipWrap = document.createElement("span");
+  shipWrap.className = "o-legend-country-ship-count";
+  shipWrap.hidden = true;
+  shipWrap.title = "Ship flag country — platforms on vessels flagged here";
+
+  const shipFlagIcon = document.createElement("span");
+  shipFlagIcon.className = "o-legend-country-ship-flag-icon";
+  shipFlagIcon.innerHTML = SHIP_FLAG_ICON;
+  shipFlagIcon.setAttribute("aria-hidden", "true");
+
+  const shipTotal = document.createElement("span");
+  shipTotal.className = "o-legend-count o-legend-country-ship-total";
+  shipTotal.textContent = "(…)";
+  shipTotal.setAttribute("aria-label", "Platforms by ship country");
+
+  shipWrap.append(shipFlagIcon, shipTotal);
+  counts.append(programWrap, shipWrap);
 
   const detailsBtn = document.createElement("button");
   detailsBtn.type = "button";
@@ -180,13 +228,13 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   detailsBtn.setAttribute("aria-label", `View network breakdown for ${labelText}`);
   detailsBtn.innerHTML = DETAILS_ICON;
 
-  row.append(checkbox, flag, name, total, detailsBtn);
+  row.append(checkbox, flag, name, counts, detailsBtn);
 
   const wrapper = document.createElement("div");
   wrapper.className = "o-legend-country-block";
   wrapper.append(row);
 
-  return { wrapper, row, checkbox, total, name, detailsBtn };
+  return { wrapper, row, checkbox, total, programWrap, shipWrap, shipTotal, name, detailsBtn };
 }
 
 /**
@@ -400,6 +448,35 @@ export function attachLegend(
   const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
   const countryTotalNodes = new Map<string, HTMLSpanElement[]>();
+  const countryShipCountNodes = new Map<string, HTMLSpanElement[]>();
+  const countryRowWrappers = new Map<string, HTMLElement>();
+
+  const sortedFilterableCountries = [...filterableCountries].sort((a, b) =>
+    getCountryLabel(a).localeCompare(getCountryLabel(b))
+  );
+  const g7Filterable = G7_COUNTRIES.filter((country) =>
+    filterableCountrySet.has(country)
+  );
+  const euFilterable = EU_COUNTRIES.filter((country) =>
+    filterableCountrySet.has(country)
+  );
+
+  type CountryListFilter = "all" | "g7" | "eu";
+  let countryListFilter: CountryListFilter = "all";
+
+  const getVisibleListCountries = (): CountryName[] => {
+    if (countryListFilter === "g7") return g7Filterable;
+    if (countryListFilter === "eu") return euFilterable;
+    return sortedFilterableCountries;
+  };
+
+  const syncCountryListVisibility = () => {
+    const visible = new Set(getVisibleListCountries());
+    for (const country of filterableCountries) {
+      const wrapper = countryRowWrappers.get(country);
+      if (wrapper) wrapper.hidden = !visible.has(country);
+    }
+  };
 
   const registerCountryTotalNode = (country: CountryName, node: HTMLSpanElement) => {
     const refs = countryTotalNodes.get(country) ?? [];
@@ -407,9 +484,23 @@ export function attachLegend(
     countryTotalNodes.set(country, refs);
   };
 
+  const registerCountryShipCountNode = (country: CountryName, node: HTMLSpanElement) => {
+    const refs = countryShipCountNodes.get(country) ?? [];
+    refs.push(node);
+    countryShipCountNodes.set(country, refs);
+  };
+
   const setCountryTotalDisplay = (country: CountryName, text: string) => {
     for (const node of countryTotalNodes.get(country) ?? []) {
       node.textContent = text;
+    }
+  };
+
+  const setCountryShipTotalDisplay = (country: CountryName, count: number) => {
+    for (const wrap of countryShipCountNodes.get(country) ?? []) {
+      wrap.hidden = count === 0;
+      const node = wrap.querySelector(".o-legend-country-ship-total");
+      if (node) node.textContent = `(${count.toLocaleString()})`;
     }
   };
 
@@ -426,8 +517,12 @@ export function attachLegend(
     const layers = layerById as Map<string, GeoJSONLayer>;
     for (const country of filterableCountries) {
       if (!countryTotalNodes.has(country)) continue;
-      const total = await getCountryTotalFromMap(country, layers, visible);
-      setCountryTotalDisplay(country, ` (${total.toLocaleString()})`);
+      const [programTotal, shipTotal] = await Promise.all([
+        getCountryTotalFromMap(country, layers, visible),
+        getCountryShipTotalFromMap(country, layers, visible),
+      ]);
+      setCountryTotalDisplay(country, `(${programTotal.toLocaleString()})`);
+      setCountryShipTotalDisplay(country, shipTotal);
     }
   };
 
@@ -490,13 +585,15 @@ export function attachLegend(
   };
 
   const updateCountrySelectAllState = (selectAllCheckbox: HTMLInputElement) => {
-    const checkedCount = selectedCountries.size;
-    const totalCount = filterableCountries.length;
+    const visibleCountries = getVisibleListCountries();
+    const checkedVisible = visibleCountries.filter((country) =>
+      selectedCountries.has(country)
+    ).length;
 
-    if (checkedCount === 0) {
+    if (checkedVisible === 0) {
       selectAllCheckbox.checked = false;
       selectAllCheckbox.indeterminate = false;
-    } else if (checkedCount === totalCount) {
+    } else if (checkedVisible === visibleCountries.length) {
       selectAllCheckbox.checked = true;
       selectAllCheckbox.indeterminate = false;
     } else {
@@ -539,11 +636,13 @@ export function attachLegend(
     selectAllCheckbox: HTMLInputElement
   ) => {
     for (const country of countries) {
-      const { wrapper, checkbox, total, name, detailsBtn } =
+      const { wrapper, checkbox, total, programWrap, shipWrap, name, detailsBtn } =
         createCountryFilterRow(getCountryLabel(country), country);
 
       wrapper.setAttribute("data-country", country);
+      countryRowWrappers.set(country, wrapper);
       registerCountryTotalNode(country, total);
+      registerCountryShipCountNode(country, shipWrap);
       registerCountryCheckbox(country, checkbox, selectAllCheckbox);
 
       const toggleCountryFromName = () => {
@@ -574,16 +673,27 @@ export function attachLegend(
       };
 
       detailsBtn.addEventListener("click", openDetails);
+      programWrap.addEventListener("click", openDetails);
       total.addEventListener("click", openDetails);
+      shipWrap.addEventListener("click", openDetails);
+      programWrap.style.cursor = "pointer";
       total.style.cursor = "pointer";
+      shipWrap.style.cursor = "pointer";
+      programWrap.setAttribute("role", "button");
       total.setAttribute("role", "button");
+      shipWrap.setAttribute("role", "button");
+      programWrap.tabIndex = 0;
       total.tabIndex = 0;
-      total.addEventListener("keydown", (event) => {
+      shipWrap.tabIndex = 0;
+      const openDetailsFromKey = (event: KeyboardEvent) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           openDetails(event);
         }
-      });
+      };
+      total.addEventListener("keydown", openDetailsFromKey);
+      programWrap.addEventListener("keydown", openDetailsFromKey);
+      shipWrap.addEventListener("keydown", openDetailsFromKey);
 
       container.appendChild(wrapper);
     }
@@ -642,7 +752,7 @@ export function attachLegend(
 
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
-    title: "Program country",
+    title: "Contributing countries",
     startOpen: true,
   });
 
@@ -666,8 +776,10 @@ export function attachLegend(
   countrySelectAllCheckbox.addEventListener("change", () => {
     const shouldCheck =
       countrySelectAllCheckbox.checked || countrySelectAllCheckbox.indeterminate;
+    const visibleCountries = new Set(getVisibleListCountries());
 
     for (const country of filterableCountries) {
+      if (!visibleCountries.has(country)) continue;
       if (shouldCheck) selectedCountries.add(country);
       else selectedCountries.delete(country);
       syncCountryCheckboxUI(country);
@@ -677,27 +789,74 @@ export function attachLegend(
   });
   countryBody.appendChild(countrySelectAllRow);
 
-  const countryGroups = [
-    { key: "g7", title: "G7", countries: G7_COUNTRIES },
-    { key: "eu", title: "EU", countries: EU_COUNTRIES },
-    { key: "other", title: "Other", countries: OTHER_COUNTRIES },
-  ];
+  const countryGroupBtnRow = document.createElement("div");
+  countryGroupBtnRow.className = "o-legend-country-group-btns";
+  countryGroupBtnRow.setAttribute("role", "group");
+  countryGroupBtnRow.setAttribute("aria-label", "Country group filters");
 
-  const filterCountryList = (countries: CountryName[]) =>
-    countries.filter((c) => filterableCountrySet.has(c));
+  const allFilterBtn = document.createElement("button");
+  allFilterBtn.type = "button";
+  allFilterBtn.className = "o-legend-country-group-btn active";
+  allFilterBtn.textContent = "All";
+  allFilterBtn.setAttribute("aria-pressed", "true");
 
-  for (const countryGroup of countryGroups) {
-    const visible = filterCountryList(countryGroup.countries);
-    if (visible.length === 0) continue;
+  const g7FilterBtn = document.createElement("button");
+  g7FilterBtn.type = "button";
+  g7FilterBtn.className = "o-legend-country-group-btn";
+  g7FilterBtn.textContent = "G7";
+  g7FilterBtn.setAttribute("aria-pressed", "false");
 
-    const { groupBody } = createCollapsibleGroup(countryBody, {
-      key: countryGroup.key,
-      title: countryGroup.title,
-      nested: true,
-      startOpen: true,
-    });
-    addCountryRows(visible, groupBody, countrySelectAllCheckbox);
-  }
+  const euFilterBtn = document.createElement("button");
+  euFilterBtn.type = "button";
+  euFilterBtn.className = "o-legend-country-group-btn";
+  euFilterBtn.textContent = "EU";
+  euFilterBtn.setAttribute("aria-pressed", "false");
+
+  const updateCountryGroupFilterButtons = () => {
+    allFilterBtn.classList.toggle("active", countryListFilter === "all");
+    allFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "all"));
+    g7FilterBtn.classList.toggle("active", countryListFilter === "g7");
+    g7FilterBtn.setAttribute("aria-pressed", String(countryListFilter === "g7"));
+    euFilterBtn.classList.toggle("active", countryListFilter === "eu");
+    euFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "eu"));
+  };
+
+  const applyCountryListFilter = (filter: CountryListFilter) => {
+    countryListFilter = filter;
+    syncCountryListVisibility();
+    updateCountryGroupFilterButtons();
+
+    selectedCountries.clear();
+    if (filter === "all") {
+      for (const country of filterableCountries) selectedCountries.add(country);
+    } else {
+      for (const country of getVisibleListCountries()) selectedCountries.add(country);
+    }
+
+    for (const country of filterableCountries) syncCountryCheckboxUI(country);
+    applyCountrySelection(countrySelectAllCheckbox);
+  };
+
+  allFilterBtn.addEventListener("click", () => applyCountryListFilter("all"));
+  g7FilterBtn.addEventListener("click", () => applyCountryListFilter("g7"));
+  euFilterBtn.addEventListener("click", () => applyCountryListFilter("eu"));
+
+  countryGroupBtnRow.appendChild(allFilterBtn);
+  if (g7Filterable.length > 0) countryGroupBtnRow.appendChild(g7FilterBtn);
+  if (euFilterable.length > 0) countryGroupBtnRow.appendChild(euFilterBtn);
+  countryBody.appendChild(countryGroupBtnRow);
+
+  const countryList = document.createElement("div");
+  countryList.className = "o-legend-country-list";
+  countryBody.appendChild(countryList);
+
+  addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
+
+  const countryCountHint = document.createElement("p");
+  countryCountHint.className = "o-legend-country-count-hint";
+  countryCountHint.textContent =
+    "Pin: contributing country; ensign: ship flag country.";
+  countryBody.appendChild(countryCountHint);
 
   // Create footer and add it to content (not legend)
   const footer = document.createElement("div");

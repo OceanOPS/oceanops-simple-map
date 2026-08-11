@@ -9,6 +9,8 @@ export {
 } from "./partnerCountriesData";
 export {
   getCountryBreakdownFromMap,
+  getCountryShipBreakdownFromMap,
+  getCountryShipTotalFromMap,
   getCountryTotalFromMap,
 } from "./countryMapCounts";
 
