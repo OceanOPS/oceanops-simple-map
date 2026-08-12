@@ -355,29 +355,34 @@ export function mountBasemapProjectionControl(
   divider.className = "o-map-display-divider";
   divider.setAttribute("aria-hidden", "true");
 
-  // —— Projection (single toggle: show only the non-default option) ——
+  // —— Projection (preview + label: show only the non-active option) ——
   const projectionSection = document.createElement("div");
   projectionSection.className = "o-map-display-section o-map-display-section--projection";
 
-  const projectionBtn = document.createElement("button");
-  projectionBtn.type = "button";
-  projectionBtn.className = "o-projection-toggle-btn";
+  const projectionPreviewBtn = document.createElement("button");
+  projectionPreviewBtn.type = "button";
+  projectionPreviewBtn.className = "o-basemap-preview-btn";
 
-  projectionSection.append(projectionBtn);
+  const projectionHint = document.createElement("span");
+  projectionHint.className = "o-basemap-kind-label";
+
+  projectionSection.append(projectionPreviewBtn, projectionHint);
 
   const syncProjectionUi = (projection: ProjectionId) => {
     const is3d = projection === PROJECTION_3D_GLOBE;
     if (is3d) {
-      projectionBtn.textContent = "Web Mercator";
-      projectionBtn.title = "Switch to Web Mercator projection";
-      projectionBtn.setAttribute(
+      projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/mercator.jpeg');"></div>`;
+      projectionHint.textContent = "Web Mercator";
+      projectionPreviewBtn.title = "Switch to Web Mercator";
+      projectionPreviewBtn.setAttribute(
         "aria-label",
-        "Switch to Web Mercator projection"
+        "Switch to Web Mercator"
       );
     } else {
-      projectionBtn.textContent = "3D Globe";
-      projectionBtn.title = "Switch to 3D globe";
-      projectionBtn.setAttribute("aria-label", "Switch to 3D globe");
+      projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/globe.jpeg');"></div>`;
+      projectionHint.textContent = "3D Globe";
+      projectionPreviewBtn.title = "Switch to 3D globe";
+      projectionPreviewBtn.setAttribute("aria-label", "Switch to 3D globe");
     }
   };
 
@@ -408,17 +413,17 @@ export function mountBasemapProjectionControl(
     updateBasemapUi();
   });
 
-  projectionBtn.addEventListener("click", () => {
+  projectionPreviewBtn.addEventListener("click", () => {
     void (async () => {
       const target = toggleProjection(options.getProjection());
       projectionSection.classList.add("is-busy");
-      projectionBtn.disabled = true;
+      projectionPreviewBtn.disabled = true;
       try {
         await options.onProjectionChange(target);
         updateUi();
       } finally {
         projectionSection.classList.remove("is-busy");
-        projectionBtn.disabled = false;
+        projectionPreviewBtn.disabled = false;
       }
     })();
   });

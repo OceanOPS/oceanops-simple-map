@@ -29,6 +29,53 @@ import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
 
+const DEFAULT_MAP_FOOTER =
+  "Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.";
+
+type ExportMetadata = {
+  exportedAt?: string;
+  OCEAN_GLIDERS_MIN_LOC_DATE?: string;
+  ANIBOS_MIN_LOC_DATE?: string;
+  FVON_MIN_LOC_DATE?: string;
+  SOOP_XBT_SAMPLED_SINCE?: string;
+  GOSHIP_SAMPLED_SINCE?: string;
+};
+
+function yearFromIso(isoDate: string): string {
+  return isoDate.slice(0, 4);
+}
+
+function formatAsOfMonthYear(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  return date.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Build footer from ISO dates (so hand-edits to export-metadata.json work for testing). */
+function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
+  const { SOOP_XBT_SAMPLED_SINCE, GOSHIP_SAMPLED_SINCE, exportedAt } = metadata;
+  if (!SOOP_XBT_SAMPLED_SINCE || !GOSHIP_SAMPLED_SINCE) return null;
+
+  const asOf = exportedAt ? formatAsOfMonthYear(exportedAt) : "October 2025";
+  const linePart = `XBT reference lines sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}, and sampled GO-SHIP lines since ${yearFromIso(GOSHIP_SAMPLED_SINCE)}. Data source: OceanOPS.`;
+  return `Latest locations of operational platforms as of ${asOf}. ${linePart}`;
+}
+
+async function loadExportMetadata(): Promise<ExportMetadata | null> {
+  try {
+    const response = await fetch(`${BASE}geojson/export-metadata.json`, {
+      cache: "no-cache",
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as ExportMetadata;
+  } catch {
+    return null;
+  }
+}
+
 const GROUP_PICTOS: Record<string, string> = {
   fixed: `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -858,14 +905,28 @@ export function attachLegend(
     "Pin: contributing country; ensign: ship flag country.";
   countryBody.appendChild(countryCountHint);
 
+  const dataNote = document.createElement("p");
+  dataNote.className = "o-legend-data-note";
+  dataNote.textContent = DEFAULT_MAP_FOOTER;
+  countryBody.appendChild(dataNote);
+
   // Create footer and add it to content (not legend)
   const footer = document.createElement("div");
   footer.className = "o-legend-footer";
-  footer.innerHTML = `
-    <p>Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.</p>
-    <p class="o-legend-disclaimer">Disclaimer: The depiction and use of boundaries, geographic names and related data shown on the OceanOPS map and included in country lists and tables are not warranted to be error free nor do they imply official endorsement or acceptance by the Intergovernmental Oceanographic Commission of UNESCO and the World Meteorological Organization. Statistics in this report are gradually made more accurate by OceanOPS based on data and metadata availability. Please contact <a href="mailto:support@ocean-ops.org" target="_blank" rel="noopener noreferrer">support@ocean-ops.org</a> for any discrepancies.</p>
-  `;
+  const disclaimer = document.createElement("p");
+  disclaimer.className = "o-legend-disclaimer";
+  disclaimer.innerHTML =
+    'Disclaimer: The depiction and use of boundaries, geographic names and related data shown on the OceanOPS map and included in country lists and tables are not warranted to be error free nor do they imply official endorsement or acceptance by the Intergovernmental Oceanographic Commission of UNESCO and the World Meteorological Organization. Statistics in this report are gradually made more accurate by OceanOPS based on data and metadata availability. Please contact <a href="mailto:support@ocean-ops.org" target="_blank" rel="noopener noreferrer">support@ocean-ops.org</a> for any discrepancies.';
+  footer.append(disclaimer);
   content.appendChild(footer);
+
+  void loadExportMetadata().then((metadata) => {
+    if (!metadata) return;
+    const footerText = buildMapFooterFromMetadata(metadata);
+    if (footerText) {
+      dataNote.textContent = footerText;
+    }
+  });
 
   legend.appendChild(content);
 

@@ -215,35 +215,6 @@
   max-width: 72px;
 }
 
-.o-projection-toggle-btn {
-  background: rgba(11, 30, 66, 0.85);
-  border: 1px solid rgba(248, 248, 248, 0.35);
-  border-radius: 4px;
-  padding: 6px 8px;
-  cursor: pointer;
-  color: #f8f8f8;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  text-align: center;
-  width: 100%;
-  max-width: 72px;
-  line-height: 1.25;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.o-projection-toggle-btn:hover:not(:disabled) {
-  border-color: #f48b25;
-  color: #f48b25;
-}
-
-.o-projection-toggle-btn:disabled {
-  cursor: wait;
-}
-
 /* Legacy wrapper (unused) */
 .o-basemap-toggle {
   display: contents;
@@ -667,6 +638,15 @@
   font-size: 11px;
   line-height: 1.4;
   opacity: 0.65;
+}
+
+.o-legend-data-note {
+  margin: 0 var(--legend-padding) 16px calc(var(--legend-padding) + 12px);
+  padding-top: 12px;
+  border-top: 1px solid rgba(248, 248, 248, 0.1);
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(248, 248, 248, 0.7);
 }
 
 .o-legend-country-group-btns {
