@@ -19,7 +19,6 @@ export const ALL_COUNTRIES = [
   "CROATIA",
   "CUBA",
   "DENMARK",
-  "EUMETNET",
   "EUROPE",
   "FINLAND",
   "FRANCE",
@@ -87,7 +86,6 @@ export const EU_COUNTRIES: CountryName[] = [
   "BULGARIA",
   "CROATIA",
   "DENMARK",
-  "EUMETNET",
   "EUROPE",
   "FINLAND",
   "FRANCE",
@@ -124,6 +122,7 @@ export const GEO_COUNTRY_ALIASES: Partial<
   Record<CountryName, readonly string[]>
 > = {
   CHINA: ["HONG KONG"],
+  EUROPE: ["EUMETNET"],
 };
 
 /** GeoJSON names used when filtering or counting a legend country. */
@@ -138,8 +137,7 @@ const COUNTRY_LABELS: Record<string, string> = {
   UAE: "United Arab Emirates",
   "SOUTH KOREA": "South Korea",
   PNG: "Papua New Guinea",
-  EUMETNET: "EUMETNET",
-  EUROPE: "Europe",
+  EUROPE: "European Union",
   "MARSHALL IS.": "Marshall Islands",
   "COOK ISLANDS": "Cook Islands",
   "NEW ZEALAND": "New Zealand",
