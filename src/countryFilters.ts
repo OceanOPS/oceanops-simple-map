@@ -25,7 +25,6 @@ export const ALL_COUNTRIES = [
   "FRANCE",
   "GERMANY",
   "GREECE",
-  "HONG KONG",
   "ICELAND",
   "INDIA",
   "INDONESIA",
@@ -64,7 +63,6 @@ export const ALL_COUNTRIES = [
   "UAE",
   "UK",
   "UKRAINE",
-  "UN",
   "URUGUAY",
   "USA",
   "VANUATU",
@@ -121,6 +119,19 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
 /** Line layers without `country_name` yet — hidden only when no country is selected (step 2 adds per-line country). */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "ship_oceano"] as const;
 
+/** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
+export const GEO_COUNTRY_ALIASES: Partial<
+  Record<CountryName, readonly string[]>
+> = {
+  CHINA: ["HONG KONG"],
+};
+
+/** GeoJSON names used when filtering or counting a legend country. */
+export function geoCountryNamesForFilter(country: string): string[] {
+  const aliases = GEO_COUNTRY_ALIASES[country as CountryName];
+  return aliases ? [country, ...aliases] : [country];
+}
+
 const COUNTRY_LABELS: Record<string, string> = {
   USA: "United States",
   UK: "United Kingdom",
@@ -134,10 +145,8 @@ const COUNTRY_LABELS: Record<string, string> = {
   "NEW ZEALAND": "New Zealand",
   "SOUTH AFRICA": "South Africa",
   "PUERTO RICO": "Puerto Rico",
-  "HONG KONG": "Hong Kong",
   "VIET NAM": "Viet Nam",
   "WALLIS/FUTUNA": "Wallis and Futuna",
-  UN: "United Nations",
 };
 
 /** Display label for filter UI (GeoJSON values are often ALL CAPS). */
@@ -159,7 +168,7 @@ export function getCountryLabel(country: CountryName): string {
 }
 
 export function buildCountryExpression(countries: Iterable<string>): string {
-  const values = [...countries];
+  const values = [...new Set([...countries].flatMap(geoCountryNamesForFilter))];
   if (values.length === 0) return "1=0";
 
   const list = values

@@ -2,17 +2,25 @@ import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
 import {
   COUNTRY_FILTER_LAYER_IDS,
+  geoCountryNamesForFilter,
   type CountryName,
 } from "./countryFilters";
 import type { CountryLayerCount } from "./partnerCountriesData";
 
 function countryWhere(country: CountryName): string {
-  return `country_name = '${country.replace(/'/g, "''")}'`;
+  const names = geoCountryNamesForFilter(country);
+  if (names.length === 1) {
+    return `country_name = '${names[0].replace(/'/g, "''")}'`;
+  }
+  const list = names.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ");
+  return `country_name IN (${list})`;
 }
 
 function shipCountryWhere(country: CountryName): string {
-  const escaped = country.replace(/'/g, "''");
-  return `country_ship = '${escaped}' AND country_ship <> 'UNKNOWN'`;
+  const names = geoCountryNamesForFilter(country);
+  const list = names.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ");
+  const inClause = names.length === 1 ? `= ${list}` : `IN (${list})`;
+  return `country_ship ${inClause} AND country_ship <> 'UNKNOWN'`;
 }
 
 const labelByLayerId = new Map(categories.map((c) => [c.id, c.label]));
@@ -72,7 +80,7 @@ async function queryCountryBreakdown(
 
 /**
  * Program-country totals from visible map layers (`country_name` on GeoJSON).
- * Independent per label (e.g. EUMETNET vs EUROPE), unlike partner ISO rollup.
+ * Totals include rolled-up geo names (e.g. China includes Hong Kong platforms).
  */
 export async function getCountryTotalFromMap(
   country: CountryName,
