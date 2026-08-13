@@ -7,6 +7,12 @@ export function getCountryIsoCode(country: CountryName): string | undefined {
   return iso || undefined;
 }
 
+/** ISO code for a raw GeoJSON `country_name`, when mapped in partner export. */
+export function getIsoCodeForGeoCountry(geoName: string): string | undefined {
+  const iso = getPartnerDataSnapshot().byGeoCountryName[geoName.toUpperCase()];
+  return iso && iso.length === 2 ? iso : undefined;
+}
+
 export function countryFlagUrl(isoCode: string, width = 20): string {
   return `https://flagcdn.com/w${width}/${isoCode.toLowerCase()}.png`;
 }

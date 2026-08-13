@@ -60,6 +60,7 @@
 }
 
 .o-legend-toggle {
+  position: relative;
   width: 46px;
   height: 46px;
   background-color: #f8f8f8;
@@ -75,6 +76,61 @@
   padding: 0;
 }
 
+.o-legend-toggle__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.o-legend-toggle__hint {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 12px;
+  background: #0b1e42;
+  color: #f8f8f8;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 10;
+}
+
+.o-legend-toggle__hint::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #0b1e42;
+}
+
+.o-legend-toggle:hover .o-legend-toggle__hint,
+.o-legend-toggle:focus-visible .o-legend-toggle__hint {
+  opacity: 1;
+  visibility: visible;
+}
+
+.o-legend-toggle:focus-visible {
+  outline: 2px solid #3975df;
+  outline-offset: 2px;
+}
+
+.o-legend-toggle.is-open {
+  background-color: #e8eef8;
+  border-color: #184596;
+}
+
 /* Reduce size on short screens */
 @media (max-height: 700px) {
   .o-legend-toggle {
@@ -82,15 +138,15 @@
     height: 40px;
   }
 
-  .o-legend-toggle svg {
+  .o-legend-toggle__icon svg {
     width: 20px;
-    height: 19px;
+    height: 16px;
   }
 }
 
-.o-legend-toggle svg {
-  width: 24px;
-  height: 23px;
+.o-legend-toggle__icon svg {
+  width: 22px;
+  height: 18px;
 }
 
 .o-legend-toggle:hover {
@@ -572,72 +628,17 @@
 .o-legend-country-counts {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
   margin-left: auto;
 }
 
-.o-legend-country-program-count,
-.o-legend-country-ship-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-}
-
-.o-legend-country-program-count {
-  opacity: 0.85;
-}
-
-.o-legend-country-ship-count {
-  opacity: 0.65;
-}
-
-.o-legend-country-program-count[role="button"]:hover,
-.o-legend-country-ship-count[role="button"]:hover,
 .o-legend-country-total[role="button"]:hover {
   opacity: 1;
 }
 
-.o-legend-country-program-pin-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  color: #f8f8f8;
-  flex-shrink: 0;
-  opacity: 0.92;
-}
-
-.o-legend-country-program-pin-icon svg {
-  display: block;
-  width: 14px;
-  height: 14px;
-}
-
-.o-legend-country-ship-flag-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  color: #f48b25;
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-
-.o-legend-country-ship-flag-icon svg {
-  display: block;
-  width: 14px;
-  height: 14px;
-}
-
-.o-legend-country-count-hint {
-  margin: 4px var(--legend-padding) 12px calc(var(--legend-padding) + 12px);
+.o-legend-country-total {
   font-size: 11px;
-  line-height: 1.4;
-  opacity: 0.65;
+  opacity: 0.85;
 }
 
 .o-legend-data-note {
@@ -869,12 +870,54 @@ body.o-country-modal-open {
 }
 
 .o-country-modal-section-title {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.75;
+  opacity: 0.9;
+}
+
+.o-country-modal-section-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.72;
+}
+
+.o-country-modal-view-toggle {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.o-country-modal-view-btn {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(248, 248, 248, 0.25);
+  background: transparent;
+  color: #f8f8f8;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.o-country-modal-view-btn:hover,
+.o-country-modal-view-btn:focus-visible {
+  border-color: #f48b25;
+  outline: none;
+}
+
+.o-country-modal-view-btn.active {
+  background: rgba(244, 139, 37, 0.18);
+  border-color: #f48b25;
+  color: #fff;
+}
+
+.o-country-modal-view-panel {
+  min-height: 0;
 }
 
 .o-country-modal-body {
@@ -959,6 +1002,18 @@ body.o-country-modal-open {
 .o-country-modal-network {
   flex: 1;
   min-width: 0;
+}
+
+.o-country-modal-contributor-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.o-country-modal-list--contributors .o-country-modal-contributor-flag:empty {
+  width: 24px;
 }
 
 .o-country-modal-footnote {

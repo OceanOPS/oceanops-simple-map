@@ -5,9 +5,11 @@ import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
   getCountryShipBreakdownFromMap,
+  getCountryShipContributorBreakdownFromMap,
   getCountryShipTotalFromMap,
   getCountryTotalFromMap,
   loadPartnerCountriesData,
+  type CountryContributorCount,
 } from "./countryMetrics";
 import type { CountryLayerCount } from "./partnerCountriesData";
 
@@ -42,9 +44,40 @@ function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): vo
   parent.appendChild(list);
 }
 
+function appendContributorBreakdownList(
+  parent: HTMLElement,
+  rows: CountryContributorCount[]
+): void {
+  const list = document.createElement("ul");
+  list.className = "o-country-modal-list o-country-modal-list--contributors";
+
+  for (const row of rows) {
+    const item = document.createElement("li");
+
+    const flag = document.createElement("span");
+    flag.className = "o-country-modal-contributor-flag";
+    appendCountryFlag(flag, row.isoCode, row.label);
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "o-country-modal-network";
+    nameSpan.textContent = row.label;
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "o-legend-count";
+    countSpan.textContent = row.displayCount;
+
+    item.append(flag, nameSpan, countSpan);
+    list.appendChild(item);
+  }
+
+  parent.appendChild(list);
+}
+
 function appendBreakdownSection(
   parent: HTMLElement,
   title: string,
+  count: number,
+  description: string,
   rows: CountryLayerCount[],
   emptyMessage: string
 ): void {
@@ -53,8 +86,13 @@ function appendBreakdownSection(
 
   const heading = document.createElement("h3");
   heading.className = "o-country-modal-section-title";
-  heading.textContent = title;
+  heading.textContent = `${title} (${count.toLocaleString()})`;
   section.appendChild(heading);
+
+  const desc = document.createElement("p");
+  desc.className = "o-country-modal-section-desc";
+  desc.textContent = description;
+  section.appendChild(desc);
 
   if (rows.length === 0) {
     const empty = document.createElement("p");
@@ -65,6 +103,94 @@ function appendBreakdownSection(
     appendBreakdownList(section, rows);
   }
 
+  parent.appendChild(section);
+}
+
+type ShipFlagView = "network" | "country";
+
+function appendShipFlagSection(
+  parent: HTMLElement,
+  count: number,
+  networkRows: CountryLayerCount[],
+  contributorRows: CountryContributorCount[],
+  emptyMessage: string
+): void {
+  const section = document.createElement("section");
+  section.className = "o-country-modal-section";
+
+  const heading = document.createElement("h3");
+  heading.className = "o-country-modal-section-title";
+  heading.textContent = `Ships under this flag (${count.toLocaleString()})`;
+  section.appendChild(heading);
+
+  const desc = document.createElement("p");
+  desc.className = "o-country-modal-section-desc";
+  desc.textContent =
+    "Platforms on ships flying this flag, including those operated by other countries.";
+  section.appendChild(desc);
+
+  const toggle = document.createElement("div");
+  toggle.className = "o-country-modal-view-toggle";
+  toggle.setAttribute("role", "tablist");
+  toggle.setAttribute("aria-label", "Ship flag breakdown view");
+
+  const networkBtn = document.createElement("button");
+  networkBtn.type = "button";
+  networkBtn.className = "o-country-modal-view-btn active";
+  networkBtn.setAttribute("role", "tab");
+  networkBtn.setAttribute("aria-selected", "true");
+  networkBtn.textContent = "By network";
+
+  const countryBtn = document.createElement("button");
+  countryBtn.type = "button";
+  countryBtn.className = "o-country-modal-view-btn";
+  countryBtn.setAttribute("role", "tab");
+  countryBtn.setAttribute("aria-selected", "false");
+  countryBtn.textContent = "By country";
+
+  toggle.append(networkBtn, countryBtn);
+  section.appendChild(toggle);
+
+  const panel = document.createElement("div");
+  panel.className = "o-country-modal-view-panel";
+  panel.setAttribute("role", "tabpanel");
+  section.appendChild(panel);
+
+  let activeView: ShipFlagView = "network";
+
+  const renderPanel = () => {
+    panel.replaceChildren();
+    const rows = activeView === "network" ? networkRows : contributorRows;
+
+    if (rows.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "o-country-modal-empty";
+      empty.textContent = emptyMessage;
+      panel.appendChild(empty);
+      return;
+    }
+
+    if (activeView === "network") {
+      appendBreakdownList(panel, networkRows);
+    } else {
+      appendContributorBreakdownList(panel, contributorRows);
+    }
+  };
+
+  const setView = (view: ShipFlagView) => {
+    activeView = view;
+    const isNetwork = view === "network";
+    networkBtn.classList.toggle("active", isNetwork);
+    countryBtn.classList.toggle("active", !isNetwork);
+    networkBtn.setAttribute("aria-selected", String(isNetwork));
+    countryBtn.setAttribute("aria-selected", String(!isNetwork));
+    renderPanel();
+  };
+
+  networkBtn.addEventListener("click", () => setView("network"));
+  countryBtn.addEventListener("click", () => setView("country"));
+
+  renderPanel();
   parent.appendChild(section);
 }
 
@@ -105,10 +231,6 @@ export async function openCountryMetricsModal(
 
   titleWrap.append(titleFlag, title);
 
-  const totalEl = document.createElement("div");
-  totalEl.className = "o-country-modal-totals";
-  totalEl.textContent = "Loading totals…";
-
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";
   closeBtn.className = "o-country-modal-close";
@@ -123,9 +245,9 @@ export async function openCountryMetricsModal(
 
   const body = document.createElement("div");
   body.className = "o-country-modal-body";
-  body.innerHTML = `<p class="o-country-modal-loading">Loading network breakdown…</p>`;
+  body.innerHTML = `<p class="o-country-modal-loading">Loading breakdown…</p>`;
 
-  dialog.append(header, totalEl, body);
+  dialog.append(header, body);
   backdrop.appendChild(dialog);
   document.body.appendChild(backdrop);
 
@@ -152,42 +274,32 @@ export async function openCountryMetricsModal(
   try {
     await loadPartnerCountriesData();
     const visible = getVisibleLayerIds();
-    const [programTotal, shipTotal, programRows, shipRows] = await Promise.all([
+    const [programTotal, shipTotal, programRows, shipNetworkRows, shipContributorRows] =
+      await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
       getCountryShipTotalFromMap(country, layerById, visible),
       getCountryBreakdownFromMap(country, layerById, visible),
       getCountryShipBreakdownFromMap(country, layerById, visible),
+      getCountryShipContributorBreakdownFromMap(country, layerById, visible),
     ]);
-
-    totalEl.replaceChildren();
-    const programLine = document.createElement("p");
-    programLine.className = "o-country-modal-total-line";
-    programLine.textContent = `${programTotal.toLocaleString()} contributing country platforms`;
-    totalEl.appendChild(programLine);
-
-    const shipLine = document.createElement("p");
-    shipLine.className = "o-country-modal-total-line o-country-modal-total-line-ship";
-    shipLine.textContent =
-      shipTotal > 0
-        ? `${shipTotal.toLocaleString()} on ships flagged to this country`
-        : "No ship-flag deployments on visible networks";
-    totalEl.appendChild(shipLine);
 
     body.replaceChildren();
     appendBreakdownSection(
       body,
-      "By contributing country",
+      "Contributing country",
+      programTotal,
+      "Platforms this country operates or contributes.",
       programRows,
-      "No platforms for this contributing country on the visible networks."
+      "None on the selected networks.",
     );
-    appendBreakdownSection(
+    appendShipFlagSection(
       body,
-      "By ship country",
-      shipRows,
-      "No platforms on ships flagged to this country on the visible networks."
+      shipTotal,
+      shipNetworkRows,
+      shipContributorRows,
+      "None on the selected networks.",
     );
   } catch {
-    totalEl.textContent = "";
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;
   }
 }

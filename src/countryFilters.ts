@@ -165,6 +165,17 @@ export function getCountryLabel(country: CountryName): string {
   return titleCaseWords(country);
 }
 
+/** Display label for a raw GeoJSON `country_name` value. */
+export function getGeoCountryLabel(geoName: string): string {
+  const upper = geoName.toUpperCase();
+  if ((ALL_COUNTRIES as readonly string[]).includes(upper)) {
+    return getCountryLabel(upper as CountryName);
+  }
+  const override = COUNTRY_LABELS[upper];
+  if (override) return override;
+  return titleCaseWords(upper);
+}
+
 export function buildCountryExpression(countries: Iterable<string>): string {
   const values = [...new Set([...countries].flatMap(geoCountryNamesForFilter))];
   if (values.length === 0) return "1=0";

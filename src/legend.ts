@@ -16,7 +16,6 @@ import {
 } from "./countryFilters";
 import {
   getCountryTotalFromMap,
-  getCountryShipTotalFromMap,
   getFilterableCountryNames,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
@@ -28,6 +27,47 @@ import {
 import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
+
+const MENU_TOGGLE_HINT = {
+  closed: "Show filters & countries",
+  open: "Hide filters",
+} as const;
+
+const menuToggleIconClosed = `
+  <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="1" y="1" width="18" height="14" rx="2" stroke="#184596" stroke-width="1.75"/>
+    <path d="M7 1V15" stroke="#184596" stroke-width="1.75"/>
+    <path d="M10 5H16" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 8H16" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 11H14" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
+  </svg>
+`;
+
+const menuToggleIconOpen = `
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M10 3L5 8L10 13" stroke="#184596" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
+function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
+  button.classList.toggle("is-open", isOpen);
+  button.setAttribute("aria-expanded", String(isOpen));
+  button.setAttribute(
+    "aria-label",
+    isOpen ? MENU_TOGGLE_HINT.open : MENU_TOGGLE_HINT.closed,
+  );
+  button.removeAttribute("title");
+
+  const icon = button.querySelector(".o-legend-toggle__icon");
+  if (icon) {
+    icon.innerHTML = isOpen ? menuToggleIconOpen : menuToggleIconClosed;
+  }
+
+  const hint = button.querySelector(".o-legend-toggle__hint");
+  if (hint) {
+    hint.textContent = isOpen ? MENU_TOGGLE_HINT.open : MENU_TOGGLE_HINT.closed;
+  }
+}
 
 const DEFAULT_MAP_FOOTER =
   "Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.";
@@ -194,22 +234,6 @@ const DETAILS_ICON = `
   </svg>
 `;
 
-/** Map pin — program country attribution. */
-const PROGRAM_PIN_ICON = `
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M8 14.25s4.75-4.15 4.75-8A4.75 4.75 0 1 0 3.25 6.25c0 3.85 4.75 8 4.75 8z" fill="currentColor" opacity="0.92"/>
-    <circle cx="8" cy="6.25" r="1.65" fill="#0b1e42"/>
-  </svg>
-`;
-
-/** Ensign on a pole — ship flag country (not the ship-network picto). */
-const SHIP_FLAG_ICON = `
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3.5 2.5v11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    <path d="M3.5 3.5h8.5l-2 2.25 2 2.25-2 2.25-2 2.25H3.5V3.5z" fill="currentColor" opacity="0.9"/>
-  </svg>
-`;
-
 function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   const row = document.createElement("div");
   row.className = "o-legend-country-row";
@@ -235,39 +259,11 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   const counts = document.createElement("span");
   counts.className = "o-legend-country-counts";
 
-  const programWrap = document.createElement("span");
-  programWrap.className = "o-legend-country-program-count";
-  programWrap.title = "Contributing country — platforms attributed to this country";
-
-  const programPinIcon = document.createElement("span");
-  programPinIcon.className = "o-legend-country-program-pin-icon";
-  programPinIcon.innerHTML = PROGRAM_PIN_ICON;
-  programPinIcon.setAttribute("aria-hidden", "true");
-
   const total = document.createElement("span");
   total.className = "o-legend-count o-legend-country-total";
   total.textContent = "(…)";
   total.setAttribute("aria-label", "Platforms by contributing country");
-
-  programWrap.append(programPinIcon, total);
-
-  const shipWrap = document.createElement("span");
-  shipWrap.className = "o-legend-country-ship-count";
-  shipWrap.hidden = true;
-  shipWrap.title = "Ship flag country — platforms on vessels flagged here";
-
-  const shipFlagIcon = document.createElement("span");
-  shipFlagIcon.className = "o-legend-country-ship-flag-icon";
-  shipFlagIcon.innerHTML = SHIP_FLAG_ICON;
-  shipFlagIcon.setAttribute("aria-hidden", "true");
-
-  const shipTotal = document.createElement("span");
-  shipTotal.className = "o-legend-count o-legend-country-ship-total";
-  shipTotal.textContent = "(…)";
-  shipTotal.setAttribute("aria-label", "Platforms by ship country");
-
-  shipWrap.append(shipFlagIcon, shipTotal);
-  counts.append(programWrap, shipWrap);
+  counts.append(total);
 
   const detailsBtn = document.createElement("button");
   detailsBtn.type = "button";
@@ -281,7 +277,7 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   wrapper.className = "o-legend-country-block";
   wrapper.append(row);
 
-  return { wrapper, row, checkbox, total, programWrap, shipWrap, shipTotal, name, detailsBtn };
+  return { wrapper, row, checkbox, total, name, detailsBtn };
 }
 
 /**
@@ -305,18 +301,16 @@ export function attachLegend(
   closeCountryMetricsModal();
   document.body.classList.remove("menu-open");
 
-  // Create toggle button
+  // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
   const toggleButton = document.createElement("button");
   toggleButton.id = "legend-toggle";
+  toggleButton.type = "button";
   toggleButton.className = "o-legend-toggle";
-  toggleButton.title = "Toggle filters";
-  toggleButton.setAttribute("aria-label", "Filtros");
-  toggleButton.setAttribute("aria-expanded", "false");
   toggleButton.innerHTML = `
-    <svg width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10.1842 11.9459C11.3767 11.9459 12.3816 12.7232 12.6909 13.7838H18V15.1622H12.6909C12.3816 16.2228 11.3767 17 10.1842 17C8.99173 17 7.9868 16.2228 7.67748 15.1622H0V13.7838H7.67748C7.9868 12.7232 8.99173 11.9459 10.1842 11.9459ZM10.1842 13.3243C9.7972 13.3243 9.45478 13.5053 9.23869 13.7838C9.08961 13.9759 9 14.214 9 14.473C9 14.732 9.08961 14.97 9.23869 15.1622C9.45478 15.4406 9.7972 15.6216 10.1842 15.6216C10.5712 15.6216 10.9136 15.4406 11.1297 15.1622C11.2788 14.97 11.3684 14.732 11.3684 14.473C11.3684 14.214 11.2788 13.9759 11.1297 13.7838C10.9136 13.5053 10.5712 13.3243 10.1842 13.3243ZM4.02632 5.97297C5.2188 5.97297 6.22373 6.75021 6.53305 7.81081H18V9.18919H6.53305C6.22373 10.2498 5.2188 11.027 4.02632 11.027C2.83383 11.027 1.8289 10.2498 1.51958 9.18919H0V7.81081H1.51958C1.8289 6.75021 2.83383 5.97297 4.02632 5.97297ZM4.02632 7.35135C3.37229 7.35135 2.84211 7.86562 2.84211 8.5C2.84211 9.13438 3.37229 9.64865 4.02632 9.64865C4.68034 9.64865 5.21053 9.13438 5.21053 8.5C5.21053 7.86562 4.68034 7.35135 4.02632 7.35135ZM13.9737 0C15.1662 0 16.1711 0.777233 16.4804 1.83784H18V3.21622H16.4804C16.1711 4.27682 15.1662 5.05405 13.9737 5.05405C12.7812 5.05405 11.7763 4.27682 11.467 3.21622H0V1.83784H11.467C11.7763 0.777233 12.7812 0 13.9737 0ZM13.9737 1.37838C13.5867 1.37838 13.2443 1.55936 13.0282 1.83784C12.8791 2.02997 12.7895 2.26804 12.7895 2.52703C12.7895 2.78602 12.8791 3.02409 13.0282 3.21622C13.2443 3.4947 13.5867 3.67568 13.9737 3.67568C14.3607 3.67568 14.7031 3.4947 14.9192 3.21622C15.0683 3.02409 15.1579 2.78602 15.1579 2.52703C15.1579 2.26804 15.0683 2.02997 14.9192 1.83784C14.7031 1.55936 14.3607 1.37838 13.9737 1.37838Z" fill="#184596"/>
-    </svg>
+    <span class="o-legend-toggle__icon">${menuToggleIconClosed}</span>
+    <span class="o-legend-toggle__hint">${MENU_TOGGLE_HINT.closed}</span>
   `;
+  setMenuToggleState(toggleButton, false);
   view.ui.add(toggleButton, { position: "top-left", index: 0 });
 
   // Move zoom and compass after the menu button
@@ -397,12 +391,12 @@ export function attachLegend(
       legend.classList.remove("open");
       backdrop.classList.remove("open");
       document.body.classList.remove("menu-open");
-      toggleButton.setAttribute("aria-expanded", "false");
+      setMenuToggleState(toggleButton, false);
     } else {
       legend.classList.add("open");
       backdrop.classList.add("open");
       document.body.classList.add("menu-open");
-      toggleButton.setAttribute("aria-expanded", "true");
+      setMenuToggleState(toggleButton, true);
     }
   };
 
@@ -495,7 +489,6 @@ export function attachLegend(
   const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
   const countryTotalNodes = new Map<string, HTMLSpanElement[]>();
-  const countryShipCountNodes = new Map<string, HTMLSpanElement[]>();
   const countryRowWrappers = new Map<string, HTMLElement>();
 
   const sortedFilterableCountries = [...filterableCountries].sort((a, b) =>
@@ -531,23 +524,9 @@ export function attachLegend(
     countryTotalNodes.set(country, refs);
   };
 
-  const registerCountryShipCountNode = (country: CountryName, node: HTMLSpanElement) => {
-    const refs = countryShipCountNodes.get(country) ?? [];
-    refs.push(node);
-    countryShipCountNodes.set(country, refs);
-  };
-
   const setCountryTotalDisplay = (country: CountryName, text: string) => {
     for (const node of countryTotalNodes.get(country) ?? []) {
       node.textContent = text;
-    }
-  };
-
-  const setCountryShipTotalDisplay = (country: CountryName, count: number) => {
-    for (const wrap of countryShipCountNodes.get(country) ?? []) {
-      wrap.hidden = count === 0;
-      const node = wrap.querySelector(".o-legend-country-ship-total");
-      if (node) node.textContent = `(${count.toLocaleString()})`;
     }
   };
 
@@ -564,12 +543,8 @@ export function attachLegend(
     const layers = layerById as Map<string, GeoJSONLayer>;
     for (const country of filterableCountries) {
       if (!countryTotalNodes.has(country)) continue;
-      const [programTotal, shipTotal] = await Promise.all([
-        getCountryTotalFromMap(country, layers, visible),
-        getCountryShipTotalFromMap(country, layers, visible),
-      ]);
+      const programTotal = await getCountryTotalFromMap(country, layers, visible);
       setCountryTotalDisplay(country, `(${programTotal.toLocaleString()})`);
-      setCountryShipTotalDisplay(country, shipTotal);
     }
   };
 
@@ -683,13 +658,12 @@ export function attachLegend(
     selectAllCheckbox: HTMLInputElement
   ) => {
     for (const country of countries) {
-      const { wrapper, checkbox, total, programWrap, shipWrap, name, detailsBtn } =
+      const { wrapper, checkbox, total, name, detailsBtn } =
         createCountryFilterRow(getCountryLabel(country), country);
 
       wrapper.setAttribute("data-country", country);
       countryRowWrappers.set(country, wrapper);
       registerCountryTotalNode(country, total);
-      registerCountryShipCountNode(country, shipWrap);
       registerCountryCheckbox(country, checkbox, selectAllCheckbox);
 
       const toggleCountryFromName = () => {
@@ -720,18 +694,10 @@ export function attachLegend(
       };
 
       detailsBtn.addEventListener("click", openDetails);
-      programWrap.addEventListener("click", openDetails);
       total.addEventListener("click", openDetails);
-      shipWrap.addEventListener("click", openDetails);
-      programWrap.style.cursor = "pointer";
       total.style.cursor = "pointer";
-      shipWrap.style.cursor = "pointer";
-      programWrap.setAttribute("role", "button");
       total.setAttribute("role", "button");
-      shipWrap.setAttribute("role", "button");
-      programWrap.tabIndex = 0;
       total.tabIndex = 0;
-      shipWrap.tabIndex = 0;
       const openDetailsFromKey = (event: KeyboardEvent) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -739,8 +705,6 @@ export function attachLegend(
         }
       };
       total.addEventListener("keydown", openDetailsFromKey);
-      programWrap.addEventListener("keydown", openDetailsFromKey);
-      shipWrap.addEventListener("keydown", openDetailsFromKey);
 
       container.appendChild(wrapper);
     }
@@ -898,12 +862,6 @@ export function attachLegend(
   countryBody.appendChild(countryList);
 
   addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
-
-  const countryCountHint = document.createElement("p");
-  countryCountHint.className = "o-legend-country-count-hint";
-  countryCountHint.textContent =
-    "Pin: contributing country; ensign: ship flag country.";
-  countryBody.appendChild(countryCountHint);
 
   const dataNote = document.createElement("p");
   dataNote.className = "o-legend-data-note";

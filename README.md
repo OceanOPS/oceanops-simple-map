@@ -58,7 +58,7 @@ Criteria mirror `oceanops-report-card/scripts/partner-export/exportConfig.mjs` (
 
 ## Line densification (manual fallback)
 
-Line layers are densified automatically during `export:geojson`. Logic lives in **`oceanops-data-exports/geojson-export/densifyLayer.mjs`** (default **rhumb**, 80 km).
+Line layers are densified automatically during `export:geojson`. Logic lives in **`oceanops-data-exports/geojson-export/densifyLayer.mjs`** (default **hybrid**, 80 km).
 
 After hand-editing `*_undensified.geojson`:
 
