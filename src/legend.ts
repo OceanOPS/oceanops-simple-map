@@ -35,17 +35,17 @@ const MENU_TOGGLE_HINT = {
 
 const menuToggleIconClosed = `
   <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <rect x="1" y="1" width="18" height="14" rx="2" stroke="#184596" stroke-width="1.75"/>
-    <path d="M7 1V15" stroke="#184596" stroke-width="1.75"/>
-    <path d="M10 5H16" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
-    <path d="M10 8H16" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
-    <path d="M10 11H14" stroke="#184596" stroke-width="1.75" stroke-linecap="round"/>
+    <rect x="1" y="1" width="18" height="14" rx="2" stroke="#f8f8f8" stroke-width="1.75"/>
+    <path d="M7 1V15" stroke="#f8f8f8" stroke-width="1.75"/>
+    <path d="M10 5H16" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 8H16" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 11H14" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
   </svg>
 `;
 
 const menuToggleIconOpen = `
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M10 3L5 8L10 13" stroke="#184596" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M10 3L5 8L10 13" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
 `;
 

@@ -33,6 +33,43 @@ function shipCountryWhere(country: CountryName): string {
   return `country_ship ${inClause} AND country_ship <> 'UNKNOWN'`;
 }
 
+/**
+ * Ship-flag platforms where the operating country differs from the vessel flag
+ * (ship time — e.g. a US float deployed from a French-flagged ship).
+ */
+function shipCrossCountryWhere(country: CountryName): string {
+  const flagNames = geoCountryNamesForFilter(country);
+  const ship = shipCountryWhere(country);
+  const operatorClause =
+    flagNames.length === 1
+      ? `country_name <> country_ship`
+      : `country_name NOT IN (${flagNames.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ")})`;
+
+  return `${ship} AND country_name IS NOT NULL AND country_name <> 'UNKNOWN' AND ${operatorClause}`;
+}
+
+function sensorProviderCountryWhere(country: CountryName): string {
+  const names = geoCountryNamesForFilter(country);
+  const list = names.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ");
+  const inClause = names.length === 1 ? `= ${list}` : `IN (${list})`;
+  return `country_sensor_provider ${inClause} AND country_sensor_provider IS NOT NULL`;
+}
+
+/**
+ * Cross-program sensors: provider country matches this country but the platform
+ * program country differs (e.g. a UK sensor on a US Argo float).
+ */
+function sensorCrossCountryWhere(country: CountryName): string {
+  const providerNames = geoCountryNamesForFilter(country);
+  const provider = sensorProviderCountryWhere(country);
+  const programClause =
+    providerNames.length === 1
+      ? `country_name <> country_sensor_provider`
+      : `country_name NOT IN (${providerNames.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ")})`;
+
+  return `${provider} AND country_name IS NOT NULL AND country_name <> 'UNKNOWN' AND ${programClause}`;
+}
+
 const labelByLayerId = new Map(categories.map((c) => [c.id, c.label]));
 
 async function queryCountryTotal(
@@ -164,15 +201,14 @@ export async function getCountryTotalFromMap(
 }
 
 /**
- * Ship-flag totals from visible map layers (`country_ship` on GeoJSON).
- * Only ship-deployed platforms carry this field; fixed platforms are excluded.
+ * Cross-flag ship deployments: `country_ship` matches this flag and `country_name` differs.
  */
 export async function getCountryShipTotalFromMap(
   country: CountryName,
   layerById: Map<string, GeoJSONLayer>,
   visibleLayerIds: ReadonlySet<string>
 ): Promise<number> {
-  return queryCountryTotal(shipCountryWhere(country), layerById, visibleLayerIds);
+  return queryCountryTotal(shipCrossCountryWhere(country), layerById, visibleLayerIds);
 }
 
 export async function getCountryBreakdownFromMap(
@@ -188,11 +224,11 @@ export async function getCountryShipBreakdownFromMap(
   layerById: Map<string, GeoJSONLayer>,
   visibleLayerIds: ReadonlySet<string>
 ): Promise<CountryLayerCount[]> {
-  return queryCountryBreakdown(shipCountryWhere(country), layerById, visibleLayerIds);
+  return queryCountryBreakdown(shipCrossCountryWhere(country), layerById, visibleLayerIds);
 }
 
 /**
- * For a ship-flag country, platforms grouped by contributing country (`country_name`).
+ * For a ship-flag country, cross-flag deployments grouped by operating country.
  */
 export async function getCountryShipContributorBreakdownFromMap(
   country: CountryName,
@@ -200,7 +236,42 @@ export async function getCountryShipContributorBreakdownFromMap(
   visibleLayerIds: ReadonlySet<string>
 ): Promise<CountryContributorCount[]> {
   const totals = await aggregateContributorCounts(
-    shipCountryWhere(country),
+    shipCrossCountryWhere(country),
+    layerById,
+    visibleLayerIds
+  );
+  return contributorRowsFromTotals(totals);
+}
+
+/**
+ * Cross-program sensors: `country_sensor_provider` matches this country and `country_name` differs.
+ */
+export async function getCountrySensorTotalFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<number> {
+  return queryCountryTotal(sensorCrossCountryWhere(country), layerById, visibleLayerIds);
+}
+
+export async function getCountrySensorBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<CountryLayerCount[]> {
+  return queryCountryBreakdown(sensorCrossCountryWhere(country), layerById, visibleLayerIds);
+}
+
+/**
+ * For a sensor-provider country, cross-program sensors grouped by platform program country.
+ */
+export async function getCountrySensorContributorBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<CountryContributorCount[]> {
+  const totals = await aggregateContributorCounts(
+    sensorCrossCountryWhere(country),
     layerById,
     visibleLayerIds
   );

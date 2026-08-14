@@ -9,6 +9,9 @@ export {
 } from "./partnerCountriesData";
 export {
   getCountryBreakdownFromMap,
+  getCountrySensorBreakdownFromMap,
+  getCountrySensorContributorBreakdownFromMap,
+  getCountrySensorTotalFromMap,
   getCountryShipBreakdownFromMap,
   getCountryShipContributorBreakdownFromMap,
   getCountryShipTotalFromMap,

@@ -4,6 +4,9 @@ import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
+  getCountrySensorBreakdownFromMap,
+  getCountrySensorContributorBreakdownFromMap,
+  getCountrySensorTotalFromMap,
   getCountryShipBreakdownFromMap,
   getCountryShipContributorBreakdownFromMap,
   getCountryShipTotalFromMap,
@@ -106,33 +109,35 @@ function appendBreakdownSection(
   parent.appendChild(section);
 }
 
-type ShipFlagView = "network" | "country";
+type BreakdownView = "network" | "country";
 
-function appendShipFlagSection(
+function appendToggleBreakdownSection(
   parent: HTMLElement,
+  title: string,
   count: number,
+  description: string,
   networkRows: CountryLayerCount[],
   contributorRows: CountryContributorCount[],
-  emptyMessage: string
+  emptyMessage: string,
+  toggleAriaLabel: string
 ): void {
   const section = document.createElement("section");
   section.className = "o-country-modal-section";
 
   const heading = document.createElement("h3");
   heading.className = "o-country-modal-section-title";
-  heading.textContent = `Ships under this flag (${count.toLocaleString()})`;
+  heading.textContent = `${title} (${count.toLocaleString()})`;
   section.appendChild(heading);
 
   const desc = document.createElement("p");
   desc.className = "o-country-modal-section-desc";
-  desc.textContent =
-    "Platforms on ships flying this flag, including those operated by other countries.";
+  desc.textContent = description;
   section.appendChild(desc);
 
   const toggle = document.createElement("div");
   toggle.className = "o-country-modal-view-toggle";
   toggle.setAttribute("role", "tablist");
-  toggle.setAttribute("aria-label", "Ship flag breakdown view");
+  toggle.setAttribute("aria-label", toggleAriaLabel);
 
   const networkBtn = document.createElement("button");
   networkBtn.type = "button";
@@ -156,7 +161,7 @@ function appendShipFlagSection(
   panel.setAttribute("role", "tabpanel");
   section.appendChild(panel);
 
-  let activeView: ShipFlagView = "network";
+  let activeView: BreakdownView = "network";
 
   const renderPanel = () => {
     panel.replaceChildren();
@@ -177,7 +182,7 @@ function appendShipFlagSection(
     }
   };
 
-  const setView = (view: ShipFlagView) => {
+  const setView = (view: BreakdownView) => {
     activeView = view;
     const isNetwork = view === "network";
     networkBtn.classList.toggle("active", isNetwork);
@@ -274,13 +279,24 @@ export async function openCountryMetricsModal(
   try {
     await loadPartnerCountriesData();
     const visible = getVisibleLayerIds();
-    const [programTotal, shipTotal, programRows, shipNetworkRows, shipContributorRows] =
-      await Promise.all([
+    const [
+      programTotal,
+      shipTotal,
+      sensorTotal,
+      programRows,
+      shipNetworkRows,
+      shipContributorRows,
+      sensorNetworkRows,
+      sensorContributorRows,
+    ] = await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
       getCountryShipTotalFromMap(country, layerById, visible),
+      getCountrySensorTotalFromMap(country, layerById, visible),
       getCountryBreakdownFromMap(country, layerById, visible),
       getCountryShipBreakdownFromMap(country, layerById, visible),
       getCountryShipContributorBreakdownFromMap(country, layerById, visible),
+      getCountrySensorBreakdownFromMap(country, layerById, visible),
+      getCountrySensorContributorBreakdownFromMap(country, layerById, visible),
     ]);
 
     body.replaceChildren();
@@ -292,12 +308,25 @@ export async function openCountryMetricsModal(
       programRows,
       "None on the selected networks.",
     );
-    appendShipFlagSection(
+    appendToggleBreakdownSection(
       body,
+      "Ships under this flag",
       shipTotal,
+      "Platforms deployed from ships flying this flag when the operating country is different (ship time).",
       shipNetworkRows,
       shipContributorRows,
-      "None on the selected networks.",
+      "No cross-flag deployments on the selected networks.",
+      "Ship flag breakdown view",
+    );
+    appendToggleBreakdownSection(
+      body,
+      "Sensors from this country",
+      sensorTotal,
+      "Platforms with sensors provided by this country when the program country is different (cross-program sensors).",
+      sensorNetworkRows,
+      sensorContributorRows,
+      "No cross-program sensors on the selected networks.",
+      "Sensor provider breakdown view",
     );
   } catch {
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;

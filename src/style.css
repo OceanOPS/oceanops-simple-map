@@ -63,7 +63,7 @@
   position: relative;
   width: 46px;
   height: 46px;
-  background-color: #f8f8f8;
+  background-color: #0b1e42;
   border: 1px solid #e0e0e0;
   border-radius: 50%;
   display: flex;
@@ -122,13 +122,12 @@
 }
 
 .o-legend-toggle:focus-visible {
-  outline: 2px solid #3975df;
-  outline-offset: 2px;
+  outline: none;
 }
 
 .o-legend-toggle.is-open {
-  background-color: #e8eef8;
-  border-color: #184596;
+  background-color: #0b1e42;
+  border-color: #e0e0e0;
 }
 
 /* Reduce size on short screens */
@@ -150,8 +149,9 @@
 }
 
 .o-legend-toggle:hover {
-  background-color: #f8f8f8;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background-color: #0b1e42;
+  opacity: 0.8;
+  box-shadow: none;
 }
 
 .o-legend-toggle:active {
