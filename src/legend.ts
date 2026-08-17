@@ -228,9 +228,9 @@ function createCheckboxRow(
   return { row, checkbox, text };
 }
 
-const DETAILS_ICON = `
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+const METRICS_BTN_ICON = `
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M2 13V8M6 13V4M10 13V6M14 13V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
   </svg>
 `;
 
@@ -256,28 +256,30 @@ function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
   name.setAttribute("role", "button");
   name.tabIndex = 0;
 
-  const counts = document.createElement("span");
-  counts.className = "o-legend-country-counts";
+  const metricsBtn = document.createElement("button");
+  metricsBtn.type = "button";
+  metricsBtn.className = "o-legend-country-metrics-btn";
+  metricsBtn.setAttribute("aria-label", `View metrics for ${labelText}`);
+  metricsBtn.title = "View network breakdown";
 
   const total = document.createElement("span");
   total.className = "o-legend-count o-legend-country-total";
   total.textContent = "(…)";
-  total.setAttribute("aria-label", "Platforms by contributing country");
-  counts.append(total);
+  total.setAttribute("aria-hidden", "true");
 
-  const detailsBtn = document.createElement("button");
-  detailsBtn.type = "button";
-  detailsBtn.className = "o-legend-country-details-btn";
-  detailsBtn.setAttribute("aria-label", `View network breakdown for ${labelText}`);
-  detailsBtn.innerHTML = DETAILS_ICON;
+  const metricsIcon = document.createElement("span");
+  metricsIcon.className = "o-legend-country-metrics-icon";
+  metricsIcon.innerHTML = METRICS_BTN_ICON;
+  metricsIcon.setAttribute("aria-hidden", "true");
 
-  row.append(checkbox, flag, name, counts, detailsBtn);
+  metricsBtn.append(total, metricsIcon);
+  row.append(checkbox, flag, name, metricsBtn);
 
   const wrapper = document.createElement("div");
   wrapper.className = "o-legend-country-block";
   wrapper.append(row);
 
-  return { wrapper, row, checkbox, total, name, detailsBtn };
+  return { wrapper, row, checkbox, total, name, metricsBtn };
 }
 
 /**
@@ -658,7 +660,7 @@ export function attachLegend(
     selectAllCheckbox: HTMLInputElement
   ) => {
     for (const country of countries) {
-      const { wrapper, checkbox, total, name, detailsBtn } =
+      const { wrapper, checkbox, total, name, metricsBtn } =
         createCountryFilterRow(getCountryLabel(country), country);
 
       wrapper.setAttribute("data-country", country);
@@ -693,18 +695,7 @@ export function attachLegend(
         );
       };
 
-      detailsBtn.addEventListener("click", openDetails);
-      total.addEventListener("click", openDetails);
-      total.style.cursor = "pointer";
-      total.setAttribute("role", "button");
-      total.tabIndex = 0;
-      const openDetailsFromKey = (event: KeyboardEvent) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openDetails(event);
-        }
-      };
-      total.addEventListener("keydown", openDetailsFromKey);
+      metricsBtn.addEventListener("click", openDetails);
 
       container.appendChild(wrapper);
     }
