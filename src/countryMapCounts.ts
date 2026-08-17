@@ -17,6 +17,24 @@ export type CountryContributorCount = {
   displayCount: string;
 };
 
+export type PlatformCountryCount = {
+  layerId: string;
+  label: string;
+  geoCountry: string;
+  countryLabel: string;
+  isoCode?: string;
+  count: number;
+  displayCount: string;
+};
+
+export type PlatformWithCountries = {
+  layerId: string;
+  label: string;
+  count: number;
+  displayCount: string;
+  countries: CountryContributorCount[];
+};
+
 function countryWhere(country: CountryName): string {
   const names = geoCountryNamesForFilter(country);
   if (names.length === 1) {
@@ -188,6 +206,112 @@ function contributorRowsFromTotals(
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
+async function aggregatePlatformCountryCounts(
+  where: string,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<PlatformCountryCount[]> {
+  const rows: PlatformCountryCount[] = [];
+  const pageSize = 2000;
+
+  for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
+    if (!visibleLayerIds.has(layerId)) continue;
+    const layer = layerById.get(layerId);
+    if (!layer || typeof layer.queryFeatures !== "function") continue;
+
+    const totals = new Map<string, number>();
+    let start = 0;
+
+    while (true) {
+      try {
+        const result = await layer.queryFeatures({
+          where,
+          outFields: ["country_name"],
+          returnGeometry: false,
+          start,
+          num: pageSize,
+        });
+
+        for (const feature of result.features) {
+          const raw = feature.attributes?.country_name;
+          const key =
+            typeof raw === "string" && raw.trim()
+              ? raw.trim().toUpperCase()
+              : "UNKNOWN";
+          totals.set(key, (totals.get(key) ?? 0) + 1);
+        }
+
+        if (result.features.length === 0) break;
+        if (!result.exceededTransferLimit && result.features.length < pageSize) break;
+        start += result.features.length;
+      } catch {
+        break;
+      }
+    }
+
+    for (const [geoCountry, count] of totals.entries()) {
+      if (count === 0) continue;
+      const label = labelByLayerId.get(layerId) ?? layerId;
+      rows.push({
+        layerId,
+        label,
+        geoCountry,
+        countryLabel:
+          geoCountry === "UNKNOWN"
+            ? "Unknown operator"
+            : getGeoCountryLabel(geoCountry),
+        isoCode: geoCountry === "UNKNOWN" ? undefined : getIsoCodeForGeoCountry(geoCountry),
+        count,
+        displayCount: ` (${count.toLocaleString()})`,
+      });
+    }
+  }
+
+  return rows.sort(
+    (a, b) =>
+      b.count - a.count ||
+      a.label.localeCompare(b.label) ||
+      a.countryLabel.localeCompare(b.countryLabel)
+  );
+}
+
+export function groupPlatformCountryRows(rows: PlatformCountryCount[]): PlatformWithCountries[] {
+  const byLayer = new Map<string, PlatformWithCountries>();
+
+  for (const row of rows) {
+    let platform = byLayer.get(row.layerId);
+    if (!platform) {
+      platform = {
+        layerId: row.layerId,
+        label: row.label,
+        count: 0,
+        displayCount: "",
+        countries: [],
+      };
+      byLayer.set(row.layerId, platform);
+    }
+
+    platform.count += row.count;
+    platform.countries.push({
+      geoCountry: row.geoCountry,
+      label: row.countryLabel,
+      isoCode: row.isoCode,
+      count: row.count,
+      displayCount: row.displayCount,
+    });
+  }
+
+  return [...byLayer.values()]
+    .map((platform) => ({
+      ...platform,
+      displayCount: ` (${platform.count.toLocaleString()})`,
+      countries: platform.countries.sort(
+        (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+      ),
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
 /**
  * Program-country totals from visible map layers (`country_name` on GeoJSON).
  * Totals include rolled-up geo names (e.g. China includes Hong Kong platforms).
@@ -244,6 +368,21 @@ export async function getCountryShipContributorBreakdownFromMap(
 }
 
 /**
+ * Cross-flag deployments by platform type and operating country.
+ */
+export async function getCountryShipPlatformCountryBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<PlatformCountryCount[]> {
+  return aggregatePlatformCountryCounts(
+    shipCrossCountryWhere(country),
+    layerById,
+    visibleLayerIds
+  );
+}
+
+/**
  * Cross-program sensors: `country_sensor_provider` matches this country and `country_name` differs.
  */
 export async function getCountrySensorTotalFromMap(
@@ -276,4 +415,19 @@ export async function getCountrySensorContributorBreakdownFromMap(
     visibleLayerIds
   );
   return contributorRowsFromTotals(totals);
+}
+
+/**
+ * Cross-program sensors by platform type and operating country.
+ */
+export async function getCountrySensorPlatformCountryBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<PlatformCountryCount[]> {
+  return aggregatePlatformCountryCounts(
+    sensorCrossCountryWhere(country),
+    layerById,
+    visibleLayerIds
+  );
 }

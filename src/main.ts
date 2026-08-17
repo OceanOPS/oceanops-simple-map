@@ -29,7 +29,6 @@ function platformPopupContent(cat: Category): string {
           <p><b>Model:</b> {ptf_model}</p>
           <p><b>Contributing country:</b> {country_name}</p>
           <p><b>Ship country:</b> {country_ship}</p>
-          <p><b>Sensor provider country:</b> {country_sensor_provider}</p>
           <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/Platform?ref={ptf_ref}">Inspect at OceanOPS</a></p>
           </div>`;
 }

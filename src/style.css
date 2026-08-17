@@ -865,6 +865,36 @@ body.o-country-modal-open {
   margin-bottom: 16px;
 }
 
+.o-country-modal-group {
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(248, 248, 248, 0.14);
+}
+
+.o-country-modal-group-header {
+  margin-bottom: 14px;
+}
+
+.o-country-modal-group-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f48b25;
+}
+
+.o-country-modal-group-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.72;
+}
+
+.o-country-modal-group .o-country-modal-section:last-child {
+  margin-bottom: 0;
+}
+
 .o-country-modal-section:last-child {
   margin-bottom: 0;
 }
@@ -876,6 +906,24 @@ body.o-country-modal-open {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   opacity: 0.9;
+}
+
+.o-country-modal-section-title--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.o-country-modal-section-title-flag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .o-country-modal-section-desc {
@@ -1010,6 +1058,139 @@ body.o-country-modal-open {
   justify-content: center;
   width: 24px;
   flex-shrink: 0;
+}
+
+.o-country-modal-list--expandable {
+  padding-bottom: 0;
+}
+
+.o-country-modal-list--expandable > .o-country-modal-platform-block {
+  display: block;
+  padding: 0;
+}
+
+.o-country-modal-platform-block {
+  border-bottom: 1px solid rgba(248, 248, 248, 0.08);
+}
+
+.o-country-modal-platform-block:last-child {
+  border-bottom: none;
+}
+
+.o-country-modal-platform-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.o-country-modal-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-left: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #f8f8f8;
+  font-family: Roboto, system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.o-country-modal-expand-btn:hover,
+.o-country-modal-expand-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 1;
+  outline: none;
+}
+
+.o-country-modal-platform-block.open .o-country-modal-expand-btn {
+  opacity: 1;
+}
+
+.o-country-modal-platform-countries {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 0 0 34px;
+}
+
+.o-country-modal-platform-countries li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.06);
+  font-size: 12px;
+  opacity: 0.92;
+}
+
+.o-country-modal-platform-countries li:last-child {
+  border-bottom: none;
+}
+
+.o-country-modal-emanuela-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.o-country-modal-emanuela-table th {
+  padding: 0 8px 8px 0;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.12);
+}
+
+.o-country-modal-emanuela-table th:last-child,
+.o-country-modal-emanuela-table td:last-child {
+  padding-right: 0;
+}
+
+.o-country-modal-emanuela-table td {
+  padding: 10px 8px 10px 0;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.08);
+}
+
+.o-country-modal-emanuela-table tr:last-child td {
+  border-bottom: none;
+}
+
+.o-country-modal-emanuela-count {
+  width: 56px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.o-country-modal-emanuela-platform {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.o-country-modal-emanuela-platform span {
+  min-width: 0;
+}
+
+.o-country-modal-emanuela-country {
+  width: 40px;
+  text-align: center;
 }
 
 .o-country-modal-list--contributors .o-country-modal-contributor-flag:empty {
