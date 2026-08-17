@@ -52,9 +52,9 @@ function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): vo
 
 function appendBreakdownSection(
   parent: HTMLElement,
-  title: string,
+  title: string | ((heading: HTMLHeadingElement, count: number) => void),
   count: number,
-  description: string,
+  description: string | undefined,
   rows: CountryLayerCount[],
   emptyMessage: string
 ): void {
@@ -62,14 +62,20 @@ function appendBreakdownSection(
   section.className = "o-country-modal-section";
 
   const heading = document.createElement("h3");
-  heading.className = "o-country-modal-section-title";
-  heading.textContent = `${title} (${count.toLocaleString()})`;
+  if (typeof title === "function") {
+    title(heading, count);
+  } else {
+    heading.className = "o-country-modal-section-title";
+    heading.textContent = `${title} (${count.toLocaleString()})`;
+  }
   section.appendChild(heading);
 
-  const desc = document.createElement("p");
-  desc.className = "o-country-modal-section-desc";
-  desc.textContent = description;
-  section.appendChild(desc);
+  if (description) {
+    const desc = document.createElement("p");
+    desc.className = "o-country-modal-section-desc";
+    desc.textContent = description;
+    section.appendChild(desc);
+  }
 
   if (rows.length === 0) {
     const empty = document.createElement("p");
@@ -81,6 +87,34 @@ function appendBreakdownSection(
   }
 
   parent.appendChild(section);
+}
+
+function appendInlineCountryPhrase(
+  parent: HTMLElement,
+  countryLabel: string,
+  isoCode: string | undefined,
+  suffix: string
+): void {
+  const phrase = document.createElement("span");
+  phrase.className = "o-country-modal-section-title-phrase";
+
+  const flagWrap = document.createElement("span");
+  flagWrap.className = "o-country-modal-section-title-flag";
+  appendCountryFlag(flagWrap, isoCode, countryLabel);
+
+  phrase.append(flagWrap, document.createTextNode(` ${countryLabel}${suffix}`));
+  parent.appendChild(phrase);
+}
+
+function appendOperatedPlatformsSectionTitle(
+  heading: HTMLHeadingElement,
+  count: number,
+  countryLabel: string,
+  isoCode: string | undefined
+): void {
+  heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
+  heading.append("Operational platforms operated by ");
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
 }
 
 function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
@@ -110,9 +144,9 @@ function appendEmanuelaTable(parent: HTMLElement, rows: PlatformCountryCount[]):
   const thead = document.createElement("thead");
   thead.innerHTML = `
     <tr>
-      <th scope="col">Count</th>
       <th scope="col">Platform</th>
-      <th scope="col">Country</th>
+      <th scope="col">Network</th>
+      <th scope="col">Operating country</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -231,11 +265,12 @@ function appendShipFlagSectionTitle(
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
   heading.append(`${count.toLocaleString()} Operational platforms deployed from `);
-
-  const flagWrap = document.createElement("span");
-  flagWrap.className = "o-country-modal-section-title-flag";
-  appendCountryFlag(flagWrap, isoCode, countryLabel);
-  heading.append(flagWrap, document.createTextNode(` ${countryLabel} ships`));
+  appendInlineCountryPhrase(
+    heading,
+    countryLabel,
+    isoCode,
+    " ships and operated by other countries"
+  );
 }
 
 function appendSensorProviderSectionTitle(
@@ -245,12 +280,8 @@ function appendSensorProviderSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append(`${count.toLocaleString()} Operational platforms with sensors provided by `);
-
-  const flagWrap = document.createElement("span");
-  flagWrap.className = "o-country-modal-section-title-flag";
-  appendCountryFlag(flagWrap, isoCode, countryLabel);
-  heading.append(flagWrap, document.createTextNode(` ${countryLabel}`));
+  heading.append(`${count.toLocaleString()} Operational platforms equipped with sensors provided by `);
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, " and operated by other countries");
 }
 
 function appendToggleBreakdownSection(
@@ -298,7 +329,7 @@ function appendToggleBreakdownSection(
   emanuelaBtn.className = "o-country-modal-view-btn";
   emanuelaBtn.setAttribute("role", "tab");
   emanuelaBtn.setAttribute("aria-selected", "false");
-  emanuelaBtn.textContent = "Emanuela proposition";
+  emanuelaBtn.textContent = "Flattable Platform / Country";
 
   toggle.append(platformBtn, emanuelaBtn);
   section.appendChild(toggle);
@@ -445,9 +476,15 @@ export async function openCountryMetricsModal(
     body.replaceChildren();
     appendBreakdownSection(
       body,
-      "Contributing country",
+      (heading, count) =>
+        appendOperatedPlatformsSectionTitle(
+          heading,
+          count,
+          label,
+          getCountryIsoCode(country)
+        ),
       programTotal,
-      "Platforms this country operates or contributes.",
+      undefined,
       programRows,
       "None on the selected networks.",
     );
