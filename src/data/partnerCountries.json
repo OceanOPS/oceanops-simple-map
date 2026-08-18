@@ -464,7 +464,9 @@
     {
       "name": "FJ",
       "countryCode": "FJ",
-      "geoCountryNames": [],
+      "geoCountryNames": [
+        "FIJI"
+      ],
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
@@ -485,7 +487,9 @@
     {
       "name": "FO",
       "countryCode": "FO",
-      "geoCountryNames": [],
+      "geoCountryNames": [
+        "FAROE IS."
+      ],
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
@@ -575,7 +579,9 @@
     {
       "name": "GW",
       "countryCode": "GW",
-      "geoCountryNames": [],
+      "geoCountryNames": [
+        "GUINEA-BISSAU"
+      ],
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
@@ -1401,7 +1407,9 @@
     {
       "name": "TZ",
       "countryCode": "TZ",
-      "geoCountryNames": [],
+      "geoCountryNames": [
+        "TANZANIA"
+      ],
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
@@ -1667,8 +1675,11 @@
     "DENMARK": "DK",
     "SPAIN": "ES",
     "FINLAND": "FI",
+    "FIJI": "FJ",
+    "FAROE IS.": "FO",
     "UK": "GB",
     "GREECE": "GR",
+    "GUINEA-BISSAU": "GW",
     "INDONESIA": "ID",
     "IRELAND": "IE",
     "NETHERLANDS": "NL",
@@ -1702,6 +1713,7 @@
     "PUERTO RICO": "PR",
     "SINGAPORE": "SG",
     "THAILAND": "TH",
+    "TANZANIA": "TZ",
     "TONGA": "TO",
     "TUVALU": "TV",
     "URUGUAY": "UY",
