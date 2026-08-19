@@ -21,6 +21,8 @@ export type PartnerCountriesFile = {
   generatedAt: string;
   edition: string;
   source: string;
+  /** Filterable countries after rollup + whitelist (matches report card headline). */
+  contributingCountries?: number;
   countries: PartnerCountryRecord[];
   byGeoCountryName: Record<string, string>;
 };
