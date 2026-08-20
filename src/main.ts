@@ -16,7 +16,8 @@ import {
   PROJECTION_3D_GLOBE,
   type ProjectionId,
 } from "./projections";
-import { LINE_3D_WIDTH_METERS, makeCategoryRenderer } from "./renderers";
+import { goshipPopupContent } from "./goshipPopup";
+import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 
@@ -33,16 +34,41 @@ function platformPopupContent(cat: Category): string {
           </div>`;
 }
 
+function linePopupContent(cat: Category): string {
+  return `<div class="o-map-popup">
+          <p><b>Type:</b> ${cat.label}</p>
+          <p><b>Name:</b> {line_name}</p>
+          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a></p>
+          </div>`;
+}
+
+function lineLayerPopupTemplate(cat: Category) {
+  if (cat.id === "goship") {
+    return {
+      title: "{line_name}",
+      content: goshipPopupContent(cat),
+    };
+  }
+
+  return {
+    title: "{line_name}",
+    content: linePopupContent(cat),
+  };
+}
+
 function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLayer {
   const kind =
     cat.type === "image" ? "image" : cat.type === "line" ? "line" : "point";
-  const renderer = makeCategoryRenderer(
-    projection,
-    kind,
-    cat.color,
-    cat.type === "image" ? cat.imagePath : undefined,
-    cat.type === "point" ? ((cat.shape ?? "circle") as Shape) : undefined
-  );
+  const renderer =
+    cat.id === "goship"
+      ? makeGoshipLineRenderer(projection, cat.color)
+      : makeCategoryRenderer(
+          projection,
+          kind,
+          cat.color,
+          cat.type === "image" ? cat.imagePath : undefined,
+          cat.type === "point" ? ((cat.shape ?? "circle") as Shape) : undefined
+        );
 
   const layer = new GeoJSONLayer({
     url: `${BASE}geojson/${cat.id}.geojson`,
@@ -51,16 +77,7 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
     renderer,
     popupTemplate:
       cat.type === "line"
-        ? {
-            title: "{line_name}",
-            content: `
-          <div class="o-map-popup">
-          <p><b>Type:</b> ${cat.label}</p>
-          <p><b>Name:</b> {line_name}</p>
-          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a></p>
-          </div>
-        `,
-          }
+        ? lineLayerPopupTemplate(cat)
         : {
             title: "{ptf_ref}",
             content: platformPopupContent(cat),

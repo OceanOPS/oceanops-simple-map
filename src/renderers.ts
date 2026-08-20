@@ -1,4 +1,5 @@
 import SimpleRenderer from "@arcgis/core/renderers/SimpleRenderer.js";
+import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer.js";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D.js";
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer.js";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol.js";
@@ -40,6 +41,43 @@ export function makePointRenderer3D(color: string, shape: Shape = "circle") {
 
 /** Diameter of the 3D path tube used for line layers, in meters. */
 export const LINE_3D_WIDTH_METERS = 20000;
+
+/** 3D path tube — solid sampled lines; follows globe surface including dateline jumps. */
+function makeGoshipPathSymbol3D(color: string, width: number) {
+  return {
+    type: "line-3d",
+    symbolLayers: [
+      {
+        type: "path",
+        profile: "circle",
+        material: { color },
+        width,
+        cap: "round",
+        join: "round",
+      },
+    ],
+  } as any;
+}
+
+/** 3D flat line with dash pattern — requires antimeridian-split geometry (see densifyLayer). */
+function makeGoshipDashedLineSymbol3D(color: string) {
+  return {
+    type: "line-3d",
+    symbolLayers: [
+      {
+        type: "line",
+        size: 3,
+        material: { color },
+        cap: "round",
+        join: "round",
+        pattern: {
+          type: "style",
+          style: "dash",
+        },
+      },
+    ],
+  } as any;
+}
 
 export function makeLineRenderer3D(color: string) {
   return new SimpleRenderer({
@@ -87,12 +125,56 @@ export function makePointRenderer2D(color: string, shape: Shape = "circle") {
   });
 }
 
+function makeStyledLineSymbol2D(
+  color: string,
+  style: "solid" | "dash" = "solid"
+) {
+  return new SimpleLineSymbol({
+    color,
+    width: 2,
+    style,
+  });
+}
+
 export function makeLineRenderer2D(color: string) {
   return new SimpleRenderer({
-    symbol: new SimpleLineSymbol({
-      color,
-      width: 2,
-    }),
+    symbol: makeStyledLineSymbol2D(color, "solid"),
+  });
+}
+
+/** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
+export function makeGoshipLineRenderer(projection: ProjectionId, color: string) {
+  const use3d = is3dProjection(projection);
+  if (use3d) {
+    return new UniqueValueRenderer({
+      field: "line_style",
+      uniqueValueInfos: [
+        {
+          value: "solid",
+          symbol: makeGoshipPathSymbol3D(color, LINE_3D_WIDTH_METERS),
+        },
+        {
+          value: "dash",
+          symbol: makeGoshipDashedLineSymbol3D(color),
+        },
+      ],
+      defaultSymbol: makeGoshipDashedLineSymbol3D(color),
+    });
+  }
+
+  return new UniqueValueRenderer({
+    field: "line_style",
+    uniqueValueInfos: [
+      {
+        value: "solid",
+        symbol: makeStyledLineSymbol2D(color, "solid"),
+      },
+      {
+        value: "dash",
+        symbol: makeStyledLineSymbol2D(color, "dash"),
+      },
+    ],
+    defaultSymbol: makeStyledLineSymbol2D(color, "dash"),
   });
 }
 

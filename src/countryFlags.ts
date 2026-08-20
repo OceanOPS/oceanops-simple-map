@@ -9,8 +9,19 @@ export function getCountryIsoCode(country: CountryName): string | undefined {
 
 /** ISO code for a raw GeoJSON `country_name`, when mapped in partner export. */
 export function getIsoCodeForGeoCountry(geoName: string): string | undefined {
-  const iso = getPartnerDataSnapshot().byGeoCountryName[geoName.toUpperCase()];
-  return iso && iso.length === 2 ? iso : undefined;
+  const key = geoName.trim().toUpperCase();
+  if (!key || key === "UNKNOWN") return undefined;
+
+  const data = getPartnerDataSnapshot();
+  const iso = data.byGeoCountryName[key];
+  if (iso && iso.length === 2) return iso;
+
+  // OceanOPS DB names (e.g. "United States") vs GeoJSON keys ("USA").
+  for (const country of data.countries) {
+    if (country.name.toUpperCase() === key) return country.countryCode;
+  }
+
+  return undefined;
 }
 
 export function countryFlagUrl(isoCode: string, width = 20): string {

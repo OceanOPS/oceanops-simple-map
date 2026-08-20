@@ -1574,6 +1574,21 @@ body.o-country-modal-open {
   margin: 0 0 8px;
 }
 
+.esri-view .o-map-popup-country {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.esri-view .o-map-popup-flag {
+  flex-shrink: 0;
+}
+
+.esri-view .o-map-popup-last-cruise {
+  line-height: 1.45;
+}
+
 .esri-view .o-map-popup p:last-child {
   margin-bottom: 0;
   margin-top: 12px;
