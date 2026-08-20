@@ -2,12 +2,17 @@ import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
 import {
   COUNTRY_FILTER_LAYER_IDS,
+  COUNTRY_FILTER_LINE_LAYER_IDS,
   geoCountryNamesForFilter,
   getGeoCountryLabel,
   type CountryName,
 } from "./countryFilters";
 import { getIsoCodeForGeoCountry } from "./countryFlags";
-import type { CountryLayerCount } from "./partnerCountriesData";
+import {
+  getCountryBreakdownFromPartner,
+  getPartnerDataSnapshot,
+  type CountryLayerCount,
+} from "./partnerCountriesData";
 
 export type CountryContributorCount = {
   geoCountry: string;
@@ -310,6 +315,43 @@ export function groupPlatformCountryRows(rows: PlatformCountryCount[]): Platform
       ),
     }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+/**
+ * GO-SHIP / SOOP XBT lines have no `country_name` on GeoJSON — counts come from partner export.
+ */
+export function getCountryLineBreakdownFromPartner(
+  country: CountryName,
+  visibleLayerIds: ReadonlySet<string>
+): CountryLayerCount[] {
+  const lineLayerSet = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
+  return getCountryBreakdownFromPartner(
+    country,
+    getPartnerDataSnapshot(),
+    visibleLayerIds
+  ).filter((row) => lineLayerSet.has(row.layerId));
+}
+
+export function getCountryLineTotalFromPartner(
+  country: CountryName,
+  visibleLayerIds: ReadonlySet<string>
+): number {
+  return getCountryLineBreakdownFromPartner(country, visibleLayerIds).reduce(
+    (sum, row) => sum + (row.count > 0 ? row.count : 0),
+    0
+  );
+}
+
+/**
+ * Program-country totals: platforms from map GeoJSON + line networks from partner export.
+ */
+export async function getCountryProgramTotalFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<number> {
+  const mapTotal = await getCountryTotalFromMap(country, layerById, visibleLayerIds);
+  return mapTotal + getCountryLineTotalFromPartner(country, visibleLayerIds);
 }
 
 /**

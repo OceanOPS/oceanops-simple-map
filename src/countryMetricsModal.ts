@@ -4,6 +4,8 @@ import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
+  getCountryLineBreakdownFromPartner,
+  getCountryLineTotalFromPartner,
   getCountrySensorPlatformCountryBreakdownFromMap,
   getCountrySensorTotalFromMap,
   getCountryShipPlatformCountryBreakdownFromMap,
@@ -114,6 +116,17 @@ function appendOperatedPlatformsSectionTitle(
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
   heading.append("Operational platforms operated by ");
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
+}
+
+function appendOperatedLinesSectionTitle(
+  heading: HTMLHeadingElement,
+  count: number,
+  countryLabel: string,
+  isoCode: string | undefined
+): void {
+  heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
+  heading.append("Lines operated by ");
   appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
 }
 
@@ -458,17 +471,21 @@ export async function openCountryMetricsModal(
     await loadPartnerCountriesData();
     const visible = getVisibleLayerIds();
     const [
-      programTotal,
+      platformTotal,
+      lineTotal,
       shipTotal,
       sensorTotal,
-      programRows,
+      platformRows,
+      lineRows,
       shipPlatformCountryRows,
       sensorPlatformCountryRows,
     ] = await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
+      Promise.resolve(getCountryLineTotalFromPartner(country, visible)),
       getCountryShipTotalFromMap(country, layerById, visible),
       getCountrySensorTotalFromMap(country, layerById, visible),
       getCountryBreakdownFromMap(country, layerById, visible),
+      Promise.resolve(getCountryLineBreakdownFromPartner(country, visible)),
       getCountryShipPlatformCountryBreakdownFromMap(country, layerById, visible),
       getCountrySensorPlatformCountryBreakdownFromMap(country, layerById, visible),
     ]);
@@ -483,11 +500,28 @@ export async function openCountryMetricsModal(
           label,
           getCountryIsoCode(country)
         ),
-      programTotal,
+      platformTotal,
       undefined,
-      programRows,
+      platformRows,
       "None on the selected networks.",
     );
+
+    if (lineRows.length > 0) {
+      appendBreakdownSection(
+        body,
+        (heading, count) =>
+          appendOperatedLinesSectionTitle(
+            heading,
+            count,
+            label,
+            getCountryIsoCode(country)
+          ),
+        lineTotal,
+        undefined,
+        lineRows,
+        "None on the selected line networks.",
+      );
+    }
 
     const goosGroup = appendGoosContributionGroup(body);
     appendToggleBreakdownSection(

@@ -15,7 +15,7 @@ import {
   COUNTRY_FILTER_LINE_LAYER_IDS,
 } from "./countryFilters";
 import {
-  getCountryTotalFromMap,
+  getCountryProgramTotalFromMap,
   getFilterableCountryNames,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
@@ -547,7 +547,7 @@ export function attachLegend(
     const layers = layerById as Map<string, GeoJSONLayer>;
     for (const country of filterableCountries) {
       if (!countryTotalNodes.has(country)) continue;
-      const programTotal = await getCountryTotalFromMap(country, layers, visible);
+      const programTotal = await getCountryProgramTotalFromMap(country, layers, visible);
       setCountryTotalDisplay(country, `(${programTotal.toLocaleString()})`);
     }
   };
