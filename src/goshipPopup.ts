@@ -45,11 +45,26 @@ export function goshipPopupContent(cat: Category) {
       ? `${escapeHtml(lastCruise)} — ${countriesHtml}`
       : escapeHtml(lastCruise);
 
+    const cruiseRef = String(attrs.last_cruise_ref ?? "").trim();
+    const lineUrl = `https://www.ocean-ops.org/board/wa/InspectLine?name=${encodeURIComponent(lineName)}`;
+    const cruiseUrl = cruiseRef
+      ? `https://www.ocean-ops.org/board/wa/InspectCruise?ref=${encodeURIComponent(cruiseRef)}`
+      : "";
+
+    const actionsHtml = cruiseUrl
+      ? `<p class="o-map-popup-actions">
+          <a class="o-map-popup-action" target="_blank" rel="noopener noreferrer" href="${lineUrl}">Inspect line</a>
+          <a class="o-map-popup-action" target="_blank" rel="noopener noreferrer" href="${cruiseUrl}">Inspect cruise</a>
+        </p>`
+      : `<p class="o-map-popup-actions">
+          <a class="o-map-popup-action" target="_blank" rel="noopener noreferrer" href="${lineUrl}">Inspect line</a>
+        </p>`;
+
     return `<div class="o-map-popup">
           <p><b>Type:</b> ${escapeHtml(cat.label)}</p>
           <p><b>Name:</b> ${escapeHtml(lineName)}</p>
           <p class="o-map-popup-last-cruise"><b>Last cruise:</b> ${lastCruiseBody}</p>
-          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/InspectLine?name=${encodeURIComponent(lineName)}">Inspect at OceanOPS</a></p>
+          ${actionsHtml}
           </div>`;
   };
 }

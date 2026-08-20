@@ -1589,11 +1589,38 @@ body.o-country-modal-open {
   line-height: 1.45;
 }
 
-.esri-view .o-map-popup p:last-child {
+.esri-view .o-map-popup p:last-child,
+.esri-view .o-map-popup-actions {
   margin-bottom: 0;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid rgba(248, 248, 248, 0.12);
+}
+
+.esri-view .o-map-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.esri-view .o-map-popup-action {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid rgba(244, 139, 37, 0.55);
+  border-radius: 4px;
+  color: #f48b25;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.esri-view .o-map-popup-action:hover {
+  color: #1a2332;
+  background: #f48b25;
+  border-color: #f48b25;
+  text-decoration: none;
 }
 
 .esri-view .o-map-popup b {
