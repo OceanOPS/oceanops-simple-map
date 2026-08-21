@@ -100,16 +100,17 @@ function markerStyle(shape: Shape): "circle" | "square" | "triangle" {
   return "circle";
 }
 
-/** Native ship PNG aspect (38×21). */
-const SHIP_MARKER_WIDTH = 16;
-const SHIP_MARKER_HEIGHT = 9;
+/** Web Mercator ship PNG aspect (38×21). */
+const MERCATOR_SHIP_WIDTH = 11;
+const MERCATOR_SHIP_HEIGHT = 6;
+const MERCATOR_POINT_SIZE = 5;
 
 export function makeImageRenderer2D(imagePath: string) {
   return new SimpleRenderer({
     symbol: new PictureMarkerSymbol({
       url: `${BASE}${imagePath}`,
-      width: SHIP_MARKER_WIDTH,
-      height: SHIP_MARKER_HEIGHT,
+      width: MERCATOR_SHIP_WIDTH,
+      height: MERCATOR_SHIP_HEIGHT,
     }),
   });
 }
@@ -119,7 +120,7 @@ export function makePointRenderer2D(color: string, shape: Shape = "circle") {
     symbol: new SimpleMarkerSymbol({
       style: markerStyle(shape),
       color,
-      size: 8,
+      size: MERCATOR_POINT_SIZE,
       outline: { color: [0, 0, 0, 1], width: 0.5 },
     }),
   });
