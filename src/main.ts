@@ -43,7 +43,7 @@ function linePopupContent(cat: Category): string {
 }
 
 function lineLayerPopupTemplate(cat: Category) {
-  if (cat.id === "goship") {
+  if (cat.id === "goship" || cat.id === "oceantrax") {
     return {
       title: "{line_name}",
       content: goshipPopupContent(cat),
