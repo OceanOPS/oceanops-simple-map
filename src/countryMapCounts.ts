@@ -393,7 +393,7 @@ export async function getCountryLineTotalFromMap(
 }
 
 /**
- * GO-SHIP / SOOP XBT lines have no `country_name` on GeoJSON — counts come from partner export.
+ * GO-SHIP / Ocean TraX lines have no `country_name` on GeoJSON — counts come from partner export.
  */
 export function getCountryLineBreakdownFromPartner(
   country: CountryName,

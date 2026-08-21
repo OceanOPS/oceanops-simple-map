@@ -8,7 +8,7 @@ export type Category =
 
 export const categories = [
   { id: 'vos',                        label: 'Ship based meteorological – SOT/VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
-  { id: 'ship_oceano',                        label: 'Ship based oceanographic – SOT/XBT-SOOP',                 color: '#faa62d', type: 'line' },
+  { id: 'oceantrax',                        label: 'Ship based oceanographic – SOT/Ocean TraX',                 color: '#faa62d', type: 'line' },
   { id: 'asap',                        label: 'Ship based aerological – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },

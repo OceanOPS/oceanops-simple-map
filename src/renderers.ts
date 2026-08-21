@@ -142,8 +142,16 @@ export function makeLineRenderer2D(color: string) {
   });
 }
 
+/** Ocean TraX (SOT): active sampled lines vs design lines not sampled. */
+export const OCEAN_TRAX_ACTIVE_COLOR = "#43a047";
+export const OCEAN_TRAX_INACTIVE_COLOR = "#c87832";
+
 /** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
-export function makeGoshipLineRenderer(projection: ProjectionId, color: string) {
+export function makeDualStyleLineRenderer(
+  projection: ProjectionId,
+  solidColor: string,
+  dashColor: string
+) {
   const use3d = is3dProjection(projection);
   if (use3d) {
     return new UniqueValueRenderer({
@@ -151,14 +159,14 @@ export function makeGoshipLineRenderer(projection: ProjectionId, color: string) 
       uniqueValueInfos: [
         {
           value: "solid",
-          symbol: makeGoshipPathSymbol3D(color, LINE_3D_WIDTH_METERS),
+          symbol: makeGoshipPathSymbol3D(solidColor, LINE_3D_WIDTH_METERS),
         },
         {
           value: "dash",
-          symbol: makeGoshipDashedLineSymbol3D(color),
+          symbol: makeGoshipDashedLineSymbol3D(dashColor),
         },
       ],
-      defaultSymbol: makeGoshipDashedLineSymbol3D(color),
+      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor),
     });
   }
 
@@ -167,15 +175,28 @@ export function makeGoshipLineRenderer(projection: ProjectionId, color: string) 
     uniqueValueInfos: [
       {
         value: "solid",
-        symbol: makeStyledLineSymbol2D(color, "solid"),
+        symbol: makeStyledLineSymbol2D(solidColor, "solid"),
       },
       {
         value: "dash",
-        symbol: makeStyledLineSymbol2D(color, "dash"),
+        symbol: makeStyledLineSymbol2D(dashColor, "dash"),
       },
     ],
-    defaultSymbol: makeStyledLineSymbol2D(color, "dash"),
+    defaultSymbol: makeStyledLineSymbol2D(dashColor, "dash"),
   });
+}
+
+export function makeOceanTraxLineRenderer(projection: ProjectionId) {
+  return makeDualStyleLineRenderer(
+    projection,
+    OCEAN_TRAX_ACTIVE_COLOR,
+    OCEAN_TRAX_INACTIVE_COLOR
+  );
+}
+
+/** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
+export function makeGoshipLineRenderer(projection: ProjectionId, color: string) {
+  return makeDualStyleLineRenderer(projection, color, color);
 }
 
 export function makeCategoryRenderer(

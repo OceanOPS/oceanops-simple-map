@@ -1028,6 +1028,10 @@ body.o-country-modal-open {
   flex-shrink: 0;
 }
 
+.o-legend-swatch--dual-line {
+  width: 36px;
+}
+
 /* Ship markers are ~38×21; never force a square box or they look squashed. */
 .o-legend-swatch-img {
   display: block;

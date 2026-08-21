@@ -1,7 +1,46 @@
 import { categories, type Category } from "./categories";
 import { makeNetworkIconImg } from "./networkIcons";
+import {
+  OCEAN_TRAX_ACTIVE_COLOR,
+  OCEAN_TRAX_INACTIVE_COLOR,
+} from "./renderers";
 
 const BASE = import.meta.env.BASE_URL;
+
+function appendDualLineSwatch(
+  container: HTMLDivElement,
+  solidColor: string,
+  dashColor: string
+) {
+  const svgNS = "http://www.w3.org/2000/svg";
+  container.classList.add("o-legend-swatch--dual-line");
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", "32");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("viewBox", "0 0 32 12");
+
+  const solid = document.createElementNS(svgNS, "line");
+  solid.setAttribute("x1", "1");
+  solid.setAttribute("y1", "6");
+  solid.setAttribute("x2", "11");
+  solid.setAttribute("y2", "6");
+  solid.setAttribute("stroke", solidColor);
+  solid.setAttribute("stroke-width", "3");
+  solid.setAttribute("stroke-linecap", "round");
+
+  const dashed = document.createElementNS(svgNS, "line");
+  dashed.setAttribute("x1", "20");
+  dashed.setAttribute("y1", "6");
+  dashed.setAttribute("x2", "30");
+  dashed.setAttribute("y2", "6");
+  dashed.setAttribute("stroke", dashColor);
+  dashed.setAttribute("stroke-width", "3");
+  dashed.setAttribute("stroke-linecap", "round");
+  dashed.setAttribute("stroke-dasharray", "4 3");
+
+  svg.append(solid, dashed);
+  container.appendChild(svg);
+}
 
 export function getCategoryById(layerId: string): Category | undefined {
   return categories.find((cat) => cat.id === layerId) as Category | undefined;
@@ -64,6 +103,20 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
     img.alt = "";
     img.decoding = "async";
     container.appendChild(img);
+    return container;
+  }
+
+  if (cat.id === "goship") {
+    appendDualLineSwatch(container, cat.color, cat.color);
+    return container;
+  }
+
+  if (cat.id === "oceantrax") {
+    appendDualLineSwatch(
+      container,
+      OCEAN_TRAX_ACTIVE_COLOR,
+      OCEAN_TRAX_INACTIVE_COLOR
+    );
     return container;
   }
 

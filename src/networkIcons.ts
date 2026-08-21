@@ -2,7 +2,7 @@
 const NETWORK_ICON_FILES: Record<string, string> = {
   vos: "vos.svg",
   asap: "asap.svg",
-  ship_oceano: "xbt-soop.svg",
+  oceantrax: "xbt-soop.svg",
   goship: "go_ship.svg",
   fvon: "fishing_vessels.svg",
   gloss: "gloss.svg",

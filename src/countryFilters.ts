@@ -115,11 +115,11 @@ export const OTHER_COUNTRIES: CountryName[] = ALL_COUNTRIES.filter(
 
 /** Platform layers filtered by GeoJSON `country_name`. */
 export const COUNTRY_FILTER_LAYER_IDS = categories
-  .filter((cat) => cat.id !== "ship_oceano" && cat.id !== "goship")
+  .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
 /** Line layers without `country_name` yet — hidden only when no country is selected (step 2 adds per-line country). */
-export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "ship_oceano"] as const;
+export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
 export const GEO_COUNTRY_ALIASES: Partial<

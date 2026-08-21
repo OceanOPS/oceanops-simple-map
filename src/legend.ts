@@ -70,7 +70,7 @@ function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
 }
 
 const DEFAULT_MAP_FOOTER =
-  "Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024; GO-SHIP solid = sampled since 2025, dashed = not sampled since 2025. Data source: OceanOPS.";
+  "Latest locations of operational platforms as of October 2025. Ocean TraX green solid = sampled since 2024, brown dashed = not sampled since 2024; GO-SHIP solid red = sampled since 2025, dashed = not sampled since 2025. Data source: OceanOPS.";
 
 type ExportMetadata = {
   exportedAt?: string;
@@ -102,7 +102,7 @@ function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
   if (!SOOP_XBT_SAMPLED_SINCE || !goshipSince) return null;
 
   const asOf = exportedAt ? formatAsOfMonthYear(exportedAt) : "October 2025";
-  const linePart = `XBT reference lines sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}; GO-SHIP solid = sampled since ${yearFromIso(goshipSince)}, dashed = not sampled since ${yearFromIso(goshipSince)}. Data source: OceanOPS.`;
+  const linePart = `Ocean TraX green solid = sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}, brown dashed = not sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}; GO-SHIP solid = sampled since ${yearFromIso(goshipSince)}, dashed = not sampled since ${yearFromIso(goshipSince)}. Data source: OceanOPS.`;
   return `Latest locations of operational platforms as of ${asOf}. ${linePart}`;
 }
 
@@ -554,6 +554,12 @@ export function attachLegend(
 
   const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
 
+  const appendArcGisWhere = (base: string, extra: string): string => {
+    if (base === "1=0") return "1=0";
+    if (base === "1=1") return extra;
+    return `(${base}) AND (${extra})`;
+  };
+
   const updateLayerCounts = async () => {
     const where = getCountryCountWhere(selectedCountries, activeCountryCount);
     const lineCountWhere = getLineLayerCountWhere(selectedCountries);
@@ -568,12 +574,27 @@ export function attachLegend(
           continue;
         }
         try {
-          const n = await (layer as GeoJSONLayer).queryFeatureCount({
-            where: lineCountWhere,
-          });
-          node.textContent = ` (${n.toLocaleString()})`;
+          if (id === "goship" || id === "oceantrax") {
+            const [sampled, notSampled] = await Promise.all([
+              (layer as GeoJSONLayer).queryFeatureCount({
+                where: appendArcGisWhere(lineCountWhere, "line_style = 'solid'"),
+              }),
+              (layer as GeoJSONLayer).queryFeatureCount({
+                where: appendArcGisWhere(lineCountWhere, "line_style = 'dash'"),
+              }),
+            ]);
+            node.textContent = ` (${sampled.toLocaleString()} · ${notSampled.toLocaleString()})`;
+            node.title = `${sampled.toLocaleString()} sampled · ${notSampled.toLocaleString()} not sampled`;
+          } else {
+            const n = await (layer as GeoJSONLayer).queryFeatureCount({
+              where: lineCountWhere,
+            });
+            node.textContent = ` (${n.toLocaleString()})`;
+            node.removeAttribute("title");
+          }
         } catch {
           node.textContent = "";
+          node.removeAttribute("title");
         }
         continue;
       }

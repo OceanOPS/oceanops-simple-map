@@ -17,7 +17,7 @@ import {
   type ProjectionId,
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
-import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer } from "./renderers";
+import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 
@@ -62,7 +62,9 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
   const renderer =
     cat.id === "goship"
       ? makeGoshipLineRenderer(projection, cat.color)
-      : makeCategoryRenderer(
+      : cat.id === "oceantrax"
+        ? makeOceanTraxLineRenderer(projection)
+        : makeCategoryRenderer(
           projection,
           kind,
           cat.color,
