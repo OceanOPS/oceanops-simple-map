@@ -10,6 +10,8 @@ export {
 export {
   getCountryBreakdownFromMap,
   getCountryLineBreakdownFromPartner,
+  getCountryLineDetailsFromMap,
+  getCountryLineTotalFromMap,
   getCountryLineTotalFromPartner,
   getCountryProgramTotalFromMap,
   getCountrySensorBreakdownFromMap,
@@ -24,6 +26,7 @@ export {
   groupPlatformCountryRows,
 } from "./countryMapCounts";
 export type {
+  CountryLineNetworkDetail,
   CountryContributorCount,
   PlatformCountryCount,
   PlatformWithCountries,

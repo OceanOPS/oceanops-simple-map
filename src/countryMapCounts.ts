@@ -7,7 +7,7 @@ import {
   getGeoCountryLabel,
   type CountryName,
 } from "./countryFilters";
-import { getIsoCodeForGeoCountry } from "./countryFlags";
+import { getCountryIsoCode, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
   getCountryBreakdownFromPartner,
   getPartnerDataSnapshot,
@@ -317,6 +317,81 @@ export function groupPlatformCountryRows(rows: PlatformCountryCount[]): Platform
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
+export type CountryLineNetworkDetail = CountryLayerCount & {
+  lineNames: string[];
+};
+
+function parseEditionCountryCodes(value: unknown): string[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  return value
+    .split(",")
+    .map((code) => code.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+/**
+ * Line networks for a country from map GeoJSON (`edition_country_codes` from
+ * edition-window cruises via `cruise_country` only).
+ */
+export async function getCountryLineDetailsFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<CountryLineNetworkDetail[]> {
+  const iso = getCountryIsoCode(country)?.toUpperCase();
+  if (!iso) return [];
+
+  const details: CountryLineNetworkDetail[] = [];
+
+  for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (!visibleLayerIds.has(layerId)) continue;
+    const layer = layerById.get(layerId);
+    if (!layer || typeof layer.queryFeatures !== "function") continue;
+
+    let lineNames: string[] = [];
+    try {
+      const result = await layer.queryFeatures({
+        where: "1=1",
+        outFields: ["line_name", "edition_country_codes"],
+        returnGeometry: false,
+      });
+      lineNames = result.features
+        .filter((feature) =>
+          parseEditionCountryCodes(feature.attributes?.edition_country_codes).includes(iso)
+        )
+        .map((feature) => String(feature.attributes?.line_name ?? "").trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+    } catch {
+      continue;
+    }
+
+    if (lineNames.length === 0) continue;
+
+    const label = labelByLayerId.get(layerId) ?? layerId;
+    details.push({
+      layerId,
+      label,
+      count: lineNames.length,
+      displayCount: ` (${lineNames.length.toLocaleString()})`,
+      lineNames,
+    });
+  }
+
+  return details.sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+  );
+}
+
+export async function getCountryLineTotalFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<number> {
+  const rows = await getCountryLineDetailsFromMap(country, layerById, visibleLayerIds);
+  return rows.reduce((sum, row) => sum + row.count, 0);
+}
+
 /**
  * GO-SHIP / SOOP XBT lines have no `country_name` on GeoJSON — counts come from partner export.
  */
@@ -350,8 +425,11 @@ export async function getCountryProgramTotalFromMap(
   layerById: Map<string, GeoJSONLayer>,
   visibleLayerIds: ReadonlySet<string>
 ): Promise<number> {
-  const mapTotal = await getCountryTotalFromMap(country, layerById, visibleLayerIds);
-  return mapTotal + getCountryLineTotalFromPartner(country, visibleLayerIds);
+  const [mapTotal, lineTotal] = await Promise.all([
+    getCountryTotalFromMap(country, layerById, visibleLayerIds),
+    getCountryLineTotalFromMap(country, layerById, visibleLayerIds),
+  ]);
+  return mapTotal + lineTotal;
 }
 
 /**

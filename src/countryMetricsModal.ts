@@ -4,8 +4,7 @@ import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
-  getCountryLineBreakdownFromPartner,
-  getCountryLineTotalFromPartner,
+  getCountryLineDetailsFromMap,
   getCountrySensorPlatformCountryBreakdownFromMap,
   getCountrySensorTotalFromMap,
   getCountryShipPlatformCountryBreakdownFromMap,
@@ -15,6 +14,7 @@ import {
   loadPartnerCountriesData,
   type PlatformCountryCount,
   type PlatformWithCountries,
+  type CountryLineNetworkDetail,
 } from "./countryMetrics";
 import type { CountryLayerCount } from "./partnerCountriesData";
 
@@ -50,6 +50,121 @@ function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): vo
   }
 
   parent.appendChild(list);
+}
+
+const INSPECT_LINE_BASE = "https://www.ocean-ops.org/board/wa/InspectLine?name=";
+
+function appendLineNetworkList(
+  parent: HTMLElement,
+  rows: CountryLineNetworkDetail[]
+): void {
+  const list = document.createElement("ul");
+  list.className = "o-country-modal-list o-country-modal-list--expandable";
+
+  for (const row of rows) {
+    const block = document.createElement("li");
+    block.className = "o-country-modal-platform-block";
+
+    const header = document.createElement("div");
+    header.className = "o-country-modal-platform-header";
+
+    const picto = makeNetworkPicto(row.layerId);
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "o-country-modal-network";
+    nameSpan.textContent = row.label;
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "o-legend-count";
+    countSpan.textContent = row.displayCount;
+
+    header.append(picto, nameSpan, countSpan);
+
+    const canExpand = row.lineNames.length > 0;
+    if (canExpand) {
+      const expandBtn = document.createElement("button");
+      expandBtn.type = "button";
+      expandBtn.className = "o-country-modal-expand-btn";
+      expandBtn.setAttribute("aria-expanded", "false");
+      expandBtn.setAttribute("aria-label", `Show lines for ${row.label}`);
+      expandBtn.textContent = EXPAND_CLOSED_LABEL;
+      header.appendChild(expandBtn);
+    }
+
+    const children = document.createElement("ul");
+    children.className = "o-country-modal-line-names";
+    children.hidden = true;
+
+    for (const lineName of row.lineNames) {
+      const child = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `${INSPECT_LINE_BASE}${encodeURIComponent(lineName)}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = lineName;
+      child.appendChild(link);
+      children.appendChild(child);
+    }
+
+    if (canExpand) {
+      const expandBtn = header.querySelector(".o-country-modal-expand-btn");
+      expandBtn?.addEventListener("click", () => {
+        const isOpen = block.classList.toggle("open");
+        children.hidden = !isOpen;
+        if (expandBtn instanceof HTMLButtonElement) {
+          expandBtn.textContent = isOpen ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
+          expandBtn.setAttribute("aria-expanded", String(isOpen));
+          expandBtn.setAttribute(
+            "aria-label",
+            isOpen ? `Hide lines for ${row.label}` : `Show lines for ${row.label}`
+          );
+        }
+      });
+    }
+
+    block.append(header, children);
+    list.appendChild(block);
+  }
+
+  parent.appendChild(list);
+}
+
+function appendLinesBreakdownSection(
+  parent: HTMLElement,
+  title: string | ((heading: HTMLHeadingElement, count: number) => void),
+  count: number,
+  description: string | undefined,
+  rows: CountryLineNetworkDetail[],
+  emptyMessage: string
+): void {
+  const section = document.createElement("section");
+  section.className = "o-country-modal-section";
+
+  const heading = document.createElement("h3");
+  if (typeof title === "function") {
+    title(heading, count);
+  } else {
+    heading.className = "o-country-modal-section-title";
+    heading.textContent = `${title} (${count.toLocaleString()})`;
+  }
+  section.appendChild(heading);
+
+  if (description) {
+    const desc = document.createElement("p");
+    desc.className = "o-country-modal-section-desc";
+    desc.textContent = description;
+    section.appendChild(desc);
+  }
+
+  if (rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "o-country-modal-empty";
+    empty.textContent = emptyMessage;
+    section.appendChild(empty);
+  } else {
+    appendLineNetworkList(section, rows);
+  }
+
+  parent.appendChild(section);
 }
 
 function appendBreakdownSection(
@@ -126,7 +241,7 @@ function appendOperatedLinesSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append("Lines operated by ");
+  heading.append("Lines with cruises by ");
   appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
 }
 
@@ -472,7 +587,6 @@ export async function openCountryMetricsModal(
     const visible = getVisibleLayerIds();
     const [
       platformTotal,
-      lineTotal,
       shipTotal,
       sensorTotal,
       platformRows,
@@ -481,14 +595,15 @@ export async function openCountryMetricsModal(
       sensorPlatformCountryRows,
     ] = await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
-      Promise.resolve(getCountryLineTotalFromPartner(country, visible)),
       getCountryShipTotalFromMap(country, layerById, visible),
       getCountrySensorTotalFromMap(country, layerById, visible),
       getCountryBreakdownFromMap(country, layerById, visible),
-      Promise.resolve(getCountryLineBreakdownFromPartner(country, visible)),
+      getCountryLineDetailsFromMap(country, layerById, visible),
       getCountryShipPlatformCountryBreakdownFromMap(country, layerById, visible),
       getCountrySensorPlatformCountryBreakdownFromMap(country, layerById, visible),
     ]);
+
+    const lineTotal = lineRows.reduce((sum, row) => sum + row.count, 0);
 
     body.replaceChildren();
     appendBreakdownSection(
@@ -507,7 +622,7 @@ export async function openCountryMetricsModal(
     );
 
     if (lineRows.length > 0) {
-      appendBreakdownSection(
+      appendLinesBreakdownSection(
         body,
         (heading, count) =>
           appendOperatedLinesSectionTitle(

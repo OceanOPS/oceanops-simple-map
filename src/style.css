@@ -1148,6 +1148,34 @@ body.o-country-modal-open {
   border-bottom: none;
 }
 
+.o-country-modal-line-names {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 0 0 34px;
+}
+
+.o-country-modal-line-names li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.06);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.o-country-modal-line-names li:last-child {
+  border-bottom: none;
+}
+
+.o-country-modal-line-names a {
+  color: #ffb347;
+  text-decoration: none;
+}
+
+.o-country-modal-line-names a:hover,
+.o-country-modal-line-names a:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
 .o-country-modal-emanuela-table {
   width: 100%;
   border-collapse: collapse;
