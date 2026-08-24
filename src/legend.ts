@@ -9,7 +9,6 @@ import {
   G7_COUNTRIES,
   applyCountryFilter,
   getCountryCountWhere,
-  getLineLayerCountWhere,
   getCountryLabel,
   type CountryName,
   COUNTRY_FILTER_LINE_LAYER_IDS,
@@ -17,9 +16,11 @@ import {
 import {
   getCountryProgramTotalFromMap,
   getFilterableCountryNames,
+  getNetworkTotalFromPartner,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
 } from "./countryMetrics";
+import { LAYER_TO_PARTNER_NETWORK } from "./partnerNetworkMap";
 import {
   closeCountryMetricsModal,
   openCountryMetricsModal,
@@ -70,7 +71,7 @@ function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
 }
 
 const DEFAULT_MAP_FOOTER =
-  "Latest locations of operational platforms as of October 2025. Ocean TraX green solid = sampled since 2024, brown dashed = not sampled since 2024; GO-SHIP solid red = sampled since 2025, dashed = not sampled since 2025. Data source: OceanOPS.";
+  "Latest locations of operational platforms as of October 2025. Ocean TraX orange solid = active lines, orange dashed = reactivate lines; GO-SHIP solid red = sampled since 2025, dashed = not sampled since 2025. Data source: OceanOPS.";
 
 type ExportMetadata = {
   exportedAt?: string;
@@ -102,7 +103,7 @@ function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
   if (!SOOP_XBT_SAMPLED_SINCE || !goshipSince) return null;
 
   const asOf = exportedAt ? formatAsOfMonthYear(exportedAt) : "October 2025";
-  const linePart = `Ocean TraX green solid = sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}, brown dashed = not sampled since ${yearFromIso(SOOP_XBT_SAMPLED_SINCE)}; GO-SHIP solid = sampled since ${yearFromIso(goshipSince)}, dashed = not sampled since ${yearFromIso(goshipSince)}. Data source: OceanOPS.`;
+  const linePart = `Ocean TraX orange solid = active lines, orange dashed = reactivate lines; GO-SHIP solid = sampled since ${yearFromIso(goshipSince)}, dashed = not sampled since ${yearFromIso(goshipSince)}. Data source: OceanOPS.`;
   return `Latest locations of operational platforms as of ${asOf}. ${linePart}`;
 }
 
@@ -554,47 +555,44 @@ export function attachLegend(
 
   const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
 
-  const appendArcGisWhere = (base: string, extra: string): string => {
-    if (base === "1=0") return "1=0";
-    if (base === "1=1") return extra;
-    return `(${base}) AND (${extra})`;
-  };
-
   const updateLayerCounts = async () => {
     const where = getCountryCountWhere(selectedCountries, activeCountryCount);
-    const lineCountWhere = getLineLayerCountWhere(selectedCountries);
 
     for (const [id, layer] of layerById) {
       if (lineLayerIds.has(id)) {
         const node = countNodes.get(id);
         if (!node) continue;
-        const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
-        if (!canCount) {
-          node.textContent = "";
-          continue;
-        }
         try {
-          if (id === "goship" || id === "oceantrax") {
-            const [sampled, notSampled] = await Promise.all([
-              (layer as GeoJSONLayer).queryFeatureCount({
-                where: appendArcGisWhere(lineCountWhere, "line_style = 'solid'"),
-              }),
-              (layer as GeoJSONLayer).queryFeatureCount({
-                where: appendArcGisWhere(lineCountWhere, "line_style = 'dash'"),
-              }),
-            ]);
-            node.textContent = ` (${sampled.toLocaleString()} · ${notSampled.toLocaleString()})`;
-            node.title = `${sampled.toLocaleString()} sampled · ${notSampled.toLocaleString()} not sampled`;
-          } else {
-            const n = await (layer as GeoJSONLayer).queryFeatureCount({
-              where: lineCountWhere,
+          if (id === "goship") {
+            const networkKey = LAYER_TO_PARTNER_NETWORK[id];
+            const total = networkKey
+              ? getNetworkTotalFromPartner(networkKey, getPartnerDataSnapshot())
+              : 0;
+            node.textContent = ` (${total.toLocaleString()})`;
+            node.title = `${total.toLocaleString()} edition cruises (lead program country)`;
+            continue;
+          }
+
+          if (id === "oceantrax") {
+            const canCount =
+              typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+            if (!canCount) {
+              node.textContent = "";
+              continue;
+            }
+            const active = await (layer as GeoJSONLayer).queryFeatureCount({
+              where: "line_status = 'active' OR line_style = 'solid'",
             });
-            node.textContent = ` (${n.toLocaleString()})`;
-            node.removeAttribute("title");
+            node.textContent = ` (${active.toLocaleString()})`;
+            node.title = `${active.toLocaleString()} active design lines`;
+            continue;
           }
         } catch {
-          node.textContent = "";
-          node.removeAttribute("title");
+          const node = countNodes.get(id);
+          if (node) {
+            node.textContent = "";
+            node.removeAttribute("title");
+          }
         }
         continue;
       }
@@ -898,6 +896,7 @@ export function attachLegend(
   void loadPartnerCountriesData()
     .then(() => {
       void updateCountryRowCounts();
+      void updateLayerCounts();
     })
     .catch((err) => {
       console.error(err);

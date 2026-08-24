@@ -1,9 +1,5 @@
 import { categories, type Category } from "./categories";
 import { makeNetworkIconImg } from "./networkIcons";
-import {
-  OCEAN_TRAX_ACTIVE_COLOR,
-  OCEAN_TRAX_INACTIVE_COLOR,
-} from "./renderers";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -112,11 +108,7 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   }
 
   if (cat.id === "oceantrax") {
-    appendDualLineSwatch(
-      container,
-      OCEAN_TRAX_ACTIVE_COLOR,
-      OCEAN_TRAX_INACTIVE_COLOR
-    );
+    appendDualLineSwatch(container, cat.color, cat.color);
     return container;
   }
 

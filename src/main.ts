@@ -53,7 +53,7 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
     cat.id === "goship"
       ? makeGoshipLineRenderer(projection, cat.color)
       : cat.id === "oceantrax"
-        ? makeOceanTraxLineRenderer(projection)
+        ? makeOceanTraxLineRenderer(projection, cat.color)
         : makeCategoryRenderer(
           projection,
           kind,

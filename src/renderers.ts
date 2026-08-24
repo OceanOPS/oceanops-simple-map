@@ -143,11 +143,7 @@ export function makeLineRenderer2D(color: string) {
   });
 }
 
-/** Ocean TraX (SOT): active sampled lines vs design lines not sampled. */
-export const OCEAN_TRAX_ACTIVE_COLOR = "#43a047";
-export const OCEAN_TRAX_INACTIVE_COLOR = "#c87832";
-
-/** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
+/** GO-SHIP / Ocean TraX: solid vs dash by line_style field. */
 export function makeDualStyleLineRenderer(
   projection: ProjectionId,
   solidColor: string,
@@ -187,12 +183,9 @@ export function makeDualStyleLineRenderer(
   });
 }
 
-export function makeOceanTraxLineRenderer(projection: ProjectionId) {
-  return makeDualStyleLineRenderer(
-    projection,
-    OCEAN_TRAX_ACTIVE_COLOR,
-    OCEAN_TRAX_INACTIVE_COLOR
-  );
+/** Ocean TraX (SOT): solid = active, dash = reactivate — same orange for both. */
+export function makeOceanTraxLineRenderer(projection: ProjectionId, color: string) {
+  return makeDualStyleLineRenderer(projection, color, color);
 }
 
 /** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */

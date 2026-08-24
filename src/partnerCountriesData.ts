@@ -143,3 +143,15 @@ export function getCountryBreakdownFromPartner(
 
   return rows;
 }
+
+/** Global partner-export total for one network (sum across countries). */
+export function getNetworkTotalFromPartner(
+  networkKey: string,
+  data: PartnerCountriesFile = getPartnerDataSnapshot()
+): number {
+  let total = 0;
+  for (const country of data.countries) {
+    total += numericContribution(country.networks[networkKey] ?? 0);
+  }
+  return total;
+}

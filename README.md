@@ -40,7 +40,7 @@ node export-geojson.mjs --layer=argo
 **Configuration:** edit `../oceanops-data-exports/sql/*.sql` before each edition (see `sql/README.md`). Layer list: `../oceanops-data-exports/geojson-export/layers.manifest.json`.
 
 - Point layers: `WHERE` on `oceanops_gis.ptf_loc_n` (+ joins for ship/sensor country in the SQL file)
-- Line layers: GO-SHIP / Ocean TraX tables and `t.name IN (...)` in `goship.sql` / `oceantrax.sql`
+- Line layers: GO-SHIP design table; Ocean TraX `soop_xbt_design_2023_2024` with `line_status IN ('active','reactivate')` in `oceantrax.sql`
 - Date cutoffs and status filters: edit directly in the relevant `.sql` file
 
 **Output:**
