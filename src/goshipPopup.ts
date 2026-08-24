@@ -11,19 +11,12 @@ function escapeHtml(text: string): string {
 }
 
 /** Comma-separated GeoJSON country names → inline flag + label spans. */
-export function formatCountriesWithFlagsHtml(
-  countriesCsv: string,
-  roleSuffix?: string
-): string {
+export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
   const parts = countriesCsv
     .split(",")
     .map((s) => s.trim())
     .filter((name) => name && name !== "Unknown");
   if (parts.length === 0) return "";
-
-  const suffixHtml = roleSuffix
-    ? ` <span class="o-map-popup-country-role">${escapeHtml(roleSuffix)}</span>`
-    : "";
 
   return parts
     .map((name) => {
@@ -31,7 +24,7 @@ export function formatCountriesWithFlagsHtml(
       const flag = iso
         ? `<img class="o-legend-country-flag-img o-map-popup-flag" src="${countryFlagUrl(iso)}" width="20" height="15" alt="${escapeHtml(name)} flag" loading="lazy" decoding="async">`
         : "";
-      return `<span class="o-map-popup-country">${flag}<span>${escapeHtml(name)}${suffixHtml}</span></span>`;
+      return `<span class="o-map-popup-country">${flag}<span>${escapeHtml(name)}</span></span>`;
     })
     .join('<span class="o-map-popup-country-sep">, </span>');
 }
@@ -44,11 +37,11 @@ function formatLastCruiseCountriesHtml(attrs: Record<string, unknown>): string {
 
   if (isCrossCountryCruise(shipCountry, cruiseCountriesRaw)) {
     const byHtml = formatCountriesWithFlagsHtml(shipCountry);
-    const forHtml = formatCountriesWithFlagsHtml(cruiseCountriesRaw, "program");
+    const forHtml = formatCountriesWithFlagsHtml(cruiseCountriesRaw);
     return `<span class="o-map-popup-cross-country">by ${byHtml} for ${forHtml}</span>`;
   }
 
-  return formatCountriesWithFlagsHtml(cruiseCountriesRaw, "program");
+  return formatCountriesWithFlagsHtml(cruiseCountriesRaw);
 }
 
 export function goshipPopupContent(cat: Category) {

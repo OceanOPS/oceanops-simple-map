@@ -521,7 +521,7 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
         geoCountry,
         countryLabel:
           geoCountry === "UNKNOWN"
-            ? "Unknown program country"
+            ? "Unknown country"
             : getGeoCountryLabel(geoCountry),
         isoCode:
           geoCountry === "UNKNOWN"
