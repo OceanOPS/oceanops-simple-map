@@ -9,6 +9,31 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function countryNamesMatch(a: string, b: string): boolean {
+  const left = a.trim();
+  const right = b.trim();
+  if (!left || !right) return false;
+  if (left.toUpperCase() === right.toUpperCase()) return true;
+  const isoLeft = getIsoCodeForGeoCountry(left);
+  const isoRight = getIsoCodeForGeoCountry(right);
+  return isoLeft !== undefined && isoLeft === isoRight;
+}
+
+/** Ship flag differs from all cruise_country contributors on the latest cruise. */
+function isCrossCountryCruise(
+  shipCountry: string,
+  cruiseCountriesCsv: string
+): boolean {
+  const ship = shipCountry.trim();
+  if (!ship || ship.toUpperCase() === "UNKNOWN") return false;
+  const cruiseCountries = cruiseCountriesCsv
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  if (cruiseCountries.length === 0) return false;
+  return !cruiseCountries.some((name) => countryNamesMatch(ship, name));
+}
+
 /** Comma-separated GeoJSON country names → inline flag + label spans. */
 export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
   const parts = countriesCsv
@@ -28,18 +53,27 @@ export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
     .join('<span class="o-map-popup-country-sep">, </span>');
 }
 
+function formatLastCruiseCountriesHtml(attrs: Record<string, unknown>): string {
+  const shipCountry = String(attrs.last_cruise_ship_country ?? "").trim();
+  const cruiseCountriesRaw = String(
+    attrs.last_cruise_countries || attrs.last_cruise_country || ""
+  ).trim();
+
+  if (isCrossCountryCruise(shipCountry, cruiseCountriesRaw)) {
+    const byHtml = formatCountriesWithFlagsHtml(shipCountry);
+    const forHtml = formatCountriesWithFlagsHtml(cruiseCountriesRaw);
+    return `<span class="o-map-popup-cross-country">by ${byHtml} for ${forHtml}</span>`;
+  }
+
+  return formatCountriesWithFlagsHtml(cruiseCountriesRaw);
+}
+
 export function goshipPopupContent(cat: Category) {
   return ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
     const attrs = graphic.attributes;
     const lineName = String(attrs.line_name ?? "");
     const lastCruise = String(attrs.last_cruise_display ?? "No cruise recorded");
-    const countriesRaw = String(
-      attrs.last_cruise_country ||
-        attrs.last_cruise_by ||
-        attrs.last_cruise_countries ||
-        ""
-    );
-    const countriesHtml = formatCountriesWithFlagsHtml(countriesRaw);
+    const countriesHtml = formatLastCruiseCountriesHtml(attrs);
 
     const lastCruiseBody = countriesHtml
       ? `${escapeHtml(lastCruise)} — ${countriesHtml}`
