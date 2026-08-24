@@ -1,5 +1,6 @@
 import type { Category } from "./categories";
 import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
+import { isCrossCountryCruise } from "./lineCrossCountryCruise";
 
 function escapeHtml(text: string): string {
   return text
@@ -7,31 +8,6 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function countryNamesMatch(a: string, b: string): boolean {
-  const left = a.trim();
-  const right = b.trim();
-  if (!left || !right) return false;
-  if (left.toUpperCase() === right.toUpperCase()) return true;
-  const isoLeft = getIsoCodeForGeoCountry(left);
-  const isoRight = getIsoCodeForGeoCountry(right);
-  return isoLeft !== undefined && isoLeft === isoRight;
-}
-
-/** Ship flag differs from all cruise_country contributors on the latest cruise. */
-function isCrossCountryCruise(
-  shipCountry: string,
-  cruiseCountriesCsv: string
-): boolean {
-  const ship = shipCountry.trim();
-  if (!ship || ship.toUpperCase() === "UNKNOWN") return false;
-  const cruiseCountries = cruiseCountriesCsv
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-  if (cruiseCountries.length === 0) return false;
-  return !cruiseCountries.some((name) => countryNamesMatch(ship, name));
 }
 
 /** Comma-separated GeoJSON country names → inline flag + label spans. */

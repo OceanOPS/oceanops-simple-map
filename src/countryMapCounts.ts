@@ -9,6 +9,12 @@ import {
 } from "./countryFilters";
 import { getCountryIsoCode, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
+  countryNameMatchesFilter,
+  geoCountryKeyFromDbName,
+  isCrossCountryCruise,
+  parseProgramCountryNames,
+} from "./lineCrossCountryCruise";
+import {
   getCountryBreakdownFromPartner,
   getPartnerDataSnapshot,
   type CountryLayerCount,
@@ -331,7 +337,7 @@ function parseEditionCountryCodes(value: unknown): string[] {
 
 /**
  * Line networks for a country from map GeoJSON (`edition_country_codes` from
- * edition-window cruises via `cruise_country` only).
+ * edition-window cruises via lead program country).
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
@@ -414,6 +420,124 @@ export function getCountryLineTotalFromPartner(
   return getCountryLineBreakdownFromPartner(country, visibleLayerIds).reduce(
     (sum, row) => sum + (row.count > 0 ? row.count : 0),
     0
+  );
+}
+
+/**
+ * Cross-country design-line cruises: ship flag matches this country and lead
+ * program country differs (latest cruise per line on GO-SHIP / Ocean TraX).
+ */
+export async function getCountryLineCrossCruiseTotalFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<number> {
+  let total = 0;
+
+  for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (!visibleLayerIds.has(layerId)) continue;
+    const layer = layerById.get(layerId);
+    if (!layer || typeof layer.queryFeatures !== "function") continue;
+
+    try {
+      const result = await layer.queryFeatures({
+        where: "1=1",
+        outFields: ["last_cruise_ship_country", "last_cruise_countries"],
+        returnGeometry: false,
+      });
+
+      for (const feature of result.features) {
+        const shipCountry = String(
+          feature.attributes?.last_cruise_ship_country ?? ""
+        ).trim();
+        const programCountries = String(
+          feature.attributes?.last_cruise_countries ?? ""
+        ).trim();
+
+        if (!countryNameMatchesFilter(country, shipCountry)) continue;
+        if (!isCrossCountryCruise(shipCountry, programCountries)) continue;
+        total += 1;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return total;
+}
+
+export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<PlatformCountryCount[]> {
+  const rows: PlatformCountryCount[] = [];
+
+  for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (!visibleLayerIds.has(layerId)) continue;
+    const layer = layerById.get(layerId);
+    if (!layer || typeof layer.queryFeatures !== "function") continue;
+
+    const totals = new Map<string, number>();
+
+    try {
+      const result = await layer.queryFeatures({
+        where: "1=1",
+        outFields: [
+          "line_name",
+          "last_cruise_ship_country",
+          "last_cruise_countries",
+        ],
+        returnGeometry: false,
+      });
+
+      for (const feature of result.features) {
+        const shipCountry = String(
+          feature.attributes?.last_cruise_ship_country ?? ""
+        ).trim();
+        const programCountries = String(
+          feature.attributes?.last_cruise_countries ?? ""
+        ).trim();
+
+        if (!countryNameMatchesFilter(country, shipCountry)) continue;
+        if (!isCrossCountryCruise(shipCountry, programCountries)) continue;
+
+        for (const forName of parseProgramCountryNames(programCountries)) {
+          if (countryNameMatchesFilter(country, forName)) continue;
+          const geoCountry = geoCountryKeyFromDbName(forName);
+          totals.set(geoCountry, (totals.get(geoCountry) ?? 0) + 1);
+        }
+      }
+    } catch {
+      continue;
+    }
+
+    const networkLabel = labelByLayerId.get(layerId) ?? layerId;
+    for (const [geoCountry, count] of totals.entries()) {
+      if (count === 0) continue;
+      rows.push({
+        layerId,
+        label: networkLabel,
+        geoCountry,
+        countryLabel:
+          geoCountry === "UNKNOWN"
+            ? "Unknown program country"
+            : getGeoCountryLabel(geoCountry),
+        isoCode:
+          geoCountry === "UNKNOWN"
+            ? undefined
+            : getIsoCodeForGeoCountry(geoCountry),
+        count,
+        displayCount: ` (${count.toLocaleString()})`,
+      });
+    }
+  }
+
+  return rows.sort(
+    (a, b) =>
+      b.count - a.count ||
+      a.label.localeCompare(b.label) ||
+      a.countryLabel.localeCompare(b.countryLabel)
   );
 }
 

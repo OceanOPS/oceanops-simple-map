@@ -5,6 +5,8 @@ import { makeNetworkPicto } from "./categorySwatch";
 import {
   getCountryBreakdownFromMap,
   getCountryLineDetailsFromMap,
+  getCountryLineCrossCruisePlatformCountryBreakdownFromMap,
+  getCountryLineCrossCruiseTotalFromMap,
   getCountrySensorPlatformCountryBreakdownFromMap,
   getCountrySensorTotalFromMap,
   getCountryShipPlatformCountryBreakdownFromMap,
@@ -401,6 +403,17 @@ function appendShipFlagSectionTitle(
   );
 }
 
+function appendLineCrossCruiseSectionTitle(
+  heading: HTMLHeadingElement,
+  count: number,
+  countryLabel: string,
+  isoCode: string | undefined
+): void {
+  heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
+  heading.append(`${count.toLocaleString()} design-line cruise${count === 1 ? "" : "s"} by `);
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, " for other countries");
+}
+
 function appendSensorProviderSectionTitle(
   heading: HTMLHeadingElement,
   count: number,
@@ -592,6 +605,7 @@ export async function openCountryMetricsModal(
       platformRows,
       lineRows,
       shipPlatformCountryRows,
+      lineCrossCruisePlatformCountryRows,
       sensorPlatformCountryRows,
     ] = await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
@@ -600,10 +614,20 @@ export async function openCountryMetricsModal(
       getCountryBreakdownFromMap(country, layerById, visible),
       getCountryLineDetailsFromMap(country, layerById, visible),
       getCountryShipPlatformCountryBreakdownFromMap(country, layerById, visible),
+      getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
+        country,
+        layerById,
+        visible
+      ),
       getCountrySensorPlatformCountryBreakdownFromMap(country, layerById, visible),
     ]);
 
     const lineTotal = lineRows.reduce((sum, row) => sum + row.count, 0);
+    const lineCrossCruiseTotal = await getCountryLineCrossCruiseTotalFromMap(
+      country,
+      layerById,
+      visible
+    );
 
     body.replaceChildren();
     appendBreakdownSection(
@@ -653,6 +677,21 @@ export async function openCountryMetricsModal(
       shipPlatformCountryRows,
       "No cross-flag deployments on the selected networks.",
       "Ship flag breakdown view",
+    );
+    appendToggleBreakdownSection(
+      goosGroup,
+      (heading) =>
+        appendLineCrossCruiseSectionTitle(
+          heading,
+          lineCrossCruiseTotal,
+          label,
+          getCountryIsoCode(country)
+        ),
+      lineCrossCruiseTotal,
+      undefined,
+      lineCrossCruisePlatformCountryRows,
+      "No cross-country design-line cruises on the selected networks.",
+      "Line cruise breakdown view",
     );
     appendToggleBreakdownSection(
       goosGroup,

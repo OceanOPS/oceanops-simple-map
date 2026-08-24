@@ -10,6 +10,8 @@ export {
 export {
   getCountryBreakdownFromMap,
   getCountryLineBreakdownFromPartner,
+  getCountryLineCrossCruisePlatformCountryBreakdownFromMap,
+  getCountryLineCrossCruiseTotalFromMap,
   getCountryLineDetailsFromMap,
   getCountryLineTotalFromMap,
   getCountryLineTotalFromPartner,
