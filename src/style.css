@@ -1621,6 +1621,88 @@ body.o-country-modal-open {
   line-height: 1.45;
 }
 
+.esri-view .o-map-popup-cruise-section {
+  margin: 2px 0 4px;
+}
+
+.esri-view .o-map-popup-cruise-section-title {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(248, 248, 248, 0.7);
+}
+
+.esri-view .o-map-popup-cruise-section-title::after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 2px;
+  margin: 7px auto 0;
+  border-radius: 1px;
+  background: rgba(244, 139, 37, 0.55);
+}
+
+.esri-view .o-map-popup-edition-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 8px;
+}
+
+.esri-view .o-map-popup-edition-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.esri-view .o-map-popup-edition-table th,
+.esri-view .o-map-popup-edition-table td {
+  padding: 5px 6px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(248, 248, 248, 0.12);
+}
+
+.esri-view .o-map-popup-edition-table th {
+  color: rgba(248, 248, 248, 0.78);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.esri-view .o-map-popup-edition-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.esri-view .o-map-popup-edition-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.esri-view .o-map-popup-edition-row--link {
+  cursor: pointer;
+}
+
+.esri-view .o-map-popup-edition-row--link:hover td {
+  background: rgba(244, 139, 37, 0.12);
+}
+
+.esri-view .o-map-popup a.o-map-popup-edition-cell-link {
+  display: block;
+  margin: -5px -6px;
+  padding: 5px 6px;
+}
+
+.esri-view .o-map-popup a.o-map-popup-edition-cell-link,
+.esri-view .o-map-popup a.o-map-popup-edition-cell-link:hover {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
 .esri-view .o-map-popup p:last-child,
 .esri-view .o-map-popup-actions {
   margin-bottom: 0;
