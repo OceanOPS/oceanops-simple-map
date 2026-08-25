@@ -1,5 +1,6 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
+import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 /** GeoJSON `country_name` values present in platform layers. */
 export const ALL_COUNTRIES = [
@@ -118,7 +119,7 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
-/** Line layers without `country_name` yet — hidden only when no country is selected (step 2 adds per-line country). */
+/** Line layers filtered by edition lead country (solid) or last cruise program country (dash). */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
@@ -193,20 +194,107 @@ export function buildCountryExpression(countries: Iterable<string>): string {
   return `country_name IN (${list})`;
 }
 
+function isoCodesForFilterCountries(countries: Iterable<string>): string[] {
+  const byGeo = getPartnerDataSnapshot().byGeoCountryName;
+  return [
+    ...new Set(
+      [...countries]
+        .map((country) => byGeo[country]?.trim().toUpperCase())
+        .filter((iso): iso is string => Boolean(iso && iso.length === 2))
+    ),
+  ];
+}
+
+/** Match one ISO-2 code inside comma-separated `edition_country_codes`. */
+function editionCountryCodeMatches(iso: string): string {
+  const code = iso.replace(/'/g, "''");
+  return `(edition_country_codes = '${code}' OR edition_country_codes LIKE '${code},%' OR edition_country_codes LIKE '%,${code}' OR edition_country_codes LIKE '%,${code},%')`;
+}
+
+function dbCountryNamesForFilterCountries(countries: Iterable<string>): string[] {
+  const selected = new Set(countries);
+  const names: string[] = [];
+  for (const record of getPartnerDataSnapshot().countries) {
+    if (record.geoCountryNames.some((geo) => selected.has(geo))) {
+      names.push(record.name);
+    }
+  }
+  return [...new Set(names)];
+}
+
+/** Match one DB country name inside comma-separated `last_cruise_countries`. */
+function lastCruiseCountryNameMatches(dbName: string): string {
+  const name = dbName.replace(/'/g, "''");
+  return `(last_cruise_countries = '${name}' OR last_cruise_countries LIKE '${name},%' OR last_cruise_countries LIKE '%, ${name}' OR last_cruise_countries LIKE '%, ${name},%')`;
+}
+
+function lineHasCountryAttribution(): string {
+  return `NOT ((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
+}
+
+function buildCountryMatchParts(countries: Iterable<string>): string[] {
+  const isos = isoCodesForFilterCountries(countries);
+  const dbNames = dbCountryNamesForFilterCountries(countries);
+  const parts: string[] = [];
+
+  if (isos.length === 1) parts.push(editionCountryCodeMatches(isos[0]));
+  else if (isos.length > 1) {
+    parts.push(`(${isos.map(editionCountryCodeMatches).join(" OR ")})`);
+  }
+
+  for (const dbName of dbNames) {
+    parts.push(lastCruiseCountryNameMatches(dbName));
+  }
+
+  return parts;
+}
+
+function buildCountryMatchExpression(countries: Iterable<string>): string | null {
+  const parts = buildCountryMatchParts(countries);
+  if (parts.length === 0) return null;
+  if (parts.length === 1) return parts[0];
+  return `(${parts.join(" OR ")})`;
+}
+
+/**
+ * GO-SHIP / Ocean TraX — requires country attribution; match selected countries.
+ * Uses exclusion when few countries are deselected (shorter ArcGIS expression).
+ */
+export function buildLineCountryExpression(
+  selectedCountries: Iterable<string>,
+  filterableCountries: readonly string[]
+): string {
+  const selectedSet = new Set(selectedCountries);
+  const deselected = filterableCountries.filter((country) => !selectedSet.has(country));
+  const attribution = lineHasCountryAttribution();
+
+  if (deselected.length <= selectedSet.size) {
+    const exclude = buildCountryMatchExpression(deselected);
+    if (!exclude) return "1=0";
+    return `(${attribution} AND NOT (${exclude}))`;
+  }
+
+  const include = buildCountryMatchExpression(selectedSet);
+  if (!include) return "1=0";
+  return `(${attribution} AND (${include}))`;
+}
+
 export function isAllCountriesSelected(
   selected: ReadonlySet<string>,
-  expectedCount: number = ALL_COUNTRIES.length
+  filterableCountries: readonly string[]
 ): boolean {
-  return selected.size === expectedCount;
+  return (
+    filterableCountries.length > 0 &&
+    filterableCountries.every((country) => selected.has(country))
+  );
 }
 
 export function applyCountryFilter(
   layerById: Map<string, GeoJSONLayer>,
   selectedCountries: ReadonlySet<string>,
-  /** When the legend only lists filterable countries, pass that count (not ALL_COUNTRIES.length). */
-  activeCountryCount: number = ALL_COUNTRIES.length
+  filterableCountries: readonly string[] = ALL_COUNTRIES
 ): void {
-  const expression = isAllCountriesSelected(selectedCountries, activeCountryCount)
+  const expression = isAllCountriesSelected(selectedCountries, filterableCountries)
     ? ""
     : buildCountryExpression(selectedCountries);
 
@@ -215,7 +303,12 @@ export function applyCountryFilter(
     if (layer) layer.definitionExpression = expression;
   }
 
-  const lineExpression = selectedCountries.size === 0 ? "1=0" : "";
+  const lineExpression = isAllCountriesSelected(selectedCountries, filterableCountries)
+    ? ""
+    : selectedCountries.size === 0
+      ? "1=0"
+      : buildLineCountryExpression(selectedCountries, filterableCountries);
+
   for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
     const layer = layerById.get(layerId);
     if (layer) layer.definitionExpression = lineExpression;
@@ -224,13 +317,17 @@ export function applyCountryFilter(
 
 export function getCountryCountWhere(
   selectedCountries: ReadonlySet<string>,
-  activeCountryCount: number = ALL_COUNTRIES.length
+  filterableCountries: readonly string[] = ALL_COUNTRIES
 ): string {
-  if (isAllCountriesSelected(selectedCountries, activeCountryCount)) return "1=1";
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
   return buildCountryExpression(selectedCountries);
 }
 
-/** Line layers without `country_name` — legend totals ignore country filter until step 2. */
-export function getLineLayerCountWhere(selectedCountries: ReadonlySet<string>): string {
-  return selectedCountries.size === 0 ? "1=0" : "1=1";
+export function getLineLayerCountWhere(
+  selectedCountries: ReadonlySet<string>,
+  filterableCountries: readonly string[] = ALL_COUNTRIES
+): string {
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
+  if (selectedCountries.size === 0) return "1=0";
+  return buildLineCountryExpression(selectedCountries, filterableCountries);
 }

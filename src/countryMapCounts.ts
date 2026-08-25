@@ -336,8 +336,8 @@ function parseEditionCountryCodes(value: unknown): string[] {
 }
 
 /**
- * Line networks for a country from map GeoJSON (`edition_country_codes` from
- * edition-window cruises via lead program country).
+ * Line networks for a country from map GeoJSON — edition lead (solid) or last
+ * cruise program country (dash).
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
@@ -358,13 +358,21 @@ export async function getCountryLineDetailsFromMap(
     try {
       const result = await layer.queryFeatures({
         where: "1=1",
-        outFields: ["line_name", "edition_country_codes"],
+        outFields: ["line_name", "edition_country_codes", "last_cruise_countries"],
         returnGeometry: false,
       });
       lineNames = result.features
-        .filter((feature) =>
-          parseEditionCountryCodes(feature.attributes?.edition_country_codes).includes(iso)
-        )
+        .filter((feature) => {
+          const attrs = feature.attributes ?? {};
+          if (
+            parseEditionCountryCodes(attrs.edition_country_codes).includes(iso)
+          ) {
+            return true;
+          }
+          return parseProgramCountryNames(
+            String(attrs.last_cruise_countries ?? "")
+          ).some((name) => countryNameMatchesFilter(country, name));
+        })
         .map((feature) => String(feature.attributes?.line_name ?? "").trim())
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));

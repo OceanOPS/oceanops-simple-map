@@ -10,6 +10,8 @@ import {
   applyCountryFilter,
   getCountryCountWhere,
   getCountryLabel,
+  getLineLayerCountWhere,
+  isAllCountriesSelected,
   type CountryName,
   COUNTRY_FILTER_LINE_LAYER_IDS,
 } from "./countryFilters";
@@ -489,7 +491,6 @@ export function attachLegend(
   });
 
   const filterableCountries = getFilterableCountryNames(getPartnerDataSnapshot());
-  const activeCountryCount = filterableCountries.length;
   const filterableCountrySet = new Set<string>(filterableCountries);
   const selectedCountries = new Set<string>(filterableCountries);
   const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
@@ -556,14 +557,19 @@ export function attachLegend(
   const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
 
   const updateLayerCounts = async () => {
-    const where = getCountryCountWhere(selectedCountries, activeCountryCount);
+    const where = getCountryCountWhere(selectedCountries, filterableCountries);
+    const lineWhere = getLineLayerCountWhere(selectedCountries, filterableCountries);
+    const allCountriesSelected = isAllCountriesSelected(
+      selectedCountries,
+      filterableCountries
+    );
 
     for (const [id, layer] of layerById) {
       if (lineLayerIds.has(id)) {
         const node = countNodes.get(id);
         if (!node) continue;
         try {
-          if (id === "goship") {
+          if (id === "goship" && allCountriesSelected) {
             const networkKey = LAYER_TO_PARTNER_NETWORK[id];
             const total = networkKey
               ? getNetworkTotalFromPartner(networkKey, getPartnerDataSnapshot())
@@ -573,7 +579,7 @@ export function attachLegend(
             continue;
           }
 
-          if (id === "oceantrax") {
+          if (id === "oceantrax" && allCountriesSelected) {
             const canCount =
               typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
             if (!canCount) {
@@ -587,12 +593,21 @@ export function attachLegend(
             node.title = `${active.toLocaleString()} active design lines`;
             continue;
           }
-        } catch {
-          const node = countNodes.get(id);
-          if (node) {
+
+          const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+          if (!canCount) {
             node.textContent = "";
-            node.removeAttribute("title");
+            continue;
           }
+          const n = await (layer as GeoJSONLayer).queryFeatureCount({ where: lineWhere });
+          node.textContent = ` (${n.toLocaleString()})`;
+          node.title =
+            id === "goship"
+              ? `${n.toLocaleString()} lines with edition cruises (selected countries)`
+              : `${n.toLocaleString()} lines (selected countries)`;
+        } catch {
+          node.textContent = "";
+          node.removeAttribute("title");
         }
         continue;
       }
@@ -644,7 +659,7 @@ export function attachLegend(
     applyCountryFilter(
       layerById as Map<string, GeoJSONLayer>,
       selectedCountries,
-      activeCountryCount
+      filterableCountries
     );
     updateCountrySelectAllState(selectAllCheckbox);
     updateLayerCounts();
