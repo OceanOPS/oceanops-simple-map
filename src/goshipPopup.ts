@@ -114,6 +114,17 @@ function latestCruiseRowFromAttrs(
   };
 }
 
+function renderCruiseSection(
+  title: string,
+  cruises: EditionCruiseRow[]
+): string {
+  if (cruises.length === 0) return "";
+  return `<section class="o-map-popup-cruise-section">
+          <p class="o-map-popup-cruise-section-title">${title}</p>
+          ${formatCruisesTableHtml(cruises)}
+        </section>`;
+}
+
 function resolveCruiseRows(
   attrs: Record<string, unknown>,
   editionCruises: EditionCruiseRow[]
@@ -135,11 +146,8 @@ function renderPopupHtml(
 
   const cruiseSectionHtml =
     cruises.length > 0
-      ? `<section class="o-map-popup-cruise-section">
-          <p class="o-map-popup-cruise-section-title">${sectionTitle}</p>
-          ${formatCruisesTableHtml(cruises)}
-        </section>`
-      : `<p class="o-map-popup-last-cruise"><b>Latest cruise:</b> No cruise recorded</p>`;
+      ? renderCruiseSection(sectionTitle, cruises)
+      : '<p class="o-map-popup-last-cruise"><b>Latest cruise:</b> No cruise recorded</p>';
 
   const lineUrl = `https://www.ocean-ops.org/board/wa/InspectLine?name=${encodeURIComponent(lineName)}`;
   const actionsHtml = `<p class="o-map-popup-actions">

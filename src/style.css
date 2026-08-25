@@ -1448,6 +1448,11 @@ body.o-country-modal-open {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
 }
 
+.esri-view .esri-popup__main-container:has(.o-map-popup-edition-table) {
+  width: 520px;
+  max-width: min(520px, 94vw);
+}
+
 .esri-view .esri-popup--shadow {
   box-shadow: none !important;
 }
@@ -1646,7 +1651,6 @@ body.o-country-modal-open {
 }
 
 .esri-view .o-map-popup-edition-table-wrap {
-  overflow-x: auto;
   margin: 0 0 8px;
 }
 
