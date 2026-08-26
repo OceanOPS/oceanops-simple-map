@@ -119,7 +119,7 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
-/** Line layers filtered by edition lead country (solid) or last cruise program country (dash). */
+/** Line layers filtered by edition / last cruise country (Ocean TraX keeps orphans visible). */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
@@ -232,6 +232,10 @@ function lineHasCountryAttribution(): string {
   return `NOT ((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
 }
 
+function lineHasNoCountryAttribution(): string {
+  return `((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
+}
+
 function buildCountryMatchParts(countries: Iterable<string>): string[] {
   const isos = isoCodesForFilterCountries(countries);
   const dbNames = dbCountryNamesForFilterCountries(countries);
@@ -257,10 +261,10 @@ function buildCountryMatchExpression(countries: Iterable<string>): string | null
 }
 
 /**
- * GO-SHIP / Ocean TraX — requires country attribution; match selected countries.
+ * GO-SHIP — requires country attribution; match selected countries.
  * Uses exclusion when few countries are deselected (shorter ArcGIS expression).
  */
-export function buildLineCountryExpression(
+function buildStrictLineCountryExpression(
   selectedCountries: Iterable<string>,
   filterableCountries: readonly string[]
 ): string {
@@ -277,6 +281,19 @@ export function buildLineCountryExpression(
   const include = buildCountryMatchExpression(selectedSet);
   if (!include) return "1=0";
   return `(${attribution} AND (${include}))`;
+}
+
+/** Line-layer country filter — Ocean TraX keeps orphan design lines visible. */
+export function buildLineCountryExpression(
+  selectedCountries: Iterable<string>,
+  filterableCountries: readonly string[],
+  layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
+): string {
+  const strict = buildStrictLineCountryExpression(selectedCountries, filterableCountries);
+  if (layerId === "oceantrax") {
+    return `(${strict} OR ${lineHasNoCountryAttribution()})`;
+  }
+  return strict;
 }
 
 export function isAllCountriesSelected(
@@ -303,15 +320,26 @@ export function applyCountryFilter(
     if (layer) layer.definitionExpression = expression;
   }
 
-  const lineExpression = isAllCountriesSelected(selectedCountries, filterableCountries)
-    ? ""
-    : selectedCountries.size === 0
-      ? "1=0"
-      : buildLineCountryExpression(selectedCountries, filterableCountries);
+  const allCountriesSelected = isAllCountriesSelected(
+    selectedCountries,
+    filterableCountries
+  );
 
   for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
     const layer = layerById.get(layerId);
-    if (layer) layer.definitionExpression = lineExpression;
+    if (!layer) continue;
+
+    if (allCountriesSelected) {
+      layer.definitionExpression = "";
+    } else if (selectedCountries.size === 0) {
+      layer.definitionExpression = "1=0";
+    } else {
+      layer.definitionExpression = buildLineCountryExpression(
+        selectedCountries,
+        filterableCountries,
+        layerId
+      );
+    }
   }
 }
 
@@ -325,9 +353,10 @@ export function getCountryCountWhere(
 
 export function getLineLayerCountWhere(
   selectedCountries: ReadonlySet<string>,
-  filterableCountries: readonly string[] = ALL_COUNTRIES
+  filterableCountries: readonly string[],
+  layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
 ): string {
   if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
   if (selectedCountries.size === 0) return "1=0";
-  return buildLineCountryExpression(selectedCountries, filterableCountries);
+  return buildLineCountryExpression(selectedCountries, filterableCountries, layerId);
 }

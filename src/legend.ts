@@ -555,7 +555,6 @@ export function attachLegend(
 
   const updateLayerCounts = async () => {
     const where = getCountryCountWhere(selectedCountries, filterableCountries);
-    const lineWhere = getLineLayerCountWhere(selectedCountries, filterableCountries);
     const allCountriesSelected = isAllCountriesSelected(
       selectedCountries,
       filterableCountries
@@ -596,6 +595,11 @@ export function attachLegend(
             node.textContent = "";
             continue;
           }
+          const lineWhere = getLineLayerCountWhere(
+            selectedCountries,
+            filterableCountries,
+            id as "goship" | "oceantrax"
+          );
           const n = await (layer as GeoJSONLayer).queryFeatureCount({ where: lineWhere });
           node.textContent = ` (${n.toLocaleString()})`;
           node.title =
