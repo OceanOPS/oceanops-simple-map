@@ -3,12 +3,40 @@ import { makeNetworkIconImg } from "./networkIcons";
 
 const BASE = import.meta.env.BASE_URL;
 
+const svgNS = "http://www.w3.org/2000/svg";
+
+function appendLineSample(
+  container: HTMLElement,
+  color: string,
+  style: "solid" | "dash"
+) {
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", "28");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("viewBox", "0 0 28 12");
+  svg.setAttribute("aria-hidden", "true");
+
+  const line = document.createElementNS(svgNS, "line");
+  line.setAttribute("x1", "2");
+  line.setAttribute("y1", "6");
+  line.setAttribute("x2", "26");
+  line.setAttribute("y2", "6");
+  line.setAttribute("stroke", color);
+  line.setAttribute("stroke-width", "3");
+  line.setAttribute("stroke-linecap", "round");
+  if (style === "dash") {
+    line.setAttribute("stroke-dasharray", "5 3");
+  }
+
+  svg.appendChild(line);
+  container.appendChild(svg);
+}
+
 function appendDualLineSwatch(
   container: HTMLDivElement,
   solidColor: string,
   dashColor: string
 ) {
-  const svgNS = "http://www.w3.org/2000/svg";
   container.classList.add("o-legend-swatch--dual-line");
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", "32");
@@ -126,6 +154,73 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   svg.appendChild(line);
   container.appendChild(svg);
   return container;
+}
+
+function appendLineStyleRow(
+  parent: HTMLElement,
+  color: string,
+  style: "solid" | "dash",
+  label: string
+) {
+  const row = document.createElement("div");
+  row.className = "o-legend-line-style-row";
+
+  const sample = document.createElement("span");
+  sample.className = "o-legend-line-style-sample";
+  appendLineSample(sample, color, style);
+
+  const text = document.createElement("span");
+  text.className = "o-legend-line-style-label";
+  text.textContent = label;
+
+  row.append(sample, text);
+  parent.appendChild(row);
+}
+
+function appendLineStyleGroupTitle(parent: HTMLElement, title: string) {
+  const heading = document.createElement("p");
+  heading.className = "o-legend-line-style-title";
+  heading.textContent = title;
+  parent.appendChild(heading);
+}
+
+/** Visual solid/dash key for Ocean TraX and GO-SHIP (replaces footer prose). */
+export function makeLineStyleLegend(goshipSinceYear = "2025"): HTMLElement {
+  const oceantrax = categories.find((cat) => cat.id === "oceantrax");
+  const goship = categories.find((cat) => cat.id === "goship");
+
+  const wrap = document.createElement("div");
+  wrap.className = "o-legend-line-styles";
+
+  if (oceantrax) {
+    const group = document.createElement("div");
+    group.className = "o-legend-line-style-group";
+    appendLineStyleGroupTitle(group, "Ocean TraX");
+    appendLineStyleRow(group, oceantrax.color, "solid", "Active");
+    appendLineStyleRow(group, oceantrax.color, "dash", "Reactivate");
+    wrap.appendChild(group);
+  }
+
+  if (goship) {
+    const group = document.createElement("div");
+    group.className = "o-legend-line-style-group";
+    appendLineStyleGroupTitle(group, "GO-SHIP");
+    appendLineStyleRow(
+      group,
+      goship.color,
+      "solid",
+      `Sampled since ${goshipSinceYear}`
+    );
+    appendLineStyleRow(
+      group,
+      goship.color,
+      "dash",
+      `Not sampled since ${goshipSinceYear}`
+    );
+    wrap.appendChild(group);
+  }
+
+  return wrap;
 }
 
 export function makeNetworkPicto(layerId: string): HTMLElement {

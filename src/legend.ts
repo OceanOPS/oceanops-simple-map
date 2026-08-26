@@ -3,7 +3,7 @@ import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
 import { categories, type Category } from "./categories";
-import { makeCategorySwatch } from "./categorySwatch";
+import { makeCategorySwatch, makeLineStyleLegend } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
@@ -73,7 +73,7 @@ function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
 }
 
 const DEFAULT_MAP_FOOTER =
-  "Latest locations of operational platforms as of October 2025. Ocean TraX orange solid = active lines, orange dashed = reactivate lines; GO-SHIP solid red = sampled since 2025, dashed = not sampled since 2025. Data source: OceanOPS.";
+  "Latest locations of operational platforms as of October 2025. Data source: OceanOPS.";
 
 type ExportMetadata = {
   exportedAt?: string;
@@ -98,15 +98,12 @@ function formatAsOfMonthYear(isoDate: string): string {
   });
 }
 
-/** Build footer from ISO dates (so hand-edits to export-metadata.json work for testing). */
+/** Build footer from export date (line styles use the visual legend above). */
 function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
-  const goshipSince = metadata.GOSHIP_EDITION_SINCE ?? metadata.GOSHIP_SAMPLED_SINCE;
-  const { SOOP_XBT_SAMPLED_SINCE, exportedAt } = metadata;
-  if (!SOOP_XBT_SAMPLED_SINCE || !goshipSince) return null;
-
-  const asOf = exportedAt ? formatAsOfMonthYear(exportedAt) : "October 2025";
-  const linePart = `Ocean TraX orange solid = active lines, orange dashed = reactivate lines; GO-SHIP solid = sampled since ${yearFromIso(goshipSince)}, dashed = not sampled since ${yearFromIso(goshipSince)}. Data source: OceanOPS.`;
-  return `Latest locations of operational platforms as of ${asOf}. ${linePart}`;
+  const asOf = metadata.exportedAt
+    ? formatAsOfMonthYear(metadata.exportedAt)
+    : "October 2025";
+  return `Latest locations of operational platforms as of ${asOf}. Data source: OceanOPS.`;
 }
 
 async function loadExportMetadata(): Promise<ExportMetadata | null> {
@@ -883,6 +880,9 @@ export function attachLegend(
 
   addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
 
+  let lineStyleLegend = makeLineStyleLegend();
+  countryBody.appendChild(lineStyleLegend);
+
   const dataNote = document.createElement("p");
   dataNote.className = "o-legend-data-note";
   dataNote.textContent = DEFAULT_MAP_FOOTER;
@@ -903,6 +903,12 @@ export function attachLegend(
     const footerText = buildMapFooterFromMetadata(metadata);
     if (footerText) {
       dataNote.textContent = footerText;
+    }
+    const goshipSince = metadata.GOSHIP_EDITION_SINCE ?? metadata.GOSHIP_SAMPLED_SINCE;
+    if (goshipSince) {
+      const updated = makeLineStyleLegend(yearFromIso(goshipSince));
+      lineStyleLegend.replaceWith(updated);
+      lineStyleLegend = updated;
     }
   });
 

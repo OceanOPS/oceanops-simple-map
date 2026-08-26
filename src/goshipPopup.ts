@@ -134,6 +134,13 @@ function resolveCruiseRows(
   return latest ? [latest] : [];
 }
 
+function formatLineStatus(status: unknown): string {
+  const value = String(status ?? "").trim().toLowerCase();
+  if (value === "active") return "Active";
+  if (value === "reactivate") return "Reactivate";
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "—";
+}
+
 function renderPopupHtml(
   cat: Category,
   attrs: Record<string, unknown>,
@@ -149,6 +156,11 @@ function renderPopupHtml(
       ? renderCruiseSection(sectionTitle, cruises)
       : '<p class="o-map-popup-last-cruise"><b>Latest cruise:</b> No cruise recorded</p>';
 
+  const networkStatusHtml =
+    cat.id === "oceantrax"
+      ? `<p><b>Network status:</b> ${escapeHtml(formatLineStatus(attrs.line_status))}</p>`
+      : "";
+
   const lineUrl = `https://www.ocean-ops.org/board/wa/InspectLine?name=${encodeURIComponent(lineName)}`;
   const actionsHtml = `<p class="o-map-popup-actions">
           <a class="o-map-popup-action" target="_blank" rel="noopener noreferrer" href="${lineUrl}">Inspect line</a>
@@ -157,6 +169,7 @@ function renderPopupHtml(
   return `<div class="o-map-popup">
           <p><b>Type:</b> ${escapeHtml(cat.label)}</p>
           <p><b>Name:</b> ${escapeHtml(lineName)}</p>
+          ${networkStatusHtml}
           ${cruiseSectionHtml}
           ${actionsHtml}
           </div>`;
