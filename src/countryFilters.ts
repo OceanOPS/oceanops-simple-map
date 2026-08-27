@@ -119,7 +119,7 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
-/** Line layers filtered by edition / last cruise country (Ocean TraX keeps orphans visible). */
+/** Line layers — GO-SHIP filtered by edition / last cruise country; Ocean TraX is not. */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
@@ -232,10 +232,6 @@ function lineHasCountryAttribution(): string {
   return `NOT ((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
 }
 
-function lineHasNoCountryAttribution(): string {
-  return `((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
-}
-
 function buildCountryMatchParts(countries: Iterable<string>): string[] {
   const isos = isoCodesForFilterCountries(countries);
   const dbNames = dbCountryNamesForFilterCountries(countries);
@@ -283,17 +279,12 @@ function buildStrictLineCountryExpression(
   return `(${attribution} AND (${include}))`;
 }
 
-/** Line-layer country filter — Ocean TraX keeps orphan design lines visible. */
+/** Line-layer country filter — GO-SHIP only (Ocean TraX is never filtered by country). */
 export function buildLineCountryExpression(
   selectedCountries: Iterable<string>,
-  filterableCountries: readonly string[],
-  layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
+  filterableCountries: readonly string[]
 ): string {
-  const strict = buildStrictLineCountryExpression(selectedCountries, filterableCountries);
-  if (layerId === "oceantrax") {
-    return `(${strict} OR ${lineHasNoCountryAttribution()})`;
-  }
-  return strict;
+  return buildStrictLineCountryExpression(selectedCountries, filterableCountries);
 }
 
 export function isAllCountriesSelected(
@@ -329,6 +320,11 @@ export function applyCountryFilter(
     const layer = layerById.get(layerId);
     if (!layer) continue;
 
+    if (layerId === "oceantrax") {
+      layer.definitionExpression = selectedCountries.size === 0 ? "1=0" : "";
+      continue;
+    }
+
     if (allCountriesSelected) {
       layer.definitionExpression = "";
     } else if (selectedCountries.size === 0) {
@@ -336,8 +332,7 @@ export function applyCountryFilter(
     } else {
       layer.definitionExpression = buildLineCountryExpression(
         selectedCountries,
-        filterableCountries,
-        layerId
+        filterableCountries
       );
     }
   }
@@ -356,7 +351,10 @@ export function getLineLayerCountWhere(
   filterableCountries: readonly string[],
   layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
 ): string {
+  if (layerId === "oceantrax") {
+    return selectedCountries.size === 0 ? "1=0" : "1=1";
+  }
   if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
   if (selectedCountries.size === 0) return "1=0";
-  return buildLineCountryExpression(selectedCountries, filterableCountries, layerId);
+  return buildLineCountryExpression(selectedCountries, filterableCountries);
 }

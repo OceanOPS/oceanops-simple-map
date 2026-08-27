@@ -147,12 +147,14 @@ function renderPopupHtml(
   editionCruises: EditionCruiseRow[]
 ): string {
   const lineName = String(attrs.line_name ?? "");
-  const cruises = resolveCruiseRows(attrs, editionCruises);
+  const isOceanTrax = cat.id === "oceantrax";
+  const cruises = isOceanTrax ? [] : resolveCruiseRows(attrs, editionCruises);
   const sectionTitle =
     editionCruises.length >= 2 ? "Edition cruises" : "Latest cruise";
 
-  const cruiseSectionHtml =
-    cruises.length > 0
+  const cruiseSectionHtml = isOceanTrax
+    ? ""
+    : cruises.length > 0
       ? renderCruiseSection(sectionTitle, cruises)
       : '<p class="o-map-popup-last-cruise"><b>Latest cruise:</b> No cruise recorded</p>';
 
@@ -183,7 +185,10 @@ export function goshipPopupContent(cat: Category) {
   }) => {
     const attrs = graphic.attributes;
     const lineName = String(attrs.line_name ?? "");
-    const editionCruises = await getEditionCruisesForLine(cat.id, lineName, attrs);
+    const editionCruises =
+      cat.id === "oceantrax"
+        ? []
+        : await getEditionCruisesForLine(cat.id, lineName, attrs);
     return renderPopupHtml(cat, attrs, editionCruises);
   };
 }

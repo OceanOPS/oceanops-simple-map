@@ -336,8 +336,8 @@ function parseEditionCountryCodes(value: unknown): string[] {
 }
 
 /**
- * Line networks for a country from map GeoJSON — edition lead (solid) or last
- * cruise program country (dash).
+ * Line networks for a country from map GeoJSON — GO-SHIP edition lead or last
+ * cruise program country. Ocean TraX is excluded (design network, not cruise-based).
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
@@ -350,6 +350,7 @@ export async function getCountryLineDetailsFromMap(
   const details: CountryLineNetworkDetail[] = [];
 
   for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (layerId === "oceantrax") continue;
     if (!visibleLayerIds.has(layerId)) continue;
     const layer = layerById.get(layerId);
     if (!layer || typeof layer.queryFeatures !== "function") continue;
@@ -433,7 +434,7 @@ export function getCountryLineTotalFromPartner(
 
 /**
  * Cross-country design-line cruises: ship flag matches this country and lead
- * program country differs (latest cruise per line on GO-SHIP / Ocean TraX).
+ * program country differs (GO-SHIP only — Ocean TraX has no cruise UI/filter).
  */
 export async function getCountryLineCrossCruiseTotalFromMap(
   country: CountryName,
@@ -443,6 +444,7 @@ export async function getCountryLineCrossCruiseTotalFromMap(
   let total = 0;
 
   for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (layerId === "oceantrax") continue;
     if (!visibleLayerIds.has(layerId)) continue;
     const layer = layerById.get(layerId);
     if (!layer || typeof layer.queryFeatures !== "function") continue;
@@ -482,6 +484,7 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
   const rows: PlatformCountryCount[] = [];
 
   for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+    if (layerId === "oceantrax") continue;
     if (!visibleLayerIds.has(layerId)) continue;
     const layer = layerById.get(layerId);
     if (!layer || typeof layer.queryFeatures !== "function") continue;

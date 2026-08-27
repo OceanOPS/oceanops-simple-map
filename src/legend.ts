@@ -605,7 +605,7 @@ export function attachLegend(
           node.title =
             id === "goship"
               ? `${n.toLocaleString()} lines with edition cruises (selected countries)`
-              : `${n.toLocaleString()} lines (selected countries)`;
+              : `${n.toLocaleString()} active design lines (not filtered by country)`;
         } catch {
           node.textContent = "";
           node.removeAttribute("title");
