@@ -1,6 +1,10 @@
 import type { Category } from "./categories";
 import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
+  getGeoCountryLabel,
+  normalizeGeoCountryKey,
+} from "./countryFilters";
+import {
   formatCruiseDate,
   getEditionCruisesForLine,
   type EditionCruiseRow,
@@ -16,19 +20,26 @@ function escapeHtml(text: string): string {
 
 /** Comma-separated GeoJSON country names → inline flag + label spans. */
 export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
-  const parts = countriesCsv
-    .split(",")
-    .map((s) => s.trim())
-    .filter((name) => name && name !== "Unknown");
-  if (parts.length === 0) return "";
+  const seen = new Set<string>();
+  const canonicalNames: string[] = [];
 
-  return parts
-    .map((name) => {
-      const iso = getIsoCodeForGeoCountry(name);
+  for (const raw of countriesCsv.split(",")) {
+    const canonical = normalizeGeoCountryKey(raw.trim());
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    canonicalNames.push(canonical);
+  }
+
+  if (canonicalNames.length === 0) return "";
+
+  return canonicalNames
+    .map((canonical) => {
+      const label = getGeoCountryLabel(canonical);
+      const iso = getIsoCodeForGeoCountry(canonical);
       const flag = iso
-        ? `<img class="o-legend-country-flag-img o-map-popup-flag" src="${countryFlagUrl(iso)}" width="20" height="15" alt="${escapeHtml(name)} flag" loading="lazy" decoding="async">`
+        ? `<img class="o-legend-country-flag-img o-map-popup-flag" src="${countryFlagUrl(iso)}" width="20" height="15" alt="${escapeHtml(label)} flag" loading="lazy" decoding="async">`
         : "";
-      return `<span class="o-map-popup-country">${flag}<span>${escapeHtml(name)}</span></span>`;
+      return `<span class="o-map-popup-country">${flag}<span>${escapeHtml(label)}</span></span>`;
     })
     .join('<span class="o-map-popup-country-sep">, </span>');
 }

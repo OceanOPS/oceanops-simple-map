@@ -1,18 +1,20 @@
 import {
   geoCountryNamesForFilter,
   getCountryLabel,
+  isIgnoredGeoCountry,
+  normalizeGeoCountryKey,
   type CountryName,
 } from "./countryFilters";
 import { getIsoCodeForGeoCountry } from "./countryFlags";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 export function countryNamesMatch(a: string, b: string): boolean {
-  const left = a.trim();
-  const right = b.trim();
-  if (!left || !right) return false;
-  if (left.toUpperCase() === right.toUpperCase()) return true;
-  const isoLeft = getIsoCodeForGeoCountry(left);
-  const isoRight = getIsoCodeForGeoCountry(right);
+  const keyA = normalizeGeoCountryKey(a);
+  const keyB = normalizeGeoCountryKey(b);
+  if (!keyA || !keyB) return false;
+  if (keyA === keyB) return true;
+  const isoLeft = getIsoCodeForGeoCountry(keyA);
+  const isoRight = getIsoCodeForGeoCountry(keyB);
   return isoLeft !== undefined && isoLeft === isoRight;
 }
 
@@ -35,7 +37,7 @@ export function isCrossCountryCruise(
   programCountriesCsv: string
 ): boolean {
   const ship = shipCountry.trim();
-  if (!ship || ship.toUpperCase() === "UNKNOWN") return false;
+  if (!ship || isIgnoredGeoCountry(ship)) return false;
   const programCountries = programCountriesCsv
     .split(",")
     .map((name) => name.trim())
@@ -45,22 +47,30 @@ export function isCrossCountryCruise(
 }
 
 export function parseProgramCountryNames(csv: string): string[] {
-  return csv
-    .split(",")
-    .map((name) => name.trim())
-    .filter((name) => name && name.toUpperCase() !== "UNKNOWN");
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const raw of csv.split(",")) {
+    const canonical = normalizeGeoCountryKey(raw.trim());
+    if (!canonical || seen.has(canonical)) continue;
+    seen.add(canonical);
+    names.push(canonical);
+  }
+  return names;
 }
 
-/** Map OceanOPS country name → GeoJSON-style key for modal breakdowns. */
+/** Map OceanOPS country name → canonical GeoJSON-style key for modal breakdowns. */
 export function geoCountryKeyFromDbName(dbCountryName: string): string {
   const trimmed = dbCountryName.trim();
-  if (!trimmed) return "UNKNOWN";
+  const direct = normalizeGeoCountryKey(trimmed);
+  if (direct) return direct;
 
   const iso = getIsoCodeForGeoCountry(trimmed);
   if (iso) {
     const snap = getPartnerDataSnapshot();
     for (const [geo, code] of Object.entries(snap.byGeoCountryName)) {
-      if (code === iso) return geo;
+      if (code !== iso) continue;
+      const canonical = normalizeGeoCountryKey(geo);
+      if (canonical) return canonical;
     }
   }
 

@@ -207,7 +207,7 @@
         "goShip": 0,
         "gloss": 4,
         "oceanSites": 7,
-        "mooredBuoys": 0,
+        "mooredBuoys": 3,
         "tsunamiBuoys": 0,
         "hfRadars": 19
       }
@@ -439,7 +439,7 @@
         "goShip": 1,
         "gloss": 12,
         "oceanSites": 6,
-        "mooredBuoys": 33,
+        "mooredBuoys": 34,
         "tsunamiBuoys": 0,
         "hfRadars": 9
       }
@@ -462,7 +462,7 @@
         "goShip": 2,
         "gloss": 1,
         "oceanSites": 43,
-        "mooredBuoys": 5,
+        "mooredBuoys": 7,
         "tsunamiBuoys": 0,
         "hfRadars": 3
       }
@@ -554,7 +554,7 @@
         "goShip": 0,
         "gloss": 5,
         "oceanSites": 12,
-        "mooredBuoys": 9,
+        "mooredBuoys": 10,
         "tsunamiBuoys": 0,
         "hfRadars": 10
       }
@@ -646,7 +646,7 @@
         "goShip": 0,
         "gloss": 1,
         "oceanSites": 2,
-        "mooredBuoys": 0,
+        "mooredBuoys": 1,
         "tsunamiBuoys": 0,
         "hfRadars": 27
       }
@@ -945,7 +945,7 @@
         "goShip": 1,
         "gloss": 6,
         "oceanSites": 5,
-        "mooredBuoys": 0,
+        "mooredBuoys": 1,
         "tsunamiBuoys": 0,
         "hfRadars": 8
       }
@@ -1198,7 +1198,7 @@
         "goShip": 0,
         "gloss": 2,
         "oceanSites": 2,
-        "mooredBuoys": 15,
+        "mooredBuoys": 16,
         "tsunamiBuoys": 0,
         "hfRadars": 32
       }
@@ -1405,7 +1405,7 @@
         "goShip": 3,
         "gloss": 24,
         "oceanSites": 181,
-        "mooredBuoys": 179,
+        "mooredBuoys": 232,
         "tsunamiBuoys": 31,
         "hfRadars": 172
       }

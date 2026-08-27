@@ -5,6 +5,7 @@ import {
   COUNTRY_FILTER_LINE_LAYER_IDS,
   geoCountryNamesForFilter,
   getGeoCountryLabel,
+  normalizeGeoCountryKey,
   type CountryName,
 } from "./countryFilters";
 import { getCountryIsoCode, getIsoCodeForGeoCountry } from "./countryFlags";
@@ -180,10 +181,9 @@ async function aggregateContributorCounts(
 
         for (const feature of result.features) {
           const raw = feature.attributes?.country_name;
-          const key =
-            typeof raw === "string" && raw.trim()
-              ? raw.trim().toUpperCase()
-              : "UNKNOWN";
+          if (typeof raw !== "string" || !raw.trim()) continue;
+          const key = normalizeGeoCountryKey(raw);
+          if (!key) continue;
           totals.set(key, (totals.get(key) ?? 0) + 1);
         }
 
@@ -205,11 +205,8 @@ function contributorRowsFromTotals(
   return [...totals.entries()]
     .map(([geoCountry, count]) => ({
       geoCountry,
-      label:
-        geoCountry === "UNKNOWN"
-          ? "Unknown operator"
-          : getGeoCountryLabel(geoCountry),
-      isoCode: geoCountry === "UNKNOWN" ? undefined : getIsoCodeForGeoCountry(geoCountry),
+      label: getGeoCountryLabel(geoCountry),
+      isoCode: getIsoCodeForGeoCountry(geoCountry),
       count,
       displayCount: ` (${count.toLocaleString()})`,
     }))
@@ -245,10 +242,9 @@ async function aggregatePlatformCountryCounts(
 
         for (const feature of result.features) {
           const raw = feature.attributes?.country_name;
-          const key =
-            typeof raw === "string" && raw.trim()
-              ? raw.trim().toUpperCase()
-              : "UNKNOWN";
+          if (typeof raw !== "string" || !raw.trim()) continue;
+          const key = normalizeGeoCountryKey(raw);
+          if (!key) continue;
           totals.set(key, (totals.get(key) ?? 0) + 1);
         }
 
@@ -267,11 +263,8 @@ async function aggregatePlatformCountryCounts(
         layerId,
         label,
         geoCountry,
-        countryLabel:
-          geoCountry === "UNKNOWN"
-            ? "Unknown operator"
-            : getGeoCountryLabel(geoCountry),
-        isoCode: geoCountry === "UNKNOWN" ? undefined : getIsoCodeForGeoCountry(geoCountry),
+        countryLabel: getGeoCountryLabel(geoCountry),
+        isoCode: getIsoCodeForGeoCountry(geoCountry),
         count,
         displayCount: ` (${count.toLocaleString()})`,
       });
@@ -530,14 +523,8 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
         layerId,
         label: networkLabel,
         geoCountry,
-        countryLabel:
-          geoCountry === "UNKNOWN"
-            ? "Unknown country"
-            : getGeoCountryLabel(geoCountry),
-        isoCode:
-          geoCountry === "UNKNOWN"
-            ? undefined
-            : getIsoCodeForGeoCountry(geoCountry),
+        countryLabel: getGeoCountryLabel(geoCountry),
+        isoCode: getIsoCodeForGeoCountry(geoCountry),
         count,
         displayCount: ` (${count.toLocaleString()})`,
       });

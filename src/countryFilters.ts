@@ -130,6 +130,37 @@ export const GEO_COUNTRY_ALIASES: Partial<
   EUROPE: ["EUMETNET"],
 };
 
+/** Raw GeoJSON names → canonical legend / count key. */
+const GEO_COUNTRY_ALIAS_TO_CANONICAL: Partial<
+  Record<string, CountryName>
+> = {
+  "HONG KONG": "CHINA",
+  EUMETNET: "EUROPE",
+};
+
+/** Dropped from counts and popups (partner export alignment). */
+export const IGNORED_GEO_COUNTRIES = new Set([
+  "UNKNOWN",
+  "ANTARCTICA",
+  "UN",
+  "UNITED NATIONS",
+]);
+
+/** Normalize a raw GeoJSON `country_name` for display and counts; null when ignored. */
+export function normalizeGeoCountryKey(geoName: string): CountryName | null {
+  const upper = geoName.trim().toUpperCase();
+  if (!upper || IGNORED_GEO_COUNTRIES.has(upper)) return null;
+
+  const canonical =
+    GEO_COUNTRY_ALIAS_TO_CANONICAL[upper] ?? (upper as CountryName);
+  if (IGNORED_GEO_COUNTRIES.has(canonical)) return null;
+  return canonical;
+}
+
+export function isIgnoredGeoCountry(geoName: string): boolean {
+  return normalizeGeoCountryKey(geoName) === null;
+}
+
 /** GeoJSON names used when filtering or counting a legend country. */
 export function geoCountryNamesForFilter(country: string): string[] {
   const aliases = GEO_COUNTRY_ALIASES[country as CountryName];
@@ -174,13 +205,14 @@ export function getCountryLabel(country: CountryName): string {
 
 /** Display label for a raw GeoJSON `country_name` value. */
 export function getGeoCountryLabel(geoName: string): string {
-  const upper = geoName.toUpperCase();
-  if ((ALL_COUNTRIES as readonly string[]).includes(upper)) {
-    return getCountryLabel(upper as CountryName);
+  const canonical = normalizeGeoCountryKey(geoName);
+  const key = canonical ?? geoName.trim().toUpperCase();
+  if ((ALL_COUNTRIES as readonly string[]).includes(key)) {
+    return getCountryLabel(key as CountryName);
   }
-  const override = COUNTRY_LABELS[upper];
+  const override = COUNTRY_LABELS[key];
   if (override) return override;
-  return titleCaseWords(upper);
+  return titleCaseWords(key);
 }
 
 export function buildCountryExpression(countries: Iterable<string>): string {
