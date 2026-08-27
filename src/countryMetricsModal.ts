@@ -434,6 +434,8 @@ function appendToggleBreakdownSection(
   emptyMessage: string,
   toggleAriaLabel: string
 ): void {
+  if (count === 0) return;
+
   const section = document.createElement("section");
   section.className = "o-country-modal-section";
 
@@ -662,52 +664,62 @@ export async function openCountryMetricsModal(
       );
     }
 
-    const goosGroup = appendGoosContributionGroup(body);
-    appendToggleBreakdownSection(
-      goosGroup,
-      (heading) =>
-        appendShipFlagSectionTitle(
-          heading,
-          shipTotal,
-          label,
-          getCountryIsoCode(country)
-        ),
-      shipTotal,
-      undefined,
-      shipPlatformCountryRows,
-      "No cross-flag deployments on the selected networks.",
-      "Ship flag breakdown view",
-    );
-    appendToggleBreakdownSection(
-      goosGroup,
-      (heading) =>
-        appendLineCrossCruiseSectionTitle(
-          heading,
-          lineCrossCruiseTotal,
-          label,
-          getCountryIsoCode(country)
-        ),
-      lineCrossCruiseTotal,
-      undefined,
-      lineCrossCruisePlatformCountryRows,
-      "No cross-country design-line cruises on the selected networks.",
-      "Line cruise breakdown view",
-    );
-    appendToggleBreakdownSection(
-      goosGroup,
-      (heading) =>
-        appendSensorProviderSectionTitle(
-          heading,
-          sensorTotal,
-          label,
-          getCountryIsoCode(country)
-        ),
-      sensorTotal,
-      undefined,
-      sensorPlatformCountryRows,
-      "No cross-program sensors on the selected networks.",
-      "Sensor provider breakdown view",
-    );
+    const goosGroup =
+      shipTotal > 0 || lineCrossCruiseTotal > 0 || sensorTotal > 0
+        ? appendGoosContributionGroup(body)
+        : null;
+
+    if (goosGroup && shipTotal > 0) {
+      appendToggleBreakdownSection(
+        goosGroup,
+        (heading) =>
+          appendShipFlagSectionTitle(
+            heading,
+            shipTotal,
+            label,
+            getCountryIsoCode(country)
+          ),
+        shipTotal,
+        undefined,
+        shipPlatformCountryRows,
+        "No cross-flag deployments on the selected networks.",
+        "Ship flag breakdown view",
+      );
+    }
+    if (goosGroup && lineCrossCruiseTotal > 0) {
+      appendToggleBreakdownSection(
+        goosGroup,
+        (heading) =>
+          appendLineCrossCruiseSectionTitle(
+            heading,
+            lineCrossCruiseTotal,
+            label,
+            getCountryIsoCode(country)
+          ),
+        lineCrossCruiseTotal,
+        undefined,
+        lineCrossCruisePlatformCountryRows,
+        "No cross-country design-line cruises on the selected networks.",
+        "Line cruise breakdown view",
+      );
+    }
+    if (goosGroup && sensorTotal > 0) {
+      appendToggleBreakdownSection(
+        goosGroup,
+        (heading) =>
+          appendSensorProviderSectionTitle(
+            heading,
+            sensorTotal,
+            label,
+            getCountryIsoCode(country)
+          ),
+        sensorTotal,
+        undefined,
+        sensorPlatformCountryRows,
+        "No cross-program sensors on the selected networks.",
+        "Sensor provider breakdown view",
+      );
+    }
   } catch {
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;
   }
