@@ -162,6 +162,15 @@ function appendLineStyleRow(
   style: "solid" | "dash",
   label: string
 ) {
+  parent.appendChild(createLineStyleRow(color, style, label));
+}
+
+/** Solid/dash line sample row (shared by sidebar legend and GO-SHIP modal). */
+export function createLineStyleRow(
+  color: string,
+  style: "solid" | "dash",
+  label: string
+): HTMLElement {
   const row = document.createElement("div");
   row.className = "o-legend-line-style-row";
 
@@ -174,7 +183,7 @@ function appendLineStyleRow(
   text.textContent = label;
 
   row.append(sample, text);
-  parent.appendChild(row);
+  return row;
 }
 
 function appendLineStyleGroupTitle(parent: HTMLElement, title: string) {

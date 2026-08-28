@@ -782,6 +782,42 @@
   flex-shrink: 0;
 }
 
+.o-legend-count-btn {
+  cursor: pointer;
+}
+
+.o-legend-count-btn:hover,
+.o-legend-count-btn:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.o-country-modal-list--line-style > li {
+  padding: 8px 0;
+}
+
+.o-country-modal-list--line-style > li:not(.o-country-modal-line-style-stat) {
+  padding-left: 36px;
+}
+
+.o-country-modal-line-style-stat {
+  list-style: none;
+}
+
+.o-country-modal-line-style-stat .o-legend-line-style-row {
+  width: 100%;
+}
+
+.o-country-modal-section-title-row {
+  margin-bottom: 8px;
+}
+
+.o-country-modal-section-title-row .o-legend-line-style-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(248, 248, 248, 0.92);
+}
+
 .o-legend-country-flag {
   display: flex;
   align-items: center;

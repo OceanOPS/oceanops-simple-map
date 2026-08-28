@@ -27,6 +27,10 @@ import {
   closeCountryMetricsModal,
   openCountryMetricsModal,
 } from "./countryMetricsModal";
+import {
+  closeGoshipMetricsModal,
+  openGoshipMetricsModal,
+} from "./goshipMetricsModal";
 import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
@@ -83,6 +87,7 @@ type ExportMetadata = {
   SOOP_XBT_SAMPLED_SINCE?: string;
   GOSHIP_EDITION_SINCE?: string;
   GOSHIP_SAMPLED_SINCE?: string;
+  OBS_PERIOD_UNTIL?: string;
 };
 
 function yearFromIso(isoDate: string): string {
@@ -303,6 +308,7 @@ export function attachLegend(
   document.getElementById("legend-backdrop")?.remove();
   document.getElementById("legend-toggle")?.remove();
   closeCountryMetricsModal();
+  closeGoshipMetricsModal();
   document.body.classList.remove("menu-open");
 
   // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
@@ -409,7 +415,8 @@ export function attachLegend(
   // Close menu when clicking on backdrop (mobile)
   backdrop.addEventListener("click", togglePanel);
 
-  const countNodes = new Map<string, HTMLSpanElement>();
+  const countNodes = new Map<string, HTMLElement>();
+  let exportMetadata: ExportMetadata | null = null;
   const layerCheckboxes: HTMLInputElement[] = [];
   const content = document.createElement("div");
   content.className = "o-legend-content";
@@ -763,9 +770,47 @@ export function attachLegend(
       const swatch = makeCategorySwatch(cat as Category);
       row.insertBefore(swatch, row.children[1]);
 
-      const count = document.createElement("span");
-      count.className = "o-legend-count";
-      count.textContent = " (…)";
+      const openGoshipBreakdown = () => {
+        const since =
+          exportMetadata?.GOSHIP_EDITION_SINCE ??
+          exportMetadata?.GOSHIP_SAMPLED_SINCE ??
+          "2025-01-01";
+        const until =
+          exportMetadata?.OBS_PERIOD_UNTIL ??
+          exportMetadata?.exportedAt ??
+          new Date().toISOString().slice(0, 10);
+        void openGoshipMetricsModal(since, until);
+      };
+
+      const count =
+        cat.id === "goship"
+          ? (() => {
+              const countBtn = document.createElement("span");
+              countBtn.className = "o-legend-count o-legend-count-btn";
+              countBtn.setAttribute("role", "button");
+              countBtn.tabIndex = 0;
+              countBtn.setAttribute("aria-label", "View GO-SHIP edition breakdown");
+              countBtn.title = "View GO-SHIP edition breakdown";
+              countBtn.textContent = " (…)";
+              const openFromCount = (event: Event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openGoshipBreakdown();
+              };
+              countBtn.addEventListener("click", openFromCount);
+              countBtn.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  openFromCount(event);
+                }
+              });
+              return countBtn;
+            })()
+          : (() => {
+              const countSpan = document.createElement("span");
+              countSpan.className = "o-legend-count";
+              countSpan.textContent = " (…)";
+              return countSpan;
+            })();
       countNodes.set(cat.id, count);
       row.appendChild(count);
 
@@ -904,6 +949,7 @@ export function attachLegend(
 
   void loadExportMetadata().then((metadata) => {
     if (!metadata) return;
+    exportMetadata = metadata;
     const footerText = buildMapFooterFromMetadata(metadata);
     if (footerText) {
       dataNote.textContent = footerText;
