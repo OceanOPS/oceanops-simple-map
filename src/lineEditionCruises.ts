@@ -4,7 +4,13 @@ export type EditionCruiseRow = {
   ship_name?: string;
   ship_country?: string;
   program_country?: string;
+  /** Ship metadata intentionally hidden in DB (hide_metadata = 1). */
+  ship_masked?: boolean;
 };
+
+export function parseShipMaskedFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
 
 /** Normalize ISO dates or ArcGIS epoch values for display. */
 export function formatCruiseDate(value: unknown, displayFallback = ""): string {
@@ -67,6 +73,7 @@ export function parseEditionCruisesRaw(raw: unknown): EditionCruiseRow[] {
       ship_name: String(record.ship_name ?? "").trim(),
       ship_country: String(record.ship_country ?? "").trim(),
       program_country: String(record.program_country ?? "").trim(),
+      ship_masked: parseShipMaskedFlag(record.ship_masked),
     });
   }
   return out;

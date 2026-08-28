@@ -7,6 +7,7 @@ import {
 import {
   formatCruiseDate,
   getEditionCruisesForLine,
+  parseShipMaskedFlag,
   type EditionCruiseRow,
 } from "./lineEditionCruises";
 
@@ -44,10 +45,16 @@ export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
     .join('<span class="o-map-popup-country-sep">, </span>');
 }
 
-function formatCountryCell(country: string): string {
+function formatCountryCell(country: string, masked = false): string {
+  if (masked) return "Masked";
   const trimmed = country.trim();
   if (!trimmed) return "—";
   return formatCountriesWithFlagsHtml(trimmed) || escapeHtml(trimmed);
+}
+
+function formatShipNameCell(cruise: EditionCruiseRow): string {
+  if (cruise.ship_masked) return "Masked";
+  return cruise.ship_name?.trim() || "—";
 }
 
 function formatEditionRowLinkCell(href: string, innerHtml: string): string {
@@ -58,7 +65,7 @@ function formatCruisesTableHtml(cruises: EditionCruiseRow[]): string {
   const rows = cruises
     .map((cruise) => {
       const date = formatCruiseDate(cruise.cruise_date);
-      const shipName = cruise.ship_name || "—";
+      const shipName = formatShipNameCell(cruise);
       const cruiseUrl = cruise.cruise_ref
         ? `https://www.ocean-ops.org/board/wa/InspectCruise?ref=${encodeURIComponent(cruise.cruise_ref)}`
         : "";
@@ -68,7 +75,10 @@ function formatCruisesTableHtml(cruises: EditionCruiseRow[]): string {
 
       const ref = cruise.cruise_ref || "—";
       const programCell = formatCountryCell(cruise.program_country ?? "");
-      const shipCountryCell = formatCountryCell(cruise.ship_country ?? "");
+      const shipCountryCell = formatCountryCell(
+        cruise.ship_country ?? "",
+        cruise.ship_masked
+      );
 
       if (!cruiseUrl) {
         return `<tr class="${rowClass}">
@@ -122,6 +132,7 @@ function latestCruiseRowFromAttrs(
     program_country: String(
       attrs.last_cruise_countries || attrs.last_cruise_country || ""
     ).trim(),
+    ship_masked: parseShipMaskedFlag(attrs.last_cruise_ship_masked),
   };
 }
 
