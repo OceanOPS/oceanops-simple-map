@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27",
+  "generatedAt": "2026-08-31",
   "edition": "isival-prod",
   "source": "OceanOPS PostgreSQL partner export (sql/*.sql criteria)",
   "contributingCountries": 65,
@@ -35,17 +35,17 @@
       ],
       "networks": {
         "driftingBuoys": 48,
-        "argo": 286,
+        "argo": 285,
         "oceanGliders": 15,
         "aniBOS": 33,
         "fvon": 167,
-        "sotVos": 28,
+        "sotVos": 27,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 0,
         "gloss": 15,
         "oceanSites": 2,
-        "mooredBuoys": 34,
+        "mooredBuoys": 30,
         "tsunamiBuoys": 4,
         "hfRadars": 12
       }
@@ -150,11 +150,11 @@
       ],
       "networks": {
         "driftingBuoys": 36,
-        "argo": 188,
+        "argo": 204,
         "oceanGliders": 23,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 37,
+        "sotVos": 36,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 2,
@@ -183,7 +183,7 @@
         "goShip": 0,
         "gloss": 5,
         "oceanSites": 0,
-        "mooredBuoys": 2,
+        "mooredBuoys": 0,
         "tsunamiBuoys": 2,
         "hfRadars": 0
       }
@@ -197,17 +197,17 @@
       ],
       "networks": {
         "driftingBuoys": 3,
-        "argo": 78,
+        "argo": 77,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 66,
+        "sotVos": 65,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 0,
         "gloss": 4,
         "oceanSites": 7,
-        "mooredBuoys": 3,
+        "mooredBuoys": 0,
         "tsunamiBuoys": 0,
         "hfRadars": 19
       }
@@ -439,7 +439,7 @@
         "goShip": 1,
         "gloss": 12,
         "oceanSites": 6,
-        "mooredBuoys": 34,
+        "mooredBuoys": 33,
         "tsunamiBuoys": 0,
         "hfRadars": 9
       }
@@ -452,7 +452,7 @@
       ],
       "networks": {
         "driftingBuoys": 10,
-        "argo": 281,
+        "argo": 280,
         "oceanGliders": 3,
         "aniBOS": 0,
         "fvon": 0,
@@ -543,8 +543,8 @@
         "INDIA"
       ],
       "networks": {
-        "driftingBuoys": 3,
-        "argo": 116,
+        "driftingBuoys": 6,
+        "argo": 113,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -646,7 +646,7 @@
         "goShip": 0,
         "gloss": 1,
         "oceanSites": 2,
-        "mooredBuoys": 1,
+        "mooredBuoys": 0,
         "tsunamiBuoys": 0,
         "hfRadars": 27
       }
@@ -659,11 +659,11 @@
       ],
       "networks": {
         "driftingBuoys": 19,
-        "argo": 148,
+        "argo": 145,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 148,
+        "sotVos": 147,
         "sotAsap": 1,
         "sot": 0,
         "goShip": 5,
@@ -727,7 +727,7 @@
         "SOUTH KOREA"
       ],
       "networks": {
-        "driftingBuoys": 11,
+        "driftingBuoys": 14,
         "argo": 18,
         "oceanGliders": 0,
         "aniBOS": 0,
@@ -889,7 +889,7 @@
       ],
       "networks": {
         "driftingBuoys": 0,
-        "argo": 27,
+        "argo": 26,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -945,7 +945,7 @@
         "goShip": 1,
         "gloss": 6,
         "oceanSites": 5,
-        "mooredBuoys": 1,
+        "mooredBuoys": 0,
         "tsunamiBuoys": 0,
         "hfRadars": 8
       }
@@ -1100,7 +1100,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 8,
+        "sotVos": 9,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 0,
@@ -1198,7 +1198,7 @@
         "goShip": 0,
         "gloss": 2,
         "oceanSites": 2,
-        "mooredBuoys": 16,
+        "mooredBuoys": 15,
         "tsunamiBuoys": 0,
         "hfRadars": 32
       }
@@ -1215,7 +1215,7 @@
         "oceanGliders": 25,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 3,
+        "sotVos": 4,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 0,
@@ -1376,13 +1376,13 @@
         "oceanGliders": 13,
         "aniBOS": 14,
         "fvon": 10,
-        "sotVos": 179,
+        "sotVos": 181,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 3,
         "gloss": 3,
         "oceanSites": 41,
-        "mooredBuoys": 10,
+        "mooredBuoys": 76,
         "tsunamiBuoys": 0,
         "hfRadars": 4
       }
@@ -1394,18 +1394,18 @@
         "USA"
       ],
       "networks": {
-        "driftingBuoys": 929,
-        "argo": 2483,
+        "driftingBuoys": 1009,
+        "argo": 2475,
         "oceanGliders": 62,
         "aniBOS": 0,
         "fvon": 210,
-        "sotVos": 613,
+        "sotVos": 604,
         "sotAsap": 0,
         "sot": 0,
         "goShip": 3,
         "gloss": 24,
-        "oceanSites": 181,
-        "mooredBuoys": 232,
+        "oceanSites": 180,
+        "mooredBuoys": 202,
         "tsunamiBuoys": 31,
         "hfRadars": 172
       }
