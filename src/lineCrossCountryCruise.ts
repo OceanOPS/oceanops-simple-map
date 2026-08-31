@@ -1,20 +1,22 @@
 import {
   geoCountryNamesForFilter,
   getCountryLabel,
+  isDisplayableGeoCountry,
   isIgnoredGeoCountry,
   normalizeGeoCountryKey,
   type CountryName,
 } from "./countryFilters";
 import { getIsoCodeForGeoCountry } from "./countryFlags";
-import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 export function countryNamesMatch(a: string, b: string): boolean {
-  const keyA = normalizeGeoCountryKey(a);
-  const keyB = normalizeGeoCountryKey(b);
-  if (!keyA || !keyB) return false;
-  if (keyA === keyB) return true;
-  const isoLeft = getIsoCodeForGeoCountry(keyA);
-  const isoRight = getIsoCodeForGeoCountry(keyB);
+  const left = a.trim().toUpperCase();
+  const right = b.trim().toUpperCase();
+  if (!left || !right) return false;
+  if (isIgnoredGeoCountry(left) || isIgnoredGeoCountry(right)) return false;
+  if (left === right) return true;
+
+  const isoLeft = getIsoCodeForGeoCountry(a);
+  const isoRight = getIsoCodeForGeoCountry(b);
   return isoLeft !== undefined && isoLeft === isoRight;
 }
 
@@ -50,10 +52,12 @@ export function parseProgramCountryNames(csv: string): string[] {
   const seen = new Set<string>();
   const names: string[] = [];
   for (const raw of csv.split(",")) {
-    const canonical = normalizeGeoCountryKey(raw.trim());
-    if (!canonical || seen.has(canonical)) continue;
-    seen.add(canonical);
-    names.push(canonical);
+    const trimmed = raw.trim();
+    if (!isDisplayableGeoCountry(trimmed)) continue;
+    const upper = trimmed.toUpperCase();
+    if (seen.has(upper)) continue;
+    seen.add(upper);
+    names.push(normalizeGeoCountryKey(trimmed) ?? upper);
   }
   return names;
 }
@@ -64,15 +68,8 @@ export function geoCountryKeyFromDbName(dbCountryName: string): string {
   const direct = normalizeGeoCountryKey(trimmed);
   if (direct) return direct;
 
-  const iso = getIsoCodeForGeoCountry(trimmed);
-  if (iso) {
-    const snap = getPartnerDataSnapshot();
-    for (const [geo, code] of Object.entries(snap.byGeoCountryName)) {
-      if (code !== iso) continue;
-      const canonical = normalizeGeoCountryKey(geo);
-      if (canonical) return canonical;
-    }
-  }
+  const upper = trimmed.toUpperCase();
+  if (isDisplayableGeoCountry(trimmed)) return upper;
 
-  return trimmed.toUpperCase();
+  return upper;
 }

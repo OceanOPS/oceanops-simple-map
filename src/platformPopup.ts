@@ -1,7 +1,7 @@
 import type { Category } from "./categories";
 import { formatCountriesWithFlagsHtml } from "./goshipPopup";
 import { countryNamesMatch } from "./lineCrossCountryCruise";
-import { isIgnoredGeoCountry, normalizeGeoCountryKey } from "./countryFilters";
+import { isDisplayableGeoCountry, isIgnoredGeoCountry } from "./countryFilters";
 
 function escapeHtml(text: string): string {
   return text
@@ -26,9 +26,8 @@ export function platformPopupContent(cat: Category) {
     const attrs = graphic.attributes;
     const ptfRef = String(attrs.ptf_ref ?? "").trim();
     const contributingCountry = String(attrs.country_name ?? "").trim();
-    const contributingKey = normalizeGeoCountryKey(contributingCountry);
-    const contributingCountryHtml = contributingKey
-      ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingKey)}</p>`
+    const contributingCountryHtml = isDisplayableGeoCountry(contributingCountry)
+      ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingCountry)}</p>`
       : "";
     const shipCountry = String(attrs.country_ship ?? "").trim();
     const shipCountryHtml =

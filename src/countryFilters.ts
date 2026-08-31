@@ -122,23 +122,18 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
 /** Line layers — GO-SHIP filtered by edition / last cruise country; Ocean TraX is not. */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
-/** Extra GeoJSON `country_name` values rolled into a filter country (partner export alignment). */
-export const GEO_COUNTRY_ALIASES: Partial<
+/** Extra GeoJSON text names for ship/sensor fields (no ISO on those properties). Not partner rollup — see sql/_partner_country_iso.sql. */
+export const GEO_COUNTRY_TEXT_ALIASES: Partial<
   Record<CountryName, readonly string[]>
 > = {
   CHINA: ["HONG KONG"],
   EUROPE: ["EUMETNET"],
 };
 
-/** Raw GeoJSON names → canonical legend / count key. */
-const GEO_COUNTRY_ALIAS_TO_CANONICAL: Partial<
-  Record<string, CountryName>
-> = {
-  "HONG KONG": "CHINA",
-  EUMETNET: "EUROPE",
-};
+/** @deprecated Use GEO_COUNTRY_TEXT_ALIASES — kept for imports. */
+export const GEO_COUNTRY_ALIASES = GEO_COUNTRY_TEXT_ALIASES;
 
-/** Dropped from counts and popups (partner export alignment). */
+/** Dropped from counts and popups when only raw `country_name` is available. */
 export const IGNORED_GEO_COUNTRIES = new Set([
   "UNKNOWN",
   "ANTARCTICA",
@@ -146,25 +141,77 @@ export const IGNORED_GEO_COUNTRIES = new Set([
   "UNITED NATIONS",
 ]);
 
-/** Normalize a raw GeoJSON `country_name` for display and counts; null when ignored. */
+/** Legend country key from SQL `country_iso_reporting` (partner export index). */
+export function canonicalCountryFromReportingIso(iso: string): CountryName | null {
+  const code = iso.trim().toUpperCase();
+  if (!code) return null;
+
+  const snap = getPartnerDataSnapshot();
+  for (const record of snap.countries) {
+    if (record.countryCode?.toUpperCase() !== code) continue;
+    for (const geo of record.geoCountryNames) {
+      if ((ALL_COUNTRIES as readonly string[]).includes(geo)) {
+        return geo as CountryName;
+      }
+    }
+  }
+  return null;
+}
+
+/** Whether a raw GeoJSON / DB country name can be shown (partner index, not rollup). */
+export function isDisplayableGeoCountry(geoName: string): boolean {
+  const upper = geoName.trim().toUpperCase();
+  if (!upper || IGNORED_GEO_COUNTRIES.has(upper)) return false;
+  if ((ALL_COUNTRIES as readonly string[]).includes(upper)) return true;
+  const iso = getPartnerDataSnapshot().byGeoCountryName[upper];
+  return Boolean(iso && iso.length === 2);
+}
+
+/** Normalize a raw GeoJSON `country_name` to a legend filter key when possible. */
 export function normalizeGeoCountryKey(geoName: string): CountryName | null {
   const upper = geoName.trim().toUpperCase();
   if (!upper || IGNORED_GEO_COUNTRIES.has(upper)) return null;
 
-  const canonical =
-    GEO_COUNTRY_ALIAS_TO_CANONICAL[upper] ?? (upper as CountryName);
-  if (IGNORED_GEO_COUNTRIES.has(canonical)) return null;
-  return canonical;
+  if ((ALL_COUNTRIES as readonly string[]).includes(upper)) {
+    return upper as CountryName;
+  }
+  return null;
 }
 
 export function isIgnoredGeoCountry(geoName: string): boolean {
-  return normalizeGeoCountryKey(geoName) === null;
+  const upper = geoName.trim().toUpperCase();
+  if (!upper) return true;
+  return IGNORED_GEO_COUNTRIES.has(upper);
 }
 
-/** GeoJSON names used when filtering or counting a legend country. */
+/** GeoJSON text names for ship/sensor fields (program country uses `country_iso_reporting`). */
 export function geoCountryNamesForFilter(country: string): string[] {
-  const aliases = GEO_COUNTRY_ALIASES[country as CountryName];
+  const aliases = GEO_COUNTRY_TEXT_ALIASES[country as CountryName];
   return aliases ? [country, ...aliases] : [country];
+}
+
+function isoCodesForFilterCountries(countries: Iterable<string>): string[] {
+  const byGeo = getPartnerDataSnapshot().byGeoCountryName;
+  return [
+    ...new Set(
+      [...countries]
+        .map((country) => byGeo[country]?.trim().toUpperCase())
+        .filter((iso): iso is string => Boolean(iso && iso.length === 2))
+    ),
+  ];
+}
+
+export function buildCountryExpression(countries: Iterable<string>): string {
+  const isos = isoCodesForFilterCountries(countries);
+  if (isos.length === 0) return "1=0";
+
+  if (isos.length === 1) {
+    const iso = isos[0].replace(/'/g, "''");
+    return `country_iso_reporting = '${iso}'`;
+  }
+
+  const list = isos.map((iso) => `'${iso.replace(/'/g, "''")}'`).join(", ");
+  return `country_iso_reporting IN (${list})`;
 }
 
 const COUNTRY_LABELS: Record<string, string> = {
@@ -205,36 +252,16 @@ export function getCountryLabel(country: CountryName): string {
 
 /** Display label for a raw GeoJSON `country_name` value. */
 export function getGeoCountryLabel(geoName: string): string {
+  const upper = geoName.trim().toUpperCase();
   const canonical = normalizeGeoCountryKey(geoName);
-  const key = canonical ?? geoName.trim().toUpperCase();
-  if ((ALL_COUNTRIES as readonly string[]).includes(key)) {
-    return getCountryLabel(key as CountryName);
+  if (canonical) return getCountryLabel(canonical);
+  if (isDisplayableGeoCountry(geoName)) return upper;
+  if ((ALL_COUNTRIES as readonly string[]).includes(upper)) {
+    return getCountryLabel(upper as CountryName);
   }
-  const override = COUNTRY_LABELS[key];
+  const override = COUNTRY_LABELS[upper];
   if (override) return override;
-  return titleCaseWords(key);
-}
-
-export function buildCountryExpression(countries: Iterable<string>): string {
-  const values = [...new Set([...countries].flatMap(geoCountryNamesForFilter))];
-  if (values.length === 0) return "1=0";
-
-  const list = values
-    .map((country) => `'${country.replace(/'/g, "''")}'`)
-    .join(", ");
-
-  return `country_name IN (${list})`;
-}
-
-function isoCodesForFilterCountries(countries: Iterable<string>): string[] {
-  const byGeo = getPartnerDataSnapshot().byGeoCountryName;
-  return [
-    ...new Set(
-      [...countries]
-        .map((country) => byGeo[country]?.trim().toUpperCase())
-        .filter((iso): iso is string => Boolean(iso && iso.length === 2))
-    ),
-  ];
+  return titleCaseWords(upper);
 }
 
 /** Match one ISO-2 code inside comma-separated `edition_country_codes`. */

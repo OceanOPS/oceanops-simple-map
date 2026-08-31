@@ -2,7 +2,7 @@ import type { Category } from "./categories";
 import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
   getGeoCountryLabel,
-  normalizeGeoCountryKey,
+  isDisplayableGeoCountry,
 } from "./countryFilters";
 import {
   formatCruiseDate,
@@ -25,18 +25,19 @@ export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
   const canonicalNames: string[] = [];
 
   for (const raw of countriesCsv.split(",")) {
-    const canonical = normalizeGeoCountryKey(raw.trim());
-    if (!canonical || seen.has(canonical)) continue;
-    seen.add(canonical);
-    canonicalNames.push(canonical);
+    const trimmed = raw.trim();
+    const upper = trimmed.toUpperCase();
+    if (!isDisplayableGeoCountry(trimmed) || seen.has(upper)) continue;
+    seen.add(upper);
+    canonicalNames.push(trimmed);
   }
 
   if (canonicalNames.length === 0) return "";
 
   return canonicalNames
-    .map((canonical) => {
-      const label = getGeoCountryLabel(canonical);
-      const iso = getIsoCodeForGeoCountry(canonical);
+    .map((name) => {
+      const label = getGeoCountryLabel(name);
+      const iso = getIsoCodeForGeoCountry(name);
       const flag = iso
         ? `<img class="o-legend-country-flag-img o-map-popup-flag" src="${countryFlagUrl(iso)}" width="20" height="15" alt="${escapeHtml(label)} flag" loading="lazy" decoding="async">`
         : "";

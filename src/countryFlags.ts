@@ -1,5 +1,4 @@
 import type { CountryName } from "./countryFilters";
-import { normalizeGeoCountryKey } from "./countryFilters";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 /** ISO 3166-1 alpha-2 for GeoJSON `country_name` (from partner export index). */
@@ -10,9 +9,8 @@ export function getCountryIsoCode(country: CountryName): string | undefined {
 
 /** ISO code for a raw GeoJSON `country_name`, when mapped in partner export. */
 export function getIsoCodeForGeoCountry(geoName: string): string | undefined {
-  const canonical = normalizeGeoCountryKey(geoName);
-  const key = canonical ?? geoName.trim().toUpperCase();
-  if (!key || !canonical) return undefined;
+  const key = geoName.trim().toUpperCase();
+  if (!key) return undefined;
 
   const data = getPartnerDataSnapshot();
   const iso = data.byGeoCountryName[key];

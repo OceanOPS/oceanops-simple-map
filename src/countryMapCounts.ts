@@ -3,9 +3,9 @@ import { categories } from "./categories";
 import {
   COUNTRY_FILTER_LAYER_IDS,
   COUNTRY_FILTER_LINE_LAYER_IDS,
+  canonicalCountryFromReportingIso,
   geoCountryNamesForFilter,
   getGeoCountryLabel,
-  normalizeGeoCountryKey,
   type CountryName,
 } from "./countryFilters";
 import { getCountryIsoCode, getIsoCodeForGeoCountry } from "./countryFlags";
@@ -48,12 +48,9 @@ export type PlatformWithCountries = {
 };
 
 function countryWhere(country: CountryName): string {
-  const names = geoCountryNamesForFilter(country);
-  if (names.length === 1) {
-    return `country_name = '${names[0].replace(/'/g, "''")}'`;
-  }
-  const list = names.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ");
-  return `country_name IN (${list})`;
+  const iso = getCountryIsoCode(country);
+  if (!iso) return "1=0";
+  return `country_iso_reporting = '${iso.replace(/'/g, "''")}'`;
 }
 
 function shipCountryWhere(country: CountryName): string {
@@ -68,14 +65,11 @@ function shipCountryWhere(country: CountryName): string {
  * (ship time — e.g. a US float deployed from a French-flagged ship).
  */
 function shipCrossCountryWhere(country: CountryName): string {
-  const flagNames = geoCountryNamesForFilter(country);
+  const iso = getCountryIsoCode(country);
+  if (!iso) return "1=0";
   const ship = shipCountryWhere(country);
-  const operatorClause =
-    flagNames.length === 1
-      ? `country_name <> country_ship`
-      : `country_name NOT IN (${flagNames.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ")})`;
-
-  return `${ship} AND country_name IS NOT NULL AND country_name <> 'UNKNOWN' AND ${operatorClause}`;
+  const isoLit = iso.replace(/'/g, "''");
+  return `${ship} AND country_iso_reporting IS NOT NULL AND country_iso_reporting <> '${isoLit}'`;
 }
 
 function sensorProviderCountryWhere(country: CountryName): string {
@@ -90,14 +84,11 @@ function sensorProviderCountryWhere(country: CountryName): string {
  * program country differs (e.g. a UK sensor on a US Argo float).
  */
 function sensorCrossCountryWhere(country: CountryName): string {
-  const providerNames = geoCountryNamesForFilter(country);
+  const iso = getCountryIsoCode(country);
+  if (!iso) return "1=0";
   const provider = sensorProviderCountryWhere(country);
-  const programClause =
-    providerNames.length === 1
-      ? `country_name <> country_sensor_provider`
-      : `country_name NOT IN (${providerNames.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ")})`;
-
-  return `${provider} AND country_name IS NOT NULL AND country_name <> 'UNKNOWN' AND ${programClause}`;
+  const isoLit = iso.replace(/'/g, "''");
+  return `${provider} AND country_iso_reporting IS NOT NULL AND country_iso_reporting <> '${isoLit}'`;
 }
 
 const labelByLayerId = new Map(categories.map((c) => [c.id, c.label]));
@@ -173,16 +164,16 @@ async function aggregateContributorCounts(
       try {
         const result = await layer.queryFeatures({
           where,
-          outFields: ["country_name"],
+          outFields: ["country_iso_reporting"],
           returnGeometry: false,
           start,
           num: pageSize,
         });
 
         for (const feature of result.features) {
-          const raw = feature.attributes?.country_name;
+          const raw = feature.attributes?.country_iso_reporting;
           if (typeof raw !== "string" || !raw.trim()) continue;
-          const key = normalizeGeoCountryKey(raw);
+          const key = canonicalCountryFromReportingIso(raw);
           if (!key) continue;
           totals.set(key, (totals.get(key) ?? 0) + 1);
         }
@@ -234,16 +225,16 @@ async function aggregatePlatformCountryCounts(
       try {
         const result = await layer.queryFeatures({
           where,
-          outFields: ["country_name"],
+          outFields: ["country_iso_reporting"],
           returnGeometry: false,
           start,
           num: pageSize,
         });
 
         for (const feature of result.features) {
-          const raw = feature.attributes?.country_name;
+          const raw = feature.attributes?.country_iso_reporting;
           if (typeof raw !== "string" || !raw.trim()) continue;
-          const key = normalizeGeoCountryKey(raw);
+          const key = canonicalCountryFromReportingIso(raw);
           if (!key) continue;
           totals.set(key, (totals.get(key) ?? 0) + 1);
         }
