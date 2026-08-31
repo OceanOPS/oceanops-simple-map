@@ -328,9 +328,24 @@ function parseEditionCountryCodes(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function oceanTraxLineDetailFromPartner(
+  country: CountryName,
+  visibleLayerIds: ReadonlySet<string>
+): CountryLineNetworkDetail | null {
+  if (!visibleLayerIds.has("oceantrax")) return null;
+  const row = getCountryBreakdownFromPartner(
+    country,
+    getPartnerDataSnapshot(),
+    visibleLayerIds
+  ).find((entry) => entry.layerId === "oceantrax");
+  if (!row || row.count <= 0) return null;
+  return { ...row, lineNames: [] };
+}
+
 /**
- * Line networks for a country from map GeoJSON — GO-SHIP edition lead or last
- * cruise program country. Ocean TraX is excluded (design network, not cruise-based).
+ * Line networks for a country:
+ * — GO-SHIP from map GeoJSON (edition lead or last cruise program country)
+ * — Ocean TraX from partner export (manual ISO counts; no inspectable line list)
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
@@ -338,53 +353,56 @@ export async function getCountryLineDetailsFromMap(
   visibleLayerIds: ReadonlySet<string>
 ): Promise<CountryLineNetworkDetail[]> {
   const iso = getCountryIsoCode(country)?.toUpperCase();
-  if (!iso) return [];
-
   const details: CountryLineNetworkDetail[] = [];
 
-  for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
-    if (layerId === "oceantrax") continue;
-    if (!visibleLayerIds.has(layerId)) continue;
-    const layer = layerById.get(layerId);
-    if (!layer || typeof layer.queryFeatures !== "function") continue;
+  if (iso) {
+    for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
+      if (layerId === "oceantrax") continue;
+      if (!visibleLayerIds.has(layerId)) continue;
+      const layer = layerById.get(layerId);
+      if (!layer || typeof layer.queryFeatures !== "function") continue;
 
-    let lineNames: string[] = [];
-    try {
-      const result = await layer.queryFeatures({
-        where: "1=1",
-        outFields: ["line_name", "edition_country_codes", "last_cruise_countries"],
-        returnGeometry: false,
+      let lineNames: string[] = [];
+      try {
+        const result = await layer.queryFeatures({
+          where: "1=1",
+          outFields: ["line_name", "edition_country_codes", "last_cruise_countries"],
+          returnGeometry: false,
+        });
+        lineNames = result.features
+          .filter((feature) => {
+            const attrs = feature.attributes ?? {};
+            if (
+              parseEditionCountryCodes(attrs.edition_country_codes).includes(iso)
+            ) {
+              return true;
+            }
+            return parseProgramCountryNames(
+              String(attrs.last_cruise_countries ?? "")
+            ).some((name) => countryNameMatchesFilter(country, name));
+          })
+          .map((feature) => String(feature.attributes?.line_name ?? "").trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
+      } catch {
+        continue;
+      }
+
+      if (lineNames.length === 0) continue;
+
+      const label = labelByLayerId.get(layerId) ?? layerId;
+      details.push({
+        layerId,
+        label,
+        count: lineNames.length,
+        displayCount: ` (${lineNames.length.toLocaleString()})`,
+        lineNames,
       });
-      lineNames = result.features
-        .filter((feature) => {
-          const attrs = feature.attributes ?? {};
-          if (
-            parseEditionCountryCodes(attrs.edition_country_codes).includes(iso)
-          ) {
-            return true;
-          }
-          return parseProgramCountryNames(
-            String(attrs.last_cruise_countries ?? "")
-          ).some((name) => countryNameMatchesFilter(country, name));
-        })
-        .map((feature) => String(feature.attributes?.line_name ?? "").trim())
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
-    } catch {
-      continue;
     }
-
-    if (lineNames.length === 0) continue;
-
-    const label = labelByLayerId.get(layerId) ?? layerId;
-    details.push({
-      layerId,
-      label,
-      count: lineNames.length,
-      displayCount: ` (${lineNames.length.toLocaleString()})`,
-      lineNames,
-    });
   }
+
+  const oceantrax = oceanTraxLineDetailFromPartner(country, visibleLayerIds);
+  if (oceantrax) details.push(oceantrax);
 
   return details.sort(
     (a, b) => b.count - a.count || a.label.localeCompare(b.label)
@@ -540,7 +558,8 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
 }
 
 /**
- * Program-country totals: platforms from map GeoJSON + line networks from partner export.
+ * Program-country totals: platforms from map GeoJSON, GO-SHIP lines from the
+ * map, Ocean TraX lines from partner export.
  */
 export async function getCountryProgramTotalFromMap(
   country: CountryName,

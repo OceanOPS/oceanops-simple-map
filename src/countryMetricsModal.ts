@@ -243,7 +243,7 @@ function appendOperatedLinesSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append("Lines with cruises by ");
+  heading.append("Lines operated by ");
   appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
 }
 
