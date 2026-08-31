@@ -255,13 +255,32 @@ export function getGeoCountryLabel(geoName: string): string {
   const upper = geoName.trim().toUpperCase();
   const canonical = normalizeGeoCountryKey(geoName);
   if (canonical) return getCountryLabel(canonical);
-  if (isDisplayableGeoCountry(geoName)) return upper;
+
+  const iso = getPartnerDataSnapshot().byGeoCountryName[upper];
+  if (iso) {
+    const fromIso = canonicalCountryFromReportingIso(iso);
+    if (fromIso) return getCountryLabel(fromIso);
+  }
+
   if ((ALL_COUNTRIES as readonly string[]).includes(upper)) {
     return getCountryLabel(upper as CountryName);
   }
   const override = COUNTRY_LABELS[upper];
   if (override) return override;
   return titleCaseWords(upper);
+}
+
+/** Contributing country label — prefer SQL `country_iso_reporting` when present. */
+export function getContributingCountryLabel(
+  geoName: string,
+  reportingIso?: string | null
+): string {
+  const iso = reportingIso?.trim().toUpperCase();
+  if (iso) {
+    const fromIso = canonicalCountryFromReportingIso(iso);
+    if (fromIso) return getCountryLabel(fromIso);
+  }
+  return getGeoCountryLabel(geoName);
 }
 
 /** Match one ISO-2 code inside comma-separated `edition_country_codes`. */

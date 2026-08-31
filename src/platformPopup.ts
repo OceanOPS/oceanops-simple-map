@@ -1,7 +1,12 @@
 import type { Category } from "./categories";
 import { formatCountriesWithFlagsHtml } from "./goshipPopup";
 import { countryNamesMatch } from "./lineCrossCountryCruise";
-import { isDisplayableGeoCountry, isIgnoredGeoCountry } from "./countryFilters";
+import {
+  getContributingCountryLabel,
+  isDisplayableGeoCountry,
+  isIgnoredGeoCountry,
+} from "./countryFilters";
+import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
 
 function escapeHtml(text: string): string {
   return text
@@ -16,9 +21,17 @@ function hasCountryValue(value: unknown): boolean {
   return text.length > 0 && !isIgnoredGeoCountry(text);
 }
 
-function formatCountryLabelHtml(country: string): string {
+function formatCountryLabelHtml(country: string, reportingIso?: string): string {
   if (!country) return "";
-  return formatCountriesWithFlagsHtml(country) || escapeHtml(country);
+  const label = getContributingCountryLabel(country, reportingIso);
+  const iso =
+    reportingIso?.trim().toUpperCase() ||
+    getIsoCodeForGeoCountry(country);
+  if (iso && iso.length === 2) {
+    const flag = `<img class="o-legend-country-flag-img o-map-popup-flag" src="${countryFlagUrl(iso)}" width="20" height="15" alt="${escapeHtml(label)} flag" loading="lazy" decoding="async">`;
+    return `<span class="o-map-popup-country">${flag}<span>${escapeHtml(label)}</span></span>`;
+  }
+  return formatCountriesWithFlagsHtml(country) || escapeHtml(label);
 }
 
 export function platformPopupContent(cat: Category) {
@@ -26,8 +39,9 @@ export function platformPopupContent(cat: Category) {
     const attrs = graphic.attributes;
     const ptfRef = String(attrs.ptf_ref ?? "").trim();
     const contributingCountry = String(attrs.country_name ?? "").trim();
+    const reportingIso = String(attrs.country_iso_reporting ?? "").trim();
     const contributingCountryHtml = isDisplayableGeoCountry(contributingCountry)
-      ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingCountry)}</p>`
+      ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingCountry, reportingIso)}</p>`
       : "";
     const shipCountry = String(attrs.country_ship ?? "").trim();
     const shipCountryHtml =
