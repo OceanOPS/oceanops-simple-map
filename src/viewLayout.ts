@@ -1,4 +1,7 @@
-import { PLATE_CARREE_DEFAULT_CENTER } from "./plateCarreeBasemap";
+import {
+  PLATE_CARREE_DEFAULT_CENTER,
+  PLATE_CARREE_DEFAULT_ZOOM,
+} from "./plateCarreeBasemap";
 import {
   is3dProjection,
   isPlateCarreeProjection,
@@ -33,7 +36,10 @@ export async function fitViewInitialExtent(
   if (!is3dProjection(projection)) {
     await view.goTo(
       isPlateCarreeProjection(projection)
-        ? { center: PLATE_CARREE_DEFAULT_CENTER, zoom: 2 }
+        ? {
+            center: PLATE_CARREE_DEFAULT_CENTER,
+            zoom: PLATE_CARREE_DEFAULT_ZOOM,
+          }
         : { center: [0, 20], zoom: 3 },
       { animate: false }
     );

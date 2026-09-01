@@ -37,5 +37,11 @@ export function createPacificSatelliteBasemap() {
 /** Default Pacific flat-map center (150°W). */
 export const PLATE_CARREE_DEFAULT_CENTER: [number, number] = [
   PACIFIC_CENTRAL_MERIDIAN,
-  20,
+  0,
 ];
+
+/** Initial zoom — fills the rectangular map shell instead of showing the whole world. */
+export const PLATE_CARREE_DEFAULT_ZOOM = 3;
+
+/** Allow one step out from the initial framing. */
+export const PLATE_CARREE_MIN_ZOOM = 2;

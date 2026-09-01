@@ -20,6 +20,8 @@ import {
   createPacificSatelliteBasemap,
   createOceanTileLayer,
   PLATE_CARREE_DEFAULT_CENTER,
+  PLATE_CARREE_DEFAULT_ZOOM,
+  PLATE_CARREE_MIN_ZOOM,
 } from "./plateCarreeBasemap";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 
@@ -144,11 +146,11 @@ function createFlatMapView(
     container,
     map,
     center: pacificCentered ? PLATE_CARREE_DEFAULT_CENTER : [0, 20],
-    zoom: pacificCentered ? 2 : 3,
+    zoom: pacificCentered ? PLATE_CARREE_DEFAULT_ZOOM : 3,
     constraints: {
       geometry: WEB_MERCATOR_NAV_BOUNDS,
       rotationEnabled: false,
-      minZoom: pacificCentered ? 2 : 3,
+      minZoom: pacificCentered ? PLATE_CARREE_MIN_ZOOM : 3,
       snapToZoom: false,
     },
     highlightOptions: {
