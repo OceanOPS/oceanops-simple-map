@@ -1,8 +1,15 @@
 /**
- * Pacific-centered flat map (150°W). Uses the same ArcGIS Ocean MapServer as Web Mercator
- * (CDN tiles: …/World_Ocean_Base/MapServer/tile/{level}/{row}/{col}).
+ * Flat-map basemaps.
+ *
+ * Web Mercator uses the cached ArcGIS tiles. Plate Carrée cannot: the caches are Web
+ * Mercator only, and reprojecting them clientside is what caps the map at ~±85° and hides
+ * Antarctica. `MapImageLayer` instead asks the same MapServer to render each extent in the
+ * view's own spatial reference, so the whole world fits a 360x180 frame.
  */
-import Basemap from "@arcgis/core/Basemap.js";
+import Extent from "@arcgis/core/geometry/Extent.js";
+import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
+import MapImageLayer from "@arcgis/core/layers/MapImageLayer.js";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import TileLayer from "@arcgis/core/layers/TileLayer.js";
 import { PACIFIC_CENTRAL_MERIDIAN } from "./projections";
 
@@ -16,32 +23,35 @@ export function createOceanTileLayer() {
   return new TileLayer({ url: OCEAN_MAP_SERVER });
 }
 
-export function createSatelliteTileLayer() {
-  return new TileLayer({ url: SATELLITE_MAP_SERVER });
-}
+/** Whole world in degrees — the natural 2:1 Plate Carrée frame, poles included. */
+export const PLATE_CARREE_WORLD_EXTENT = new Extent({
+  xmin: -180,
+  ymin: -90,
+  xmax: 180,
+  ymax: 90,
+  spatialReference: SpatialReference.WGS84,
+});
 
-export function createPacificOceanBasemap() {
-  return new Basemap({
-    baseLayers: [createOceanTileLayer()],
-    referenceLayers: [],
+/** Longitude the Plate Carrée view opens on. Set to 0 for a standard Atlantic-centred world. */
+export const PLATE_CARREE_CENTER_LONGITUDE: number = PACIFIC_CENTRAL_MERIDIAN;
+
+/** Id used to find and swap the basemap group when the map/satellite toggle fires. */
+export const PLATE_CARREE_BASEMAP_GROUP_ID = "basemap-group";
+
+/**
+ * Ships as a plain layer rather than a `Basemap`: a `Basemap` reports the MapServer's
+ * cached Web Mercator spatial reference, which the 4326 view rejects.
+ */
+export function createPlateCarreeBasemapGroup(kind: "map" | "satellite") {
+  const group = new GroupLayer({
+    id: PLATE_CARREE_BASEMAP_GROUP_ID,
+    listMode: "hide",
   });
+  group.add(
+    new MapImageLayer({
+      url: kind === "satellite" ? SATELLITE_MAP_SERVER : OCEAN_MAP_SERVER,
+      sublayers: [{ id: 0, legendEnabled: false }],
+    })
+  );
+  return group;
 }
-
-export function createPacificSatelliteBasemap() {
-  return new Basemap({
-    baseLayers: [createSatelliteTileLayer()],
-    referenceLayers: [],
-  });
-}
-
-/** Default Pacific flat-map center (150°W). */
-export const PLATE_CARREE_DEFAULT_CENTER: [number, number] = [
-  PACIFIC_CENTRAL_MERIDIAN,
-  0,
-];
-
-/** Initial zoom — fills the rectangular map shell instead of showing the whole world. */
-export const PLATE_CARREE_DEFAULT_ZOOM = 3;
-
-/** Allow one step out from the initial framing. */
-export const PLATE_CARREE_MIN_ZOOM = 2;

@@ -16,12 +16,10 @@ import {
   type ProjectionId,
 } from "./projections";
 import {
-  createPacificOceanBasemap,
-  createPacificSatelliteBasemap,
   createOceanTileLayer,
-  PLATE_CARREE_DEFAULT_CENTER,
-  PLATE_CARREE_DEFAULT_ZOOM,
-  PLATE_CARREE_MIN_ZOOM,
+  createPlateCarreeBasemapGroup,
+  PLATE_CARREE_BASEMAP_GROUP_ID,
+  PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 
@@ -127,37 +125,65 @@ export function createSatelliteBasemap() {
 }
 
 export function basemapForKind(kind: BasemapKind, projection: ProjectionId) {
-  if (isPlateCarreeProjection(projection)) {
-    return kind === "satellite"
-      ? createPacificSatelliteBasemap()
-      : createPacificOceanBasemap();
-  }
+  if (isPlateCarreeProjection(projection)) return null;
   return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemapMercator();
 }
+
+/** Plate Carrée keeps its base imagery in a layer, so the toggle swaps that instead. */
+export function applyBasemapKind(
+  map: Map,
+  kind: BasemapKind,
+  projection: ProjectionId
+) {
+  if (!isPlateCarreeProjection(projection)) {
+    map.basemap = basemapForKind(kind, projection);
+    return;
+  }
+  const existing = map.findLayerById(PLATE_CARREE_BASEMAP_GROUP_ID);
+  if (existing) map.remove(existing);
+  map.add(createPlateCarreeBasemapGroup(kind), 0);
+}
+
+const FLAT_HIGHLIGHT = {
+  color: [244, 139, 37, 1] as [number, number, number, number],
+  haloOpacity: 0.9,
+  fillOpacity: 0.2,
+};
 
 function createFlatMapView(
   container: HTMLDivElement | string,
   map: Map,
   projection: ProjectionId
 ): MapView {
-  const pacificCentered = isPlateCarreeProjection(projection);
+  if (isPlateCarreeProjection(projection)) {
+    // The extent (not center/zoom) drives the initial camera so the full 360x180 world
+    // is framed from the first paint, poles included, whatever the container size.
+    return new MapView({
+      container,
+      map,
+      spatialReference: SpatialReference.WGS84,
+      extent: PLATE_CARREE_WORLD_EXTENT.clone(),
+      constraints: {
+        geometry: PLATE_CARREE_WORLD_EXTENT.clone(),
+        rotationEnabled: false,
+        snapToZoom: false,
+      },
+      highlightOptions: FLAT_HIGHLIGHT,
+    });
+  }
 
   return new MapView({
     container,
     map,
-    center: pacificCentered ? PLATE_CARREE_DEFAULT_CENTER : [0, 20],
-    zoom: pacificCentered ? PLATE_CARREE_DEFAULT_ZOOM : 3,
+    center: [0, 20],
+    zoom: 3,
     constraints: {
       geometry: WEB_MERCATOR_NAV_BOUNDS,
       rotationEnabled: false,
-      minZoom: pacificCentered ? PLATE_CARREE_MIN_ZOOM : 3,
+      minZoom: 3,
       snapToZoom: false,
     },
-    highlightOptions: {
-      color: [244, 139, 37, 1],
-      haloOpacity: 0.9,
-      fillOpacity: 0.2,
-    },
+    highlightOptions: FLAT_HIGHLIGHT,
   });
 }
 
@@ -190,8 +216,11 @@ export function createGlobeView(
   container: HTMLDivElement | string
 ): { map: Map; view: GlobeView } {
   const map = new Map({
-    basemap: basemapForKind(basemapKind, projection),
+    basemap: basemapForKind(basemapKind, projection) ?? undefined,
   });
+  if (isPlateCarreeProjection(projection)) {
+    map.add(createPlateCarreeBasemapGroup(basemapKind), 0);
+  }
 
   if (is3dProjection(projection)) {
     const view = new SceneView({
@@ -333,11 +362,15 @@ export function applyViewNavigationDefaults(view: GlobeView) {
 
     if (view.type === "2d") {
       const mapView = view as MapView;
-      const minZoom = mapView.constraints.minZoom ?? 0;
+      const minScale = mapView.constraints.minScale;
+      const zoomOutScale = mapView.scale * 2;
       void mapView.goTo(
         {
           center: event.mapPoint,
-          zoom: Math.max(minZoom, mapView.zoom - 1),
+          scale:
+            minScale != null
+              ? Math.min(zoomOutScale, minScale)
+              : zoomOutScale,
         },
         { animate: true, duration: 250 }
       );
@@ -433,7 +466,7 @@ export function mountBasemapProjectionControl(
     const next = options.getBasemapKind() === "map" ? "satellite" : "map";
     options.onBasemapKindChange(next);
     const map = options.viewHolder.view.map;
-    if (map) map.basemap = basemapForKind(next, options.getProjection());
+    if (map) applyBasemapKind(map, next, options.getProjection());
     updateBasemapUi();
   });
 
