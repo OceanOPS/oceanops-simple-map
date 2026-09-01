@@ -21,8 +21,23 @@ import { platformPopupContent } from "./platformPopup";
 import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
+import { applyProjectionShellLayout } from "./projectionLayout";
 
 const BASE = import.meta.env.BASE_URL;
+
+/** Line layers exported as `{id}.geojson` (densified) + `{id}_undensified.geojson`. */
+const DENSIFIED_LINE_LAYER_IDS = new Set(["goship", "oceantrax"]);
+
+function geojsonLayerUrl(cat: Category, projection: ProjectionId): string {
+  if (
+    cat.type === "line" &&
+    DENSIFIED_LINE_LAYER_IDS.has(cat.id) &&
+    !is3dProjection(projection)
+  ) {
+    return `${BASE}geojson/${cat.id}_undensified.geojson`;
+  }
+  return `${BASE}geojson/${cat.id}.geojson`;
+}
 
 function linePopupContent(cat: Category): string {
   return `<div class="o-map-popup">
@@ -63,7 +78,7 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
         );
 
   const layer = new GeoJSONLayer({
-    url: `${BASE}geojson/${cat.id}.geojson`,
+    url: geojsonLayerUrl(cat, projection),
     title: cat.label,
     outFields: ["*"],
     renderer,
@@ -233,6 +248,8 @@ function createRotationController(
     const container = document.getElementById("viewDiv");
     if (!container) throw new Error("viewDiv not found");
 
+    applyProjectionShellLayout(projection);
+
     const { map, view } = createGlobeView(
       projection,
       basemapKind,
@@ -286,4 +303,6 @@ function createRotationController(
   }
 
   await initView(currentProjection, currentBasemapKind);
-})();
+})().catch((err) => {
+  console.error("Map failed to initialize:", err);
+});

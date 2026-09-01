@@ -6,6 +6,18 @@
   --container-max-width: 1280px;
 }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#mapShell {
+  width: 100%;
+  height: 100%;
+}
+
 #viewDiv {
   width: 100%;
   height: 100%;

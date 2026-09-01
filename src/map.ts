@@ -5,14 +5,22 @@ import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import Basemap from "@arcgis/core/Basemap.js";
-import TileLayer from "@arcgis/core/layers/TileLayer.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import {
   is3dProjection,
+  isPlateCarreeProjection,
   PROJECTION_3D_GLOBE,
+  PROJECTION_WEB_MERCATOR,
+  projectionLabel,
   toggleProjection,
   type ProjectionId,
 } from "./projections";
+import {
+  createPacificOceanBasemap,
+  createPacificSatelliteBasemap,
+  createOceanTileLayer,
+  PLATE_CARREE_DEFAULT_CENTER,
+} from "./plateCarreeBasemap";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 
 esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
@@ -30,13 +38,11 @@ export const WEB_MERCATOR_NAV_BOUNDS = new Extent({
   spatialReference: SpatialReference.WebMercator,
 });
 
-export function createNavigationBasemap() {
+export function createNavigationBasemapMercator() {
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
 
-  // CURRENT: Ocean base (default)
-  const oceanBase = new TileLayer({
-    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer",
-  });
+  // Ocean base — ArcGIS CDN tiles (Web Mercator)
+  const oceanBase = createOceanTileLayer();
   const basemap = new Basemap({
     baseLayers: [oceanBase],
     referenceLayers: [],
@@ -109,12 +115,48 @@ export function createNavigationBasemap() {
   return basemap;
 }
 
+/** Ocean base for 3D globe (Web Mercator tiles). */
+export function createNavigationBasemap() {
+  return createNavigationBasemapMercator();
+}
+
 export function createSatelliteBasemap() {
   return Basemap.fromId("satellite");
 }
 
-export function basemapForKind(kind: BasemapKind) {
-  return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemap();
+export function basemapForKind(kind: BasemapKind, projection: ProjectionId) {
+  if (isPlateCarreeProjection(projection)) {
+    return kind === "satellite"
+      ? createPacificSatelliteBasemap()
+      : createPacificOceanBasemap();
+  }
+  return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemapMercator();
+}
+
+function createFlatMapView(
+  container: HTMLDivElement | string,
+  map: Map,
+  projection: ProjectionId
+): MapView {
+  const pacificCentered = isPlateCarreeProjection(projection);
+
+  return new MapView({
+    container,
+    map,
+    center: pacificCentered ? PLATE_CARREE_DEFAULT_CENTER : [0, 20],
+    zoom: pacificCentered ? 2 : 3,
+    constraints: {
+      geometry: WEB_MERCATOR_NAV_BOUNDS,
+      rotationEnabled: false,
+      minZoom: pacificCentered ? 2 : 3,
+      snapToZoom: false,
+    },
+    highlightOptions: {
+      color: [244, 139, 37, 1],
+      haloOpacity: 0.9,
+      fillOpacity: 0.2,
+    },
+  });
 }
 
 export async function stripBasemapLabels(map: Map) {
@@ -146,7 +188,7 @@ export function createGlobeView(
   container: HTMLDivElement | string
 ): { map: Map; view: GlobeView } {
   const map = new Map({
-    basemap: basemapForKind(basemapKind),
+    basemap: basemapForKind(basemapKind, projection),
   });
 
   if (is3dProjection(projection)) {
@@ -173,23 +215,7 @@ export function createGlobeView(
     return { map, view };
   }
 
-  const view = new MapView({
-    container,
-    map,
-    center: [0, 20],
-    zoom: 3,
-    constraints: {
-      geometry: WEB_MERCATOR_NAV_BOUNDS,
-      rotationEnabled: false,
-      minZoom: 3,
-      snapToZoom: false,
-    },
-    highlightOptions: {
-      color: [244, 139, 37, 1],
-      haloOpacity: 0.9,
-      fillOpacity: 0.2,
-    },
-  });
+  const view = createFlatMapView(container, map, projection);
   return { map, view };
 }
 
@@ -369,21 +395,17 @@ export function mountBasemapProjectionControl(
   projectionSection.append(projectionPreviewBtn, projectionHint);
 
   const syncProjectionUi = (projection: ProjectionId) => {
-    const is3d = projection === PROJECTION_3D_GLOBE;
-    if (is3d) {
-      projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/mercator.jpeg');"></div>`;
-      projectionHint.textContent = "Web Mercator";
-      projectionPreviewBtn.title = "Switch to Web Mercator";
-      projectionPreviewBtn.setAttribute(
-        "aria-label",
-        "Switch to Web Mercator"
-      );
-    } else {
-      projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/globe.jpeg');"></div>`;
-      projectionHint.textContent = "3D Globe";
-      projectionPreviewBtn.title = "Switch to 3D globe";
-      projectionPreviewBtn.setAttribute("aria-label", "Switch to 3D globe");
-    }
+    const next = toggleProjection(projection);
+    const preview =
+      next === PROJECTION_3D_GLOBE
+        ? "globe.jpeg"
+        : next === PROJECTION_WEB_MERCATOR
+          ? "mercator.jpeg"
+          : "mercator.jpeg";
+    projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/${preview}');"></div>`;
+    projectionHint.textContent = projectionLabel(next);
+    projectionPreviewBtn.title = `Switch to ${projectionLabel(next)}`;
+    projectionPreviewBtn.setAttribute("aria-label", `Switch to ${projectionLabel(next)}`);
   };
 
   const updateBasemapUi = () => {
@@ -409,7 +431,7 @@ export function mountBasemapProjectionControl(
     const next = options.getBasemapKind() === "map" ? "satellite" : "map";
     options.onBasemapKindChange(next);
     const map = options.viewHolder.view.map;
-    if (map) map.basemap = basemapForKind(next);
+    if (map) map.basemap = basemapForKind(next, options.getProjection());
     updateBasemapUi();
   });
 

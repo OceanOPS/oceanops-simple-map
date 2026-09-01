@@ -1,4 +1,9 @@
-import { is3dProjection, type ProjectionId } from "./projections";
+import { PLATE_CARREE_DEFAULT_CENTER } from "./plateCarreeBasemap";
+import {
+  is3dProjection,
+  isPlateCarreeProjection,
+  type ProjectionId,
+} from "./projections";
 import type { GlobeView } from "./viewHolder";
 
 /** MapView often mounts at wrong size until resize (especially after SceneView → MapView). */
@@ -27,10 +32,9 @@ export async function fitViewInitialExtent(
 ): Promise<void> {
   if (!is3dProjection(projection)) {
     await view.goTo(
-      {
-        center: [0, 20],
-        zoom: 3,
-      },
+      isPlateCarreeProjection(projection)
+        ? { center: PLATE_CARREE_DEFAULT_CENTER, zoom: 2 }
+        : { center: [0, 20], zoom: 3 },
       { animate: false }
     );
     return;
