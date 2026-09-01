@@ -22,6 +22,7 @@ import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer, mak
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
 import { applyProjectionShellLayout } from "./projectionLayout";
+import { mountMapServerLoader } from "./mapServerLoader";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -231,6 +232,7 @@ function createRotationController(
     setRotationStateChangeCallback: (_cb: () => void) => {},
     stopRotation: () => {},
   };
+  let unbindMapServerLoader: (() => void) | null = null;
 
   const attachLegendToView = () => {
     attachLegend(
@@ -267,6 +269,16 @@ function createRotationController(
     await fitViewInitialExtent(view, projection, layerUnion);
     await refreshViewLayout(view);
 
+    unbindMapServerLoader?.();
+    const mapShell = document.getElementById("mapShell");
+    if (mapShell) {
+      unbindMapServerLoader = mountMapServerLoader(
+        mapShell,
+        view,
+        () => currentProjection
+      );
+    }
+
     mountBasemapProjectionControl(view, {
       viewHolder,
       getProjection: () => currentProjection,
@@ -288,6 +300,8 @@ function createRotationController(
 
   async function swapProjection(projection: ProjectionId) {
     rotationApi.stopRotation();
+    unbindMapServerLoader?.();
+    unbindMapServerLoader = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;
