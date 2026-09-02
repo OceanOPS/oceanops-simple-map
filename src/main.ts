@@ -19,7 +19,7 @@ import {
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
-import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
+import { makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
   bindPlateCarreeLayoutSync,
@@ -106,8 +106,6 @@ function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLay
         : {
             mode: "absolute-height",
             featureExpressionInfo: { expression: "0" },
-            // Clear the line path tubes so platforms never z-fight with them while the globe rotates.
-            offset: LINE_3D_WIDTH_METERS,
           };
     layer.screenSizePerspectiveEnabled = true;
   }

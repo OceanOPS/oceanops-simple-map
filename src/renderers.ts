@@ -39,19 +39,21 @@ export function makePointRenderer3D(color: string, shape: Shape = "circle") {
   });
 }
 
-/** Diameter of the 3D path tube used for line layers, in meters. */
+/** Screen size (px) for 3D ship lines — solid and dashed share the same width. */
+export const LINE_3D_LINE_SIZE_PX = 3;
+
+/** Diameter of generic 3D path tubes (non ship dual-style layers), in meters. */
 export const LINE_3D_WIDTH_METERS = 20000;
 
-/** 3D path tube — solid sampled lines; follows globe surface including dateline jumps. */
-function makeGoshipPathSymbol3D(color: string, width: number) {
+/** 3D solid line (screen px) — same width as dashed lines. */
+function makeGoshipSolidLineSymbol3D(color: string, sizePx: number) {
   return {
     type: "line-3d",
     symbolLayers: [
       {
-        type: "path",
-        profile: "circle",
+        type: "line",
+        size: sizePx,
         material: { color },
-        width,
         cap: "round",
         join: "round",
       },
@@ -59,14 +61,14 @@ function makeGoshipPathSymbol3D(color: string, width: number) {
   } as any;
 }
 
-/** 3D flat line with dash pattern — requires antimeridian-split geometry (see densifyLayer). */
-function makeGoshipDashedLineSymbol3D(color: string) {
+/** 3D dashed line — requires antimeridian-split geometry (see densifyLayer). */
+function makeGoshipDashedLineSymbol3D(color: string, sizePx: number) {
   return {
     type: "line-3d",
     symbolLayers: [
       {
         type: "line",
-        size: 3,
+        size: sizePx,
         material: { color },
         cap: "round",
         join: "round",
@@ -147,7 +149,8 @@ export function makeLineRenderer2D(color: string) {
 export function makeDualStyleLineRenderer(
   projection: ProjectionId,
   solidColor: string,
-  dashColor: string
+  dashColor: string,
+  lineSizePx = LINE_3D_LINE_SIZE_PX
 ) {
   const use3d = is3dProjection(projection);
   if (use3d) {
@@ -156,14 +159,14 @@ export function makeDualStyleLineRenderer(
       uniqueValueInfos: [
         {
           value: "solid",
-          symbol: makeGoshipPathSymbol3D(solidColor, LINE_3D_WIDTH_METERS),
+          symbol: makeGoshipSolidLineSymbol3D(solidColor, lineSizePx),
         },
         {
           value: "dash",
-          symbol: makeGoshipDashedLineSymbol3D(dashColor),
+          symbol: makeGoshipDashedLineSymbol3D(dashColor, lineSizePx),
         },
       ],
-      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor),
+      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor, lineSizePx),
     });
   }
 
@@ -184,13 +187,21 @@ export function makeDualStyleLineRenderer(
 }
 
 /** Ocean TraX (SOT): solid = active, dash = reactivate — same orange for both. */
-export function makeOceanTraxLineRenderer(projection: ProjectionId, color: string) {
-  return makeDualStyleLineRenderer(projection, color, color);
+export function makeOceanTraxLineRenderer(
+  projection: ProjectionId,
+  color: string,
+  lineSizePx?: number
+) {
+  return makeDualStyleLineRenderer(projection, color, color, lineSizePx);
 }
 
 /** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
-export function makeGoshipLineRenderer(projection: ProjectionId, color: string) {
-  return makeDualStyleLineRenderer(projection, color, color);
+export function makeGoshipLineRenderer(
+  projection: ProjectionId,
+  color: string,
+  lineSizePx?: number
+) {
+  return makeDualStyleLineRenderer(projection, color, color, lineSizePx);
 }
 
 export function makeCategoryRenderer(
