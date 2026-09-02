@@ -12,10 +12,10 @@ import {
   getCountryShipPlatformCountryBreakdownFromMap,
   getCountryShipTotalFromMap,
   getCountryTotalFromMap,
-  groupPlatformCountryRows,
+  // groupPlatformCountryRows, // Platform › country view (toggle hidden)
   loadPartnerCountriesData,
   type PlatformCountryCount,
-  type PlatformWithCountries,
+  // type PlatformWithCountries,
   type CountryLineNetworkDetail,
 } from "./countryMetrics";
 import type { CountryLayerCount } from "./partnerCountriesData";
@@ -265,7 +265,7 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
   return group;
 }
 
-type BreakdownView = "platformCountry" | "emanuela";
+// type BreakdownView = "platformCountry" | "emanuela";
 
 function appendEmanuelaTable(parent: HTMLElement, rows: PlatformCountryCount[]): void {
   const table = document.createElement("table");
@@ -314,9 +314,10 @@ function appendEmanuelaTable(parent: HTMLElement, rows: PlatformCountryCount[]):
   parent.appendChild(table);
 }
 
-function appendExpandablePlatformList(
+/** Kept while Platform › country toggle is hidden. */
+export function appendExpandablePlatformList(
   parent: HTMLElement,
-  platforms: PlatformWithCountries[]
+  platforms: import("./countryMetrics").PlatformWithCountries[]
 ): void {
   const list = document.createElement("ul");
   list.className = "o-country-modal-list o-country-modal-list--expandable";
@@ -432,7 +433,7 @@ function appendToggleBreakdownSection(
   description: string | undefined,
   platformCountryRows: PlatformCountryCount[],
   emptyMessage: string,
-  toggleAriaLabel: string
+  _toggleAriaLabel: string
 ): void {
   if (count === 0) return;
 
@@ -455,6 +456,8 @@ function appendToggleBreakdownSection(
     section.appendChild(desc);
   }
 
+  // View toggle hidden — keep flattable table only (Platform › country view commented out).
+  /*
   const toggle = document.createElement("div");
   toggle.className = "o-country-modal-view-toggle";
   toggle.setAttribute("role", "tablist");
@@ -476,14 +479,15 @@ function appendToggleBreakdownSection(
 
   toggle.append(platformBtn, emanuelaBtn);
   section.appendChild(toggle);
+  */
 
   const panel = document.createElement("div");
   panel.className = "o-country-modal-view-panel";
   panel.setAttribute("role", "tabpanel");
   section.appendChild(panel);
 
-  const platforms = groupPlatformCountryRows(platformCountryRows);
-  let activeView: BreakdownView = "platformCountry";
+  // const platforms = groupPlatformCountryRows(platformCountryRows);
+  // let activeView: BreakdownView = "emanuela";
 
   const renderPanel = () => {
     panel.replaceChildren();
@@ -496,13 +500,17 @@ function appendToggleBreakdownSection(
       return;
     }
 
+    /*
     if (activeView === "platformCountry") {
       appendExpandablePlatformList(panel, platforms);
     } else {
       appendEmanuelaTable(panel, platformCountryRows);
     }
+    */
+    appendEmanuelaTable(panel, platformCountryRows);
   };
 
+  /*
   const setView = (view: BreakdownView) => {
     activeView = view;
     const isPlatform = view === "platformCountry";
@@ -515,6 +523,7 @@ function appendToggleBreakdownSection(
 
   platformBtn.addEventListener("click", () => setView("platformCountry"));
   emanuelaBtn.addEventListener("click", () => setView("emanuela"));
+  */
 
   renderPanel();
   parent.appendChild(section);
