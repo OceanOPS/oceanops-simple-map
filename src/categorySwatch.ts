@@ -193,41 +193,50 @@ function appendLineStyleGroupTitle(parent: HTMLElement, title: string) {
   parent.appendChild(heading);
 }
 
-/** Visual solid/dash key for Ocean TraX and GO-SHIP (replaces footer prose). */
-export function makeLineStyleLegend(goshipSinceYear = "2025"): HTMLElement {
-  const oceantrax = categories.find((cat) => cat.id === "oceantrax");
+function makeGoshipLineStyleGroup(goshipSinceYear = "2025"): HTMLElement | null {
   const goship = categories.find((cat) => cat.id === "goship");
+  if (!goship) return null;
 
+  const group = document.createElement("div");
+  group.className = "o-legend-line-style-group";
+  appendLineStyleGroupTitle(group, "GO-SHIP");
+  appendLineStyleRow(
+    group,
+    goship.color,
+    "solid",
+    `Sampled since ${goshipSinceYear}`
+  );
+  appendLineStyleRow(
+    group,
+    goship.color,
+    "dash",
+    `Not sampled since ${goshipSinceYear}`
+  );
+  return group;
+}
+
+function makeOceanTraxLineStyleGroup(): HTMLElement | null {
+  const oceantrax = categories.find((cat) => cat.id === "oceantrax");
+  if (!oceantrax) return null;
+
+  const group = document.createElement("div");
+  group.className = "o-legend-line-style-group";
+  appendLineStyleGroupTitle(group, "Ocean TraX");
+  appendLineStyleRow(group, oceantrax.color, "solid", "Active");
+  appendLineStyleRow(group, oceantrax.color, "dash", "Reactivate");
+  return group;
+}
+
+/** Ocean TraX + GO-SHIP solid/dash keys — block at the bottom of the Ship group. */
+export function makeShipLineStyleLegend(goshipSinceYear = "2025"): HTMLElement {
   const wrap = document.createElement("div");
-  wrap.className = "o-legend-line-styles";
+  wrap.className = "o-legend-line-styles o-legend-line-styles--section";
 
-  if (oceantrax) {
-    const group = document.createElement("div");
-    group.className = "o-legend-line-style-group";
-    appendLineStyleGroupTitle(group, "Ocean TraX");
-    appendLineStyleRow(group, oceantrax.color, "solid", "Active");
-    appendLineStyleRow(group, oceantrax.color, "dash", "Reactivate");
-    wrap.appendChild(group);
-  }
+  const oceantrax = makeOceanTraxLineStyleGroup();
+  if (oceantrax) wrap.appendChild(oceantrax);
 
-  if (goship) {
-    const group = document.createElement("div");
-    group.className = "o-legend-line-style-group";
-    appendLineStyleGroupTitle(group, "GO-SHIP");
-    appendLineStyleRow(
-      group,
-      goship.color,
-      "solid",
-      `Sampled since ${goshipSinceYear}`
-    );
-    appendLineStyleRow(
-      group,
-      goship.color,
-      "dash",
-      `Not sampled since ${goshipSinceYear}`
-    );
-    wrap.appendChild(group);
-  }
+  const goship = makeGoshipLineStyleGroup(goshipSinceYear);
+  if (goship) wrap.appendChild(goship);
 
   return wrap;
 }

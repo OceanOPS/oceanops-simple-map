@@ -13,6 +13,7 @@ import {
 } from "./map";
 import {
   is3dProjection,
+  isPlateCarreeProjection,
   PROJECTION_3D_GLOBE,
   type ProjectionId,
 } from "./projections";
@@ -20,7 +21,12 @@ import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
 import { LINE_3D_WIDTH_METERS, makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
 import type { GlobeView, ViewHolder } from "./viewHolder";
-import { fitViewInitialExtent, refreshViewLayout } from "./viewLayout";
+import {
+  bindPlateCarreeLayoutSync,
+  fitViewInitialExtent,
+  reflowPlateCarreeIfWorldScale,
+  refreshViewLayout,
+} from "./viewLayout";
 import { applyProjectionShellLayout } from "./projectionLayout";
 import { mountMapServerLoader } from "./mapServerLoader";
 
@@ -233,6 +239,7 @@ function createRotationController(
     stopRotation: () => {},
   };
   let unbindMapServerLoader: (() => void) | null = null;
+  let unbindPlateCarreeLayout: (() => void) | null = null;
 
   const attachLegendToView = () => {
     attachLegend(
@@ -242,7 +249,10 @@ function createRotationController(
       () => rotationApi.isRotating(),
       (cb) => rotationApi.setRotationStateChangeCallback(cb),
       () => rotationApi.stopRotation(),
-      () => currentProjection
+      () => currentProjection,
+      () => {
+        void reflowPlateCarreeIfWorldScale(viewHolder.view, currentProjection);
+      }
     );
   };
 
@@ -296,12 +306,25 @@ function createRotationController(
       rotationApi.stopRotation();
     }
     attachLegendToView();
+
+    unbindPlateCarreeLayout?.();
+    if (isPlateCarreeProjection(projection)) {
+      await reflowPlateCarreeIfWorldScale(view, projection);
+      unbindPlateCarreeLayout = bindPlateCarreeLayoutSync(
+        view,
+        () => currentProjection
+      );
+    } else {
+      unbindPlateCarreeLayout = null;
+    }
   }
 
   async function swapProjection(projection: ProjectionId) {
     rotationApi.stopRotation();
     unbindMapServerLoader?.();
     unbindMapServerLoader = null;
+    unbindPlateCarreeLayout?.();
+    unbindPlateCarreeLayout = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;

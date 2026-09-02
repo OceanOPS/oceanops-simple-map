@@ -3,7 +3,7 @@ import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
 import { categories, type Category } from "./categories";
-import { makeCategorySwatch, makeLineStyleLegend } from "./categorySwatch";
+import { makeCategorySwatch, makeShipLineStyleLegend } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
@@ -300,7 +300,8 @@ export function attachLegend(
   isRotating: () => boolean,
   setRotationStateChangeCallback: (callback: () => void) => void,
   stopRotation: () => void,
-  getProjection: () => ProjectionId
+  getProjection: () => ProjectionId,
+  onShellLayoutChange?: () => void
 ) {
   const view = viewHolder.view;
   // nuke any previous legend, backdrop and toggle button
@@ -408,6 +409,7 @@ export function attachLegend(
       document.body.classList.add("menu-open");
       setMenuToggleState(toggleButton, true);
     }
+    onShellLayoutChange?.();
   };
 
   toggleButton.addEventListener("click", togglePanel);
@@ -754,6 +756,8 @@ export function attachLegend(
   });
   networksBody.prepend(selectAllRow);
 
+  let shipLineStyleLegend: HTMLElement | null = null;
+
   groups.forEach((group) => {
     const { groupBody } = createCollapsibleGroup(networksBody, {
       key: group.key,
@@ -824,6 +828,11 @@ export function attachLegend(
 
       layerCheckboxes.push(cb);
       groupBody.appendChild(row);
+    }
+
+    if (group.key === "ship") {
+      shipLineStyleLegend = makeShipLineStyleLegend();
+      groupBody.appendChild(shipLineStyleLegend);
     }
   });
 
@@ -929,9 +938,6 @@ export function attachLegend(
 
   addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
 
-  let lineStyleLegend = makeLineStyleLegend();
-  countryBody.appendChild(lineStyleLegend);
-
   const dataNote = document.createElement("p");
   dataNote.className = "o-legend-data-note";
   dataNote.textContent = DEFAULT_MAP_FOOTER;
@@ -955,10 +961,10 @@ export function attachLegend(
       dataNote.textContent = footerText;
     }
     const goshipSince = metadata.GOSHIP_EDITION_SINCE ?? metadata.GOSHIP_SAMPLED_SINCE;
-    if (goshipSince) {
-      const updated = makeLineStyleLegend(yearFromIso(goshipSince));
-      lineStyleLegend.replaceWith(updated);
-      lineStyleLegend = updated;
+    if (goshipSince && shipLineStyleLegend) {
+      const updated = makeShipLineStyleLegend(yearFromIso(goshipSince));
+      shipLineStyleLegend.replaceWith(updated);
+      shipLineStyleLegend = updated;
     }
   });
 

@@ -793,6 +793,12 @@ body {
   border-top: 1px solid rgba(248, 248, 248, 0.1);
 }
 
+.o-legend-line-styles--section {
+  margin: 8px var(--legend-padding) 12px calc(var(--legend-padding) + 12px);
+  padding-top: 12px;
+  border-top: 1px solid rgba(248, 248, 248, 0.1);
+}
+
 .o-legend-line-style-group {
   display: flex;
   flex-direction: column;
