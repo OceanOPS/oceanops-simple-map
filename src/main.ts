@@ -29,6 +29,7 @@ import {
 } from "./viewLayout";
 import { applyProjectionShellLayout } from "./projectionLayout";
 import { mountMapServerLoader } from "./mapServerLoader";
+import { bindMapFullscreenEmbedSync, bindMapFullscreenSync } from "./mapFullscreen";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -240,6 +241,14 @@ function createRotationController(
   };
   let unbindMapServerLoader: (() => void) | null = null;
   let unbindPlateCarreeLayout: (() => void) | null = null;
+  let unbindMapFullscreen: (() => void) | null = null;
+  let unbindMapFullscreenEmbed: (() => void) | null = null;
+
+  const onShellLayoutChange = () => {
+    void refreshViewLayout(viewHolder.view).then(() => {
+      void reflowPlateCarreeIfWorldScale(viewHolder.view, currentProjection);
+    });
+  };
 
   const attachLegendToView = () => {
     attachLegend(
@@ -250,9 +259,7 @@ function createRotationController(
       (cb) => rotationApi.setRotationStateChangeCallback(cb),
       () => rotationApi.stopRotation(),
       () => currentProjection,
-      () => {
-        void reflowPlateCarreeIfWorldScale(viewHolder.view, currentProjection);
-      }
+      onShellLayoutChange
     );
   };
 
@@ -299,12 +306,18 @@ function createRotationController(
       onProjectionChange: async (next) => {
         await swapProjection(next);
       },
+      onShellLayoutChange,
     });
 
     rotationApi = createRotationController(viewHolder, () => currentProjection);
     if (!is3dProjection(projection)) {
       rotationApi.stopRotation();
     }
+    unbindMapFullscreen?.();
+    unbindMapFullscreen = bindMapFullscreenSync(onShellLayoutChange);
+    unbindMapFullscreenEmbed?.();
+    unbindMapFullscreenEmbed = bindMapFullscreenEmbedSync(onShellLayoutChange);
+
     attachLegendToView();
 
     unbindPlateCarreeLayout?.();
@@ -325,6 +338,10 @@ function createRotationController(
     unbindMapServerLoader = null;
     unbindPlateCarreeLayout?.();
     unbindPlateCarreeLayout = null;
+    unbindMapFullscreen?.();
+    unbindMapFullscreen = null;
+    unbindMapFullscreenEmbed?.();
+    unbindMapFullscreenEmbed = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;

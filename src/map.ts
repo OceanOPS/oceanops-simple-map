@@ -22,6 +22,7 @@ import {
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
 import type { GlobeView, ViewHolder } from "./viewHolder";
+import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
 
 esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
@@ -150,6 +151,10 @@ const FLAT_HIGHLIGHT = {
   fillOpacity: 0.2,
 };
 
+/** Default Web Mercator framing; users may zoom out one step further (see min zoom). */
+const WEB_MERCATOR_DEFAULT_ZOOM = 3;
+const WEB_MERCATOR_MIN_ZOOM = WEB_MERCATOR_DEFAULT_ZOOM - 1;
+
 function createFlatMapView(
   container: HTMLDivElement | string,
   map: Map,
@@ -176,11 +181,11 @@ function createFlatMapView(
     container,
     map,
     center: [0, 20],
-    zoom: 3,
+    zoom: WEB_MERCATOR_DEFAULT_ZOOM,
     constraints: {
       geometry: WEB_MERCATOR_NAV_BOUNDS,
       rotationEnabled: false,
-      minZoom: 3,
+      minZoom: WEB_MERCATOR_MIN_ZOOM,
       snapToZoom: false,
     },
     highlightOptions: FLAT_HIGHLIGHT,
@@ -387,6 +392,7 @@ export interface MapChromeOptions {
   getBasemapKind: () => BasemapKind;
   onBasemapKindChange: (kind: BasemapKind) => void;
   onProjectionChange: (projection: ProjectionId) => Promise<void>;
+  onShellLayoutChange?: () => void;
 }
 
 /** Basemap preview + projection picker (bottom-left stack). */
@@ -428,6 +434,52 @@ export function mountBasemapProjectionControl(
   projectionHint.className = "o-basemap-kind-label";
 
   projectionSection.append(projectionPreviewBtn, projectionHint);
+
+  const divider2 = document.createElement("div");
+  divider2.className = "o-map-display-divider";
+  divider2.setAttribute("aria-hidden", "true");
+
+  const fullscreenSection = document.createElement("div");
+  fullscreenSection.className = "o-map-display-section o-map-display-section--fullscreen";
+
+  const fullscreenBtn = document.createElement("button");
+  fullscreenBtn.type = "button";
+  fullscreenBtn.className = "o-map-fullscreen-toggle";
+  fullscreenBtn.setAttribute("aria-label", "Full screen map");
+
+  const fullscreenHint = document.createElement("span");
+  fullscreenHint.className = "o-basemap-kind-label";
+
+  const expandIcon = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  const compressIcon = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+  const syncFullscreenUi = () => {
+    const active = isMapFullscreen();
+    fullscreenBtn.classList.toggle("is-active", active);
+    fullscreenBtn.innerHTML = active ? compressIcon : expandIcon;
+    fullscreenHint.textContent = active ? "Exit full screen" : "Full screen";
+    fullscreenBtn.title = active ? "Exit full screen" : "Full screen map";
+    fullscreenBtn.setAttribute(
+      "aria-label",
+      active ? "Exit full screen" : "Full screen map"
+    );
+  };
+
+  fullscreenBtn.addEventListener("click", () => {
+    void setMapFullscreen(!isMapFullscreen(), options.onShellLayoutChange);
+  });
+
+  document.addEventListener("fullscreenchange", syncFullscreenUi);
+  document.addEventListener("map-fullscreen-change", syncFullscreenUi);
+  syncFullscreenUi();
+
+  fullscreenSection.append(fullscreenBtn, fullscreenHint);
 
   const syncProjectionUi = (projection: ProjectionId) => {
     const next = toggleProjection(projection);
@@ -485,7 +537,7 @@ export function mountBasemapProjectionControl(
     })();
   });
 
-  menu.append(basemapSection, divider, projectionSection);
+  menu.append(basemapSection, divider, projectionSection, divider2, fullscreenSection);
   view.ui.add(menu, { position: "top-left", index: 4 });
 }
 

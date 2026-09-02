@@ -419,6 +419,94 @@ body {
   transform: scale(0.98);
 }
 
+.o-map-fullscreen-toggle {
+  width: 46px;
+  height: 46px;
+  background-color: #0b1e42;
+  border: 1px solid #e0e0e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #f8f8f8;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.o-map-fullscreen-toggle:hover,
+.o-map-fullscreen-toggle:focus-visible {
+  opacity: 0.85;
+  border-color: #f48b25;
+  color: #f48b25;
+  outline: none;
+}
+
+.o-map-fullscreen-toggle.is-active {
+  border-color: #f48b25;
+  color: #f48b25;
+}
+
+.o-map-fullscreen-toggle:active {
+  transform: scale(0.95);
+}
+
+@media (max-height: 700px) {
+  .o-map-fullscreen-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .o-map-fullscreen-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+body.map-fullscreen .o-legend-panel {
+  z-index: 2100;
+}
+
+body.map-fullscreen .o-legend-backdrop {
+  z-index: 2090;
+}
+
+html.map-fullscreen,
+body.map-fullscreen {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.map-fullscreen #mapShell {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  width: 100%;
+  height: 100%;
+}
+
+body.map-fullscreen #viewDiv {
+  height: 100% !important;
+}
+
+@media (min-width: 640px) {
+  body.map-fullscreen #viewDiv {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  body.map-fullscreen.menu-open #viewDiv {
+    margin-left: var(--legend-panel-width);
+    width: calc(100% - var(--legend-panel-width));
+  }
+}
+
+body.map-fullscreen:fullscreen #mapShell {
+  position: relative;
+  inset: auto;
+}
+
 /* Legend panel backdrop (only on mobile) */
 .o-legend-backdrop {
   display: none;
