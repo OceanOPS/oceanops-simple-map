@@ -1,84 +1,292 @@
 // legend.ts
-import type SceneView from "@arcgis/core/views/SceneView";
-import type Layer from "@arcgis/core/layers/Layer";
-import { categories } from "./categories";
+import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
+import { is3dProjection, type ProjectionId } from "./projections";
+import type { ViewHolder } from "./viewHolder";
+import { categories, type Category } from "./categories";
+import { makeCategorySwatch, makeShipLineStyleLegend } from "./categorySwatch";
+import {
+  EU_COUNTRIES,
+  G7_COUNTRIES,
+  applyCountryFilter,
+  getCountryCountWhere,
+  getCountryLabel,
+  getLineLayerCountWhere,
+  isAllCountriesSelected,
+  type CountryName,
+  COUNTRY_FILTER_LINE_LAYER_IDS,
+} from "./countryFilters";
+import {
+  getCountryProgramTotalFromMap,
+  getFilterableCountryNames,
+  getNetworkTotalFromPartner,
+  getPartnerDataSnapshot,
+  loadPartnerCountriesData,
+} from "./countryMetrics";
+import { LAYER_TO_PARTNER_NETWORK } from "./partnerNetworkMap";
+import {
+  closeCountryMetricsModal,
+  openCountryMetricsModal,
+} from "./countryMetricsModal";
+import {
+  closeGoshipMetricsModal,
+  openGoshipMetricsModal,
+} from "./goshipMetricsModal";
+import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
 
-/** Inline SVG / IMG swatch that matches each category's symbology */
-function makeSwatch(cat: (typeof categories)[number]) {
-  const svgNS = "http://www.w3.org/2000/svg";
+const MENU_TOGGLE_HINT = {
+  closed: "Show filters & countries",
+  open: "Hide filters",
+} as const;
 
-  // Create container
-  const container = document.createElement("div");
-  container.className = "o-legend-swatch";
-  container.style.cssText = `
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+const menuToggleIconClosed = `
+  <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="1" y="1" width="18" height="14" rx="2" stroke="#f8f8f8" stroke-width="1.75"/>
+    <path d="M7 1V15" stroke="#f8f8f8" stroke-width="1.75"/>
+    <path d="M10 5H16" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 8H16" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M10 11H14" stroke="#f8f8f8" stroke-width="1.75" stroke-linecap="round"/>
+  </svg>
+`;
+
+const menuToggleIconOpen = `
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M10 3L5 8L10 13" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
+function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
+  button.classList.toggle("is-open", isOpen);
+  button.setAttribute("aria-expanded", String(isOpen));
+  button.setAttribute(
+    "aria-label",
+    isOpen ? MENU_TOGGLE_HINT.open : MENU_TOGGLE_HINT.closed,
+  );
+  button.removeAttribute("title");
+
+  const icon = button.querySelector(".o-legend-toggle__icon");
+  if (icon) {
+    icon.innerHTML = isOpen ? menuToggleIconOpen : menuToggleIconClosed;
+  }
+
+  const hint = button.querySelector(".o-legend-toggle__hint");
+  if (hint) {
+    hint.textContent = isOpen ? MENU_TOGGLE_HINT.open : MENU_TOGGLE_HINT.closed;
+  }
+}
+
+const DEFAULT_MAP_FOOTER =
+  "Latest locations of operational platforms as of October 2025. Data source: OceanOPS.";
+
+type ExportMetadata = {
+  exportedAt?: string;
+  OCEAN_GLIDERS_MIN_LOC_DATE?: string;
+  ANIBOS_MIN_LOC_DATE?: string;
+  FVON_MIN_LOC_DATE?: string;
+  SOOP_XBT_SAMPLED_SINCE?: string;
+  GOSHIP_EDITION_SINCE?: string;
+  GOSHIP_SAMPLED_SINCE?: string;
+  OBS_PERIOD_UNTIL?: string;
+};
+
+function yearFromIso(isoDate: string): string {
+  return isoDate.slice(0, 4);
+}
+
+function formatAsOfMonthYear(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  return date.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Build footer from export date (line styles use the visual legend above). */
+function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
+  const asOf = metadata.exportedAt
+    ? formatAsOfMonthYear(metadata.exportedAt)
+    : "October 2025";
+  return `Latest locations of operational platforms as of ${asOf}. Data source: OceanOPS.`;
+}
+
+async function loadExportMetadata(): Promise<ExportMetadata | null> {
+  try {
+    const response = await fetch(`${BASE}geojson/export-metadata.json`, {
+      cache: "no-cache",
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as ExportMetadata;
+  } catch {
+    return null;
+  }
+}
+
+const GROUP_PICTOS: Record<string, string> = {
+  fixed: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="10" y="3" width="4" height="13" fill="#f8f8f8"/>
+      <path d="M5 18h14" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round"/>
+      <path d="M3 20h18" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  mobile: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="9" r="5" fill="#f8f8f8"/>
+      <path d="M2 19c2.5-2 5-3 10-3s7.5 1 10 3" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  country: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="#f8f8f8" stroke-width="1.5"/>
+      <path d="M3 12h18M12 3c2.5 2.8 3.8 6 4 9s-1.5 6.2-4 9M12 3c-2.5 2.8-3.8 6-4 9s1.5 6.2 4 9" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  `,
+  networks: `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 6h6v5H4V6zm10 0h6v5h-6V6zM4 13h6v5H4v-5zm10 0h6v5h-6v-5z" stroke="#f8f8f8" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+  `,
+};
+
+/** Same ship silhouette as VOS/ASAP/FVON map markers (white on legend). */
+function getGroupPicto(key: string): string {
+  if (key === "ship") {
+    return `<img src="${BASE}img/ship_yellow.png" alt="" class="o-legend-group-ship-icon" decoding="async" />`;
+  }
+  return GROUP_PICTOS[key] ?? "";
+}
+
+const CHEVRON_ICON = `
+  <svg class="o-legend-group-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
+function createCollapsibleGroup(
+  parent: HTMLElement,
+  options: {
+    key: string;
+    title: string;
+    nested?: boolean;
+    startOpen?: boolean;
+    onToggle?: (isOpen: boolean) => void;
+  }
+) {
+  const groupSection = document.createElement("div");
+  groupSection.className = options.nested
+    ? "o-legend-group o-legend-group-nested"
+    : "o-legend-group";
+
+  const groupHeader = document.createElement("button");
+  groupHeader.type = "button";
+  groupHeader.className = "o-legend-group-header";
+  groupHeader.setAttribute("aria-expanded", "false");
+  const groupPicto = getGroupPicto(options.key);
+  groupHeader.innerHTML = `
+    ${groupPicto ? `<span class="o-legend-group-icon">${groupPicto}</span>` : ""}
+    <span class="o-legend-group-label">${options.title}</span>
+    ${CHEVRON_ICON}
   `;
 
-  if (cat.type === "point") {
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
+  const groupBody = document.createElement("div");
+  groupBody.className = "o-legend-group-body";
 
-    if (cat.shape === "square") {
-      const r = document.createElementNS(svgNS, "rect");
-      r.setAttribute("x", "2"); r.setAttribute("y", "2");
-      r.setAttribute("width", "10"); r.setAttribute("height", "10");
-      r.setAttribute("fill", cat.color);
-      r.setAttribute("stroke", "#fff"); r.setAttribute("stroke-width", "1");
-      svg.appendChild(r);
-      container.appendChild(svg);
-      return container;
-    }
+  groupHeader.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const isOpen = groupSection.classList.toggle("open");
+    groupHeader.setAttribute("aria-expanded", String(isOpen));
+    options.onToggle?.(isOpen);
+  });
 
-    if (cat.shape === "triangle") {
-      const p = document.createElementNS(svgNS, "polygon");
-      p.setAttribute("points", "7,2 12,12 2,12");
-      p.setAttribute("fill", cat.color);
-      p.setAttribute("stroke", "#fff"); p.setAttribute("stroke-width", "1");
-      svg.appendChild(p);
-      container.appendChild(svg);
-      return container;
-    }
+  groupSection.append(groupHeader, groupBody);
+  parent.appendChild(groupSection);
 
-    // default: circle
-    const c = document.createElementNS(svgNS, "circle");
-    c.setAttribute("cx", "7"); c.setAttribute("cy", "7"); c.setAttribute("r", "5");
-    c.setAttribute("fill", cat.color);
-    c.setAttribute("stroke", "#fff"); c.setAttribute("stroke-width", "1");
-    svg.appendChild(c);
-    container.appendChild(svg);
-    return container;
+  if (options.startOpen) {
+    groupSection.classList.add("open");
+    groupHeader.setAttribute("aria-expanded", "true");
   }
 
-  if (cat.type === "image") {
-    const img = document.createElement("img");
-    img.src = `${BASE}${cat.imagePath}`;
-    img.width = 18; img.height = 18;
-    img.style.objectFit = "contain";
-    container.appendChild(img);
-    return container;
-  }
+  return { groupSection, groupBody };
+}
 
-  // line
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "20");
-  svg.setAttribute("height", "12");
-  const line = document.createElementNS(svgNS, "line");
-  line.setAttribute("x1", "2"); line.setAttribute("y1", "6");
-  line.setAttribute("x2", "18"); line.setAttribute("y2", "6");
-  line.setAttribute("stroke", cat.color);
-  line.setAttribute("stroke-width", "3");
-  line.setAttribute("stroke-linecap", "round");
-  svg.appendChild(line);
-  container.appendChild(svg);
-  return container;
+function createCheckboxRow(
+  labelText: string,
+  className = "o-legend-filter-row"
+) {
+  const row = document.createElement("label");
+  row.className = className;
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "8px";
+  row.style.margin = "12px 0";
+  row.style.cursor = "pointer";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+
+  const text = document.createElement("span");
+  text.textContent = labelText;
+  text.style.flex = "1";
+
+  row.append(checkbox, text);
+  return { row, checkbox, text };
+}
+
+const METRICS_BTN_ICON = `
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <path d="M2 13V8M6 13V4M10 13V6M14 13V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+`;
+
+function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
+  const row = document.createElement("div");
+  row.className = "o-legend-country-row";
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "8px";
+  row.style.margin = "12px 0";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+
+  const flag = document.createElement("span");
+  flag.className = "o-legend-country-flag";
+  appendCountryFlag(flag, getCountryIsoCode(geoCountry), labelText);
+
+  const name = document.createElement("span");
+  name.className = "o-legend-country-name";
+  name.textContent = labelText;
+  name.setAttribute("role", "button");
+  name.tabIndex = 0;
+
+  const metricsBtn = document.createElement("button");
+  metricsBtn.type = "button";
+  metricsBtn.className = "o-legend-country-metrics-btn";
+  metricsBtn.setAttribute("aria-label", `View metrics for ${labelText}`);
+  metricsBtn.title = "View network breakdown";
+
+  const total = document.createElement("span");
+  total.className = "o-legend-count o-legend-country-total";
+  total.textContent = "(…)";
+  total.setAttribute("aria-hidden", "true");
+
+  const metricsIcon = document.createElement("span");
+  metricsIcon.className = "o-legend-country-metrics-icon";
+  metricsIcon.innerHTML = METRICS_BTN_ICON;
+  metricsIcon.setAttribute("aria-hidden", "true");
+
+  metricsBtn.append(total, metricsIcon);
+  row.append(checkbox, flag, name, metricsBtn);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "o-legend-country-block";
+  wrapper.append(row);
+
+  return { wrapper, row, checkbox, total, name, metricsBtn };
 }
 
 /**
@@ -86,31 +294,34 @@ function makeSwatch(cat: (typeof categories)[number]) {
  * Pass the `layerById` map you already maintain in main.ts.
  */
 export function attachLegend(
-  view: SceneView,
-  layerById: Map<string, Layer>,
+  viewHolder: ViewHolder,
+  layerById: Map<string, GeoJSONLayer>,
   toggleRotation: () => boolean,
   isRotating: () => boolean,
   setRotationStateChangeCallback: (callback: () => void) => void,
-  stopRotation: () => void
+  stopRotation: () => void,
+  getProjection: () => ProjectionId,
+  onShellLayoutChange?: () => void
 ) {
+  const view = viewHolder.view;
   // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
   document.getElementById("legend-backdrop")?.remove();
   document.getElementById("legend-toggle")?.remove();
+  closeCountryMetricsModal();
+  closeGoshipMetricsModal();
   document.body.classList.remove("menu-open");
 
-  // Create toggle button
+  // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
   const toggleButton = document.createElement("button");
   toggleButton.id = "legend-toggle";
+  toggleButton.type = "button";
   toggleButton.className = "o-legend-toggle";
-  toggleButton.title = "Toggle filters";
-  toggleButton.setAttribute("aria-label", "Filtros");
-  toggleButton.setAttribute("aria-expanded", "false");
   toggleButton.innerHTML = `
-    <svg width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10.1842 11.9459C11.3767 11.9459 12.3816 12.7232 12.6909 13.7838H18V15.1622H12.6909C12.3816 16.2228 11.3767 17 10.1842 17C8.99173 17 7.9868 16.2228 7.67748 15.1622H0V13.7838H7.67748C7.9868 12.7232 8.99173 11.9459 10.1842 11.9459ZM10.1842 13.3243C9.7972 13.3243 9.45478 13.5053 9.23869 13.7838C9.08961 13.9759 9 14.214 9 14.473C9 14.732 9.08961 14.97 9.23869 15.1622C9.45478 15.4406 9.7972 15.6216 10.1842 15.6216C10.5712 15.6216 10.9136 15.4406 11.1297 15.1622C11.2788 14.97 11.3684 14.732 11.3684 14.473C11.3684 14.214 11.2788 13.9759 11.1297 13.7838C10.9136 13.5053 10.5712 13.3243 10.1842 13.3243ZM4.02632 5.97297C5.2188 5.97297 6.22373 6.75021 6.53305 7.81081H18V9.18919H6.53305C6.22373 10.2498 5.2188 11.027 4.02632 11.027C2.83383 11.027 1.8289 10.2498 1.51958 9.18919H0V7.81081H1.51958C1.8289 6.75021 2.83383 5.97297 4.02632 5.97297ZM4.02632 7.35135C3.37229 7.35135 2.84211 7.86562 2.84211 8.5C2.84211 9.13438 3.37229 9.64865 4.02632 9.64865C4.68034 9.64865 5.21053 9.13438 5.21053 8.5C5.21053 7.86562 4.68034 7.35135 4.02632 7.35135ZM13.9737 0C15.1662 0 16.1711 0.777233 16.4804 1.83784H18V3.21622H16.4804C16.1711 4.27682 15.1662 5.05405 13.9737 5.05405C12.7812 5.05405 11.7763 4.27682 11.467 3.21622H0V1.83784H11.467C11.7763 0.777233 12.7812 0 13.9737 0ZM13.9737 1.37838C13.5867 1.37838 13.2443 1.55936 13.0282 1.83784C12.8791 2.02997 12.7895 2.26804 12.7895 2.52703C12.7895 2.78602 12.8791 3.02409 13.0282 3.21622C13.2443 3.4947 13.5867 3.67568 13.9737 3.67568C14.3607 3.67568 14.7031 3.4947 14.9192 3.21622C15.0683 3.02409 15.1579 2.78602 15.1579 2.52703C15.1579 2.26804 15.0683 2.02997 14.9192 1.83784C14.7031 1.55936 14.3607 1.37838 13.9737 1.37838Z" fill="#184596"/>
-    </svg>
+    <span class="o-legend-toggle__icon">${menuToggleIconClosed}</span>
+    <span class="o-legend-toggle__hint">${MENU_TOGGLE_HINT.closed}</span>
   `;
+  setMenuToggleState(toggleButton, false);
   view.ui.add(toggleButton, { position: "top-left", index: 0 });
 
   // Move zoom and compass after the menu button
@@ -155,6 +366,13 @@ export function attachLegend(
 
   view.ui.add(playPauseButton, { position: "top-left", index: 3 });
 
+  const syncRotationControlVisibility = () => {
+    const show = is3dProjection(getProjection());
+    playPauseButton.style.display = show ? "" : "none";
+    if (!show) stopRotation();
+  };
+  syncRotationControlVisibility();
+
   // Stop rotation when compass is clicked
   const compass = document.querySelector(".esri-compass") as HTMLElement;
   if (compass) {
@@ -184,13 +402,14 @@ export function attachLegend(
       legend.classList.remove("open");
       backdrop.classList.remove("open");
       document.body.classList.remove("menu-open");
-      toggleButton.setAttribute("aria-expanded", "false");
+      setMenuToggleState(toggleButton, false);
     } else {
       legend.classList.add("open");
       backdrop.classList.add("open");
       document.body.classList.add("menu-open");
-      toggleButton.setAttribute("aria-expanded", "true");
+      setMenuToggleState(toggleButton, true);
     }
+    onShellLayoutChange?.();
   };
 
   toggleButton.addEventListener("click", togglePanel);
@@ -198,7 +417,8 @@ export function attachLegend(
   // Close menu when clicking on backdrop (mobile)
   backdrop.addEventListener("click", togglePanel);
 
-  const countNodes = new Map<string, HTMLSpanElement>();
+  const countNodes = new Map<string, HTMLElement>();
+  let exportMetadata: ExportMetadata | null = null;
   const layerCheckboxes: HTMLInputElement[] = [];
   const content = document.createElement("div");
   content.className = "o-legend-content";
@@ -256,7 +476,7 @@ export function attachLegend(
   selectAllCheckbox.id = "select-all-checkbox";
 
   const selectAllText = document.createElement("span");
-  selectAllText.textContent = "Show/Hide All";
+  selectAllText.textContent = "Show/Hide All Networks";
   selectAllText.style.flex = "1";
 
   selectAllRow.append(selectAllCheckbox, selectAllText);
@@ -276,99 +496,496 @@ export function attachLegend(
     updateSelectAllState();
   });
 
-  // Add select all row to content (will be added before first group)
-  content.appendChild(selectAllRow);
+  const filterableCountries = getFilterableCountryNames(getPartnerDataSnapshot());
+  const filterableCountrySet = new Set<string>(filterableCountries);
+  const selectedCountries = new Set<string>(filterableCountries);
+  const countryCheckboxRefs = new Map<string, HTMLInputElement[]>();
+  const countryTotalNodes = new Map<string, HTMLSpanElement[]>();
+  const countryRowWrappers = new Map<string, HTMLElement>();
 
-  // Define groups: Ship (first 5), Fixed (next 5), Mobile (rest)
-  const groups = [
-    { title: "Ship", startIndex: 0, endIndex: 5 },
-    { title: "Fixed", startIndex: 5, endIndex: 10 },
-    { title: "Mobile", startIndex: 10, endIndex: categories.length }
-  ];
+  const sortedFilterableCountries = [...filterableCountries].sort((a, b) =>
+    getCountryLabel(a).localeCompare(getCountryLabel(b))
+  );
+  const g7Filterable = G7_COUNTRIES.filter((country) =>
+    filterableCountrySet.has(country)
+  );
+  const euFilterable = EU_COUNTRIES.filter((country) =>
+    filterableCountrySet.has(country)
+  );
 
-  groups.forEach((group) => {
-    // Add group title
-    const groupTitle = document.createElement("div");
-    groupTitle.className = "o-legend-group-title";
-    groupTitle.textContent = group.title;
-    content.appendChild(groupTitle);
+  type CountryListFilter = "all" | "g7" | "eu";
+  let countryListFilter: CountryListFilter = "all";
 
-    // Add categories in this group
-    for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
-      const cat = categories[i];
-      const row = document.createElement("label");
-      row.style.display = "flex";
-      row.style.alignItems = "center";
-      row.style.gap = "8px";
-      row.style.margin = "12px 0";
-      row.style.cursor = "pointer";
+  const getVisibleListCountries = (): CountryName[] => {
+    if (countryListFilter === "g7") return g7Filterable;
+    if (countryListFilter === "eu") return euFilterable;
+    return sortedFilterableCountries;
+  };
 
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = true;
-
-      const swatch = makeSwatch(cat);
-
-      const text = document.createElement("span");
-      text.textContent = cat.label;
-      text.style.flex = "1";
-
-      const count = document.createElement("span");
-      count.textContent = " (…)";
-      count.style.opacity = "0.7";
-      count.style.fontSize = "12px";
-      countNodes.set(cat.id, count);
-
-      cb.addEventListener("change", () => {
-        const layer = layerById.get(cat.id);
-        if (layer) (layer as any).visible = cb.checked;
-        updateSelectAllState();
-      });
-
-      layerCheckboxes.push(cb);
-      row.append(cb, swatch, text, count);
-      content.appendChild(row);
+  const syncCountryListVisibility = () => {
+    const visible = new Set(getVisibleListCountries());
+    for (const country of filterableCountries) {
+      const wrapper = countryRowWrappers.get(country);
+      if (wrapper) wrapper.hidden = !visible.has(country);
     }
-  });
+  };
 
-  // Create footer and add it to content (not legend)
-  const footer = document.createElement("div");
-  footer.className = "o-legend-footer";
-  footer.innerHTML = `
-    <p>Latest locations of operational platforms as of October 2025. XBT reference lines sampled since 2024, and sampled GO-SHIP lines since 2015. Data source: OceanOPS.</p>
-    <p class="o-legend-disclaimer">Disclaimer: The depiction and use of boundaries, geographic names and related data shown on the OceanOPS map and included in country lists and tables are not warranted to be error free nor do they imply official endorsement or acceptance by the Intergovernmental Oceanographic Commission of UNESCO and the World Meteorological Organization. Statistics in this report are gradually made more accurate by OceanOPS based on data and metadata availability. Please contact <a href="mailto:support@ocean-ops.org" target="_blank" rel="noopener noreferrer">support@ocean-ops.org</a> for any discrepancies.</p>
-  `;
-  content.appendChild(footer);
+  const registerCountryTotalNode = (country: CountryName, node: HTMLSpanElement) => {
+    const refs = countryTotalNodes.get(country) ?? [];
+    refs.push(node);
+    countryTotalNodes.set(country, refs);
+  };
 
-  legend.appendChild(content);
-
-  // After UI is built, query counts from each layer when ready
-  for (const [id, layer] of layerById) {
-
-    // Hardcode goship count directly
-    if (id === "goship") {
-      const node = countNodes.get(id);
-      if (node) node.textContent = " (46)";
-      continue; // skip querying this layer
+  const setCountryTotalDisplay = (country: CountryName, text: string) => {
+    for (const node of countryTotalNodes.get(country) ?? []) {
+      node.textContent = text;
     }
+  };
 
-    // guard: only layers with queryFeatureCount
-    const canCount = typeof (layer as any).queryFeatureCount === "function";
-    const when = (layer as any).when?.() ?? Promise.resolve();
-    when.then(async () => {
+  const getVisibleLayerIds = (): Set<string> => {
+    const visible = new Set<string>();
+    categories.forEach((cat, i) => {
+      if (layerCheckboxes[i]?.checked) visible.add(cat.id);
+    });
+    return visible;
+  };
+
+  const updateCountryRowCounts = async () => {
+    const visible = getVisibleLayerIds();
+    const layers = layerById as Map<string, GeoJSONLayer>;
+    for (const country of filterableCountries) {
+      if (!countryTotalNodes.has(country)) continue;
+      const programTotal = await getCountryProgramTotalFromMap(country, layers, visible);
+      setCountryTotalDisplay(country, `(${programTotal.toLocaleString()})`);
+    }
+  };
+
+  const lineLayerIds = new Set<string>(COUNTRY_FILTER_LINE_LAYER_IDS);
+
+  const updateLayerCounts = async () => {
+    const where = getCountryCountWhere(selectedCountries, filterableCountries);
+    const allCountriesSelected = isAllCountriesSelected(
+      selectedCountries,
+      filterableCountries
+    );
+
+    for (const [id, layer] of layerById) {
+      if (lineLayerIds.has(id)) {
+        const node = countNodes.get(id);
+        if (!node) continue;
+        try {
+          if (id === "goship" && allCountriesSelected) {
+            const networkKey = LAYER_TO_PARTNER_NETWORK[id];
+            const total = networkKey
+              ? getNetworkTotalFromPartner(networkKey, getPartnerDataSnapshot())
+              : 0;
+            node.textContent = ` (${total.toLocaleString()})`;
+            node.title = `${total.toLocaleString()} edition cruises (lead program country)`;
+            continue;
+          }
+
+          if (id === "oceantrax" && allCountriesSelected) {
+            const canCount =
+              typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+            if (!canCount) {
+              node.textContent = "";
+              continue;
+            }
+            const active = await (layer as GeoJSONLayer).queryFeatureCount({
+              where: "line_status = 'active' OR line_style = 'solid'",
+            });
+            node.textContent = ` (${active.toLocaleString()})`;
+            node.title = `${active.toLocaleString()} active design lines`;
+            continue;
+          }
+
+          const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
+          if (!canCount) {
+            node.textContent = "";
+            continue;
+          }
+          const lineWhere = getLineLayerCountWhere(
+            selectedCountries,
+            filterableCountries,
+            id as "goship" | "oceantrax"
+          );
+          const n = await (layer as GeoJSONLayer).queryFeatureCount({ where: lineWhere });
+          node.textContent = ` (${n.toLocaleString()})`;
+          node.title =
+            id === "goship"
+              ? `${n.toLocaleString()} lines with edition cruises (selected countries)`
+              : `${n.toLocaleString()} active design lines (not filtered by country)`;
+        } catch {
+          node.textContent = "";
+          node.removeAttribute("title");
+        }
+        continue;
+      }
+
+      const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
       if (!canCount) {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
-        return;
+        continue;
       }
+
       try {
-        const n = await (layer as any).queryFeatureCount({ where: "1=1" });
+        const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
         const node = countNodes.get(id);
         if (node) node.textContent = ` (${n.toLocaleString()})`;
       } catch {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
       }
+    }
+  };
+
+  const syncCountryCheckboxUI = (country: string) => {
+    const checked = selectedCountries.has(country);
+    for (const checkbox of countryCheckboxRefs.get(country) ?? []) {
+      checkbox.checked = checked;
+    }
+  };
+
+  const updateCountrySelectAllState = (selectAllCheckbox: HTMLInputElement) => {
+    const visibleCountries = getVisibleListCountries();
+    const checkedVisible = visibleCountries.filter((country) =>
+      selectedCountries.has(country)
+    ).length;
+
+    if (checkedVisible === 0) {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+    } else if (checkedVisible === visibleCountries.length) {
+      selectAllCheckbox.checked = true;
+      selectAllCheckbox.indeterminate = false;
+    } else {
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = true;
+    }
+  };
+
+  const applyCountrySelection = (selectAllCheckbox: HTMLInputElement) => {
+    applyCountryFilter(
+      layerById as Map<string, GeoJSONLayer>,
+      selectedCountries,
+      filterableCountries
+    );
+    updateCountrySelectAllState(selectAllCheckbox);
+    updateLayerCounts();
+    void updateCountryRowCounts();
+  };
+
+  const registerCountryCheckbox = (
+    country: CountryName,
+    checkbox: HTMLInputElement,
+    selectAllCheckbox: HTMLInputElement
+  ) => {
+    const refs = countryCheckboxRefs.get(country) ?? [];
+    refs.push(checkbox);
+    countryCheckboxRefs.set(country, refs);
+
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selectedCountries.add(country);
+      else selectedCountries.delete(country);
+      syncCountryCheckboxUI(country);
+      applyCountrySelection(selectAllCheckbox);
     });
+  };
+
+  const addCountryRows = (
+    countries: CountryName[],
+    container: HTMLElement,
+    selectAllCheckbox: HTMLInputElement
+  ) => {
+    for (const country of countries) {
+      const { wrapper, checkbox, total, name, metricsBtn } =
+        createCountryFilterRow(getCountryLabel(country), country);
+
+      wrapper.setAttribute("data-country", country);
+      countryRowWrappers.set(country, wrapper);
+      registerCountryTotalNode(country, total);
+      registerCountryCheckbox(country, checkbox, selectAllCheckbox);
+
+      const toggleCountryFromName = () => {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event("change"));
+      };
+
+      name.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleCountryFromName();
+      });
+
+      name.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleCountryFromName();
+        }
+      });
+
+      const openDetails = (event: Event) => {
+        event.stopPropagation();
+        void openCountryMetricsModal(
+          country,
+          getVisibleLayerIds,
+          layerById as Map<string, GeoJSONLayer>
+        );
+      };
+
+      metricsBtn.addEventListener("click", openDetails);
+
+      container.appendChild(wrapper);
+    }
+  };
+
+  // Ship / Fixed / Mobile nested under Networks
+  const groups = [
+    { key: "ship", title: "Ship", startIndex: 0, endIndex: 6 },
+    { key: "fixed", title: "Fixed", startIndex: 6, endIndex: 11 },
+    { key: "mobile", title: "Mobile", startIndex: 11, endIndex: categories.length },
+  ];
+
+  selectAllRow.classList.add("o-legend-networks-select-all");
+
+  const { groupBody: networksBody } = createCollapsibleGroup(content, {
+    key: "networks",
+    title: "Networks",
+    startOpen: true,
+  });
+  networksBody.prepend(selectAllRow);
+
+  let shipLineStyleLegend: HTMLElement | null = null;
+
+  groups.forEach((group) => {
+    const { groupBody } = createCollapsibleGroup(networksBody, {
+      key: group.key,
+      title: group.title,
+      nested: true,
+      startOpen: true,
+    });
+
+    // Add categories in this group
+    for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
+      const cat = categories[i];
+      const { row, checkbox: cb } = createCheckboxRow(cat.label);
+
+      const swatch = makeCategorySwatch(cat as Category);
+      row.insertBefore(swatch, row.children[1]);
+
+      const openGoshipBreakdown = () => {
+        const since =
+          exportMetadata?.GOSHIP_EDITION_SINCE ??
+          exportMetadata?.GOSHIP_SAMPLED_SINCE ??
+          "2025-01-01";
+        const until =
+          exportMetadata?.OBS_PERIOD_UNTIL ??
+          exportMetadata?.exportedAt ??
+          new Date().toISOString().slice(0, 10);
+        void openGoshipMetricsModal(since, until);
+      };
+
+      const count =
+        cat.id === "goship"
+          ? (() => {
+              const countBtn = document.createElement("span");
+              countBtn.className = "o-legend-count o-legend-count-btn";
+              countBtn.setAttribute("role", "button");
+              countBtn.tabIndex = 0;
+              countBtn.setAttribute("aria-label", "View GO-SHIP edition breakdown");
+              countBtn.title = "View GO-SHIP edition breakdown";
+              countBtn.textContent = " (…)";
+              const openFromCount = (event: Event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openGoshipBreakdown();
+              };
+              countBtn.addEventListener("click", openFromCount);
+              countBtn.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  openFromCount(event);
+                }
+              });
+              return countBtn;
+            })()
+          : (() => {
+              const countSpan = document.createElement("span");
+              countSpan.className = "o-legend-count";
+              countSpan.textContent = " (…)";
+              return countSpan;
+            })();
+      countNodes.set(cat.id, count);
+      row.appendChild(count);
+
+      cb.addEventListener("change", () => {
+        const layer = layerById.get(cat.id);
+        if (layer) (layer as GeoJSONLayer).visible = cb.checked;
+        updateSelectAllState();
+        updateLayerCounts();
+        void updateCountryRowCounts();
+      });
+
+      layerCheckboxes.push(cb);
+      groupBody.appendChild(row);
+    }
+
+    if (group.key === "ship") {
+      shipLineStyleLegend = makeShipLineStyleLegend();
+      groupBody.appendChild(shipLineStyleLegend);
+    }
+  });
+
+  const { groupBody: countryBody } = createCollapsibleGroup(content, {
+    key: "country",
+    title: "Contributing countries",
+    startOpen: true,
+  });
+
+  const countrySelectAllRow = document.createElement("label");
+  countrySelectAllRow.className = "o-legend-select-all o-legend-country-select-all";
+  countrySelectAllRow.style.display = "flex";
+  countrySelectAllRow.style.alignItems = "center";
+  countrySelectAllRow.style.gap = "8px";
+  countrySelectAllRow.style.cursor = "pointer";
+  countrySelectAllRow.style.fontWeight = "600";
+
+  const countrySelectAllCheckbox = document.createElement("input");
+  countrySelectAllCheckbox.type = "checkbox";
+  countrySelectAllCheckbox.checked = true;
+
+  const countrySelectAllText = document.createElement("span");
+  countrySelectAllText.textContent = "Select all countries";
+  countrySelectAllText.style.flex = "1";
+
+  countrySelectAllRow.append(countrySelectAllCheckbox, countrySelectAllText);
+  countrySelectAllCheckbox.addEventListener("change", () => {
+    const shouldCheck =
+      countrySelectAllCheckbox.checked || countrySelectAllCheckbox.indeterminate;
+    const visibleCountries = new Set(getVisibleListCountries());
+
+    for (const country of filterableCountries) {
+      if (!visibleCountries.has(country)) continue;
+      if (shouldCheck) selectedCountries.add(country);
+      else selectedCountries.delete(country);
+      syncCountryCheckboxUI(country);
+    }
+
+    applyCountrySelection(countrySelectAllCheckbox);
+  });
+  countryBody.appendChild(countrySelectAllRow);
+
+  const countryGroupBtnRow = document.createElement("div");
+  countryGroupBtnRow.className = "o-legend-country-group-btns";
+  countryGroupBtnRow.setAttribute("role", "group");
+  countryGroupBtnRow.setAttribute("aria-label", "Country group filters");
+
+  const allFilterBtn = document.createElement("button");
+  allFilterBtn.type = "button";
+  allFilterBtn.className = "o-legend-country-group-btn active";
+  allFilterBtn.textContent = "All";
+  allFilterBtn.setAttribute("aria-pressed", "true");
+
+  const g7FilterBtn = document.createElement("button");
+  g7FilterBtn.type = "button";
+  g7FilterBtn.className = "o-legend-country-group-btn";
+  g7FilterBtn.textContent = "G7";
+  g7FilterBtn.setAttribute("aria-pressed", "false");
+
+  const euFilterBtn = document.createElement("button");
+  euFilterBtn.type = "button";
+  euFilterBtn.className = "o-legend-country-group-btn";
+  euFilterBtn.textContent = "EU";
+  euFilterBtn.setAttribute("aria-pressed", "false");
+
+  const updateCountryGroupFilterButtons = () => {
+    allFilterBtn.classList.toggle("active", countryListFilter === "all");
+    allFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "all"));
+    g7FilterBtn.classList.toggle("active", countryListFilter === "g7");
+    g7FilterBtn.setAttribute("aria-pressed", String(countryListFilter === "g7"));
+    euFilterBtn.classList.toggle("active", countryListFilter === "eu");
+    euFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "eu"));
+  };
+
+  const applyCountryListFilter = (filter: CountryListFilter) => {
+    countryListFilter = filter;
+    syncCountryListVisibility();
+    updateCountryGroupFilterButtons();
+
+    selectedCountries.clear();
+    if (filter === "all") {
+      for (const country of filterableCountries) selectedCountries.add(country);
+    } else {
+      for (const country of getVisibleListCountries()) selectedCountries.add(country);
+    }
+
+    for (const country of filterableCountries) syncCountryCheckboxUI(country);
+    applyCountrySelection(countrySelectAllCheckbox);
+  };
+
+  allFilterBtn.addEventListener("click", () => applyCountryListFilter("all"));
+  g7FilterBtn.addEventListener("click", () => applyCountryListFilter("g7"));
+  euFilterBtn.addEventListener("click", () => applyCountryListFilter("eu"));
+
+  countryGroupBtnRow.appendChild(allFilterBtn);
+  if (g7Filterable.length > 0) countryGroupBtnRow.appendChild(g7FilterBtn);
+  if (euFilterable.length > 0) countryGroupBtnRow.appendChild(euFilterBtn);
+  countryBody.appendChild(countryGroupBtnRow);
+
+  const countryList = document.createElement("div");
+  countryList.className = "o-legend-country-list";
+  countryBody.appendChild(countryList);
+
+  addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
+
+  const dataNote = document.createElement("p");
+  dataNote.className = "o-legend-data-note";
+  dataNote.textContent = DEFAULT_MAP_FOOTER;
+  countryBody.appendChild(dataNote);
+
+  // Create footer and add it to content (not legend)
+  const footer = document.createElement("div");
+  footer.className = "o-legend-footer";
+  const disclaimer = document.createElement("p");
+  disclaimer.className = "o-legend-disclaimer";
+  disclaimer.innerHTML =
+    'Disclaimer: The depiction and use of boundaries, geographic names and related data shown on the OceanOPS map and included in country lists and tables are not warranted to be error free nor do they imply official endorsement or acceptance by the Intergovernmental Oceanographic Commission of UNESCO and the World Meteorological Organization. Statistics in this report are gradually made more accurate by OceanOPS based on data and metadata availability. Please contact <a href="mailto:support@ocean-ops.org" target="_blank" rel="noopener noreferrer">support@ocean-ops.org</a> for any discrepancies.';
+  footer.append(disclaimer);
+  content.appendChild(footer);
+
+  void loadExportMetadata().then((metadata) => {
+    if (!metadata) return;
+    exportMetadata = metadata;
+    const footerText = buildMapFooterFromMetadata(metadata);
+    if (footerText) {
+      dataNote.textContent = footerText;
+    }
+    const goshipSince = metadata.GOSHIP_EDITION_SINCE ?? metadata.GOSHIP_SAMPLED_SINCE;
+    if (goshipSince && shipLineStyleLegend) {
+      const updated = makeShipLineStyleLegend(yearFromIso(goshipSince));
+      shipLineStyleLegend.replaceWith(updated);
+      shipLineStyleLegend = updated;
+    }
+  });
+
+  legend.appendChild(content);
+
+  void loadPartnerCountriesData()
+    .then(() => {
+      void updateCountryRowCounts();
+      void updateLayerCounts();
+    })
+    .catch((err) => {
+      console.error(err);
+      for (const country of filterableCountries) {
+        setCountryTotalDisplay(country, "");
+      }
+    });
+
+  for (const layer of layerById.values()) {
+    const when = layer.when?.() ?? Promise.resolve();
+    when.then(() => updateLayerCounts());
   }
+
+  syncRotationControlVisibility();
 }
