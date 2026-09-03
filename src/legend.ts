@@ -742,9 +742,9 @@ export function attachLegend(
 
   // Ship / Fixed / Mobile nested under Networks
   const groups = [
-    { key: "ship", title: "Ship", startIndex: 0, endIndex: 5 },
-    { key: "fixed", title: "Fixed", startIndex: 5, endIndex: 10 },
-    { key: "mobile", title: "Mobile", startIndex: 10, endIndex: categories.length },
+    { key: "ship", title: "Ship", startIndex: 0, endIndex: 6 },
+    { key: "fixed", title: "Fixed", startIndex: 6, endIndex: 11 },
+    { key: "mobile", title: "Mobile", startIndex: 11, endIndex: categories.length },
   ];
 
   selectAllRow.classList.add("o-legend-networks-select-all");
