@@ -1,7 +1,7 @@
 import type { CountryName } from "./countryFilters";
 import { ALL_COUNTRIES } from "./countryFilters";
 import partnerSnapshot from "./data/partnerCountries.json";
-import { categories } from "./categories";
+import { categories, getLayerDisplayLabel } from "./categories";
 import {
   PARTNER_NETWORK_ORDER,
   PARTNER_NETWORK_TO_LAYER,
@@ -110,10 +110,6 @@ export type CountryLayerCount = {
   displayCount: string;
 };
 
-const labelByLayerId = new Map<string, string>(
-  categories.map((c) => [c.id, c.label])
-);
-
 export function getCountryBreakdownFromPartner(
   geoCountry: CountryName,
   data: PartnerCountriesFile,
@@ -131,7 +127,7 @@ export function getCountryBreakdownFromPartner(
     const count = record.networks[networkKey] ?? 0;
     if (count === 0) continue;
 
-    const label = labelByLayerId.get(layerId) ?? networkKey;
+    const label = getLayerDisplayLabel(layerId, "modal");
     const displayCount =
       count === -1 ? " (X)" : ` (${count.toLocaleString()})`;
 

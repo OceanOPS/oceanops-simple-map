@@ -1325,6 +1325,15 @@ body.o-country-modal-open {
   width: 36px;
 }
 
+.o-legend-swatch--dual-line-stacked {
+  width: 28px;
+  height: 24px;
+}
+
+.o-legend-swatch--dual-line-stacked svg {
+  display: block;
+}
+
 .o-legend-swatch.o-legend-swatch--soconet-dual {
   width: 40px;
   height: auto;
@@ -1338,7 +1347,7 @@ body.o-country-modal-open {
 .o-legend-swatch.o-legend-swatch--soconet-dual svg {
   display: block;
   flex-shrink: 0;
-  transform: translateY(2px);
+  transform: translateY(1px);
 }
 
 .o-legend-swatch.o-legend-swatch--soconet-dual .o-legend-swatch-img {

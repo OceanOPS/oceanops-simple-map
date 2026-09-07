@@ -1,5 +1,5 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
-import { categories } from "./categories";
+import { getLayerDisplayLabel } from "./categories";
 import {
   COUNTRY_FILTER_LAYER_IDS,
   COUNTRY_FILTER_LINE_LAYER_IDS,
@@ -91,9 +91,7 @@ function sensorCrossCountryWhere(country: CountryName): string {
   return `${provider} AND country_iso_reporting IS NOT NULL AND country_iso_reporting <> '${isoLit}'`;
 }
 
-const labelByLayerId = new Map<string, string>(
-  categories.map((c) => [c.id, c.label])
-);
+const labelByLayerId = (layerId: string) => getLayerDisplayLabel(layerId, "modal");
 
 async function queryCountryTotal(
   where: string,
@@ -136,7 +134,7 @@ async function queryCountryBreakdown(
     }
     if (count === 0) continue;
 
-    const label = labelByLayerId.get(layerId) ?? layerId;
+    const label = labelByLayerId(layerId);
     rows.push({
       layerId,
       label,
@@ -251,7 +249,7 @@ async function aggregatePlatformCountryCounts(
 
     for (const [geoCountry, count] of totals.entries()) {
       if (count === 0) continue;
-      const label = labelByLayerId.get(layerId) ?? layerId;
+      const label = labelByLayerId(layerId);
       rows.push({
         layerId,
         label,
@@ -383,7 +381,7 @@ export async function getCountryLineDetailsFromMap(
 
       if (lineNames.length === 0) continue;
 
-      const label = labelByLayerId.get(layerId) ?? layerId;
+      const label = labelByLayerId(layerId);
       details.push({
         layerId,
         label,
@@ -527,7 +525,7 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
       continue;
     }
 
-    const networkLabel = labelByLayerId.get(layerId) ?? layerId;
+    const networkLabel = labelByLayerId(layerId);
     for (const [geoCountry, count] of totals.entries()) {
       if (count === 0) continue;
       rows.push({

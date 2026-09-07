@@ -1,5 +1,6 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
+import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
 /** GeoJSON `country_name` values present in platform layers. */
@@ -399,7 +400,8 @@ export function applyCountryFilter(
     if (!layer) continue;
 
     if (layerId === "oceantrax") {
-      layer.definitionExpression = selectedCountries.size === 0 ? "1=0" : "";
+      layer.definitionExpression =
+        selectedCountries.size === 0 ? "1=0" : OCEANTRAX_ACTIVE_DEFINITION;
       continue;
     }
 
@@ -430,7 +432,7 @@ export function getLineLayerCountWhere(
   layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
 ): string {
   if (layerId === "oceantrax") {
-    return selectedCountries.size === 0 ? "1=0" : "1=1";
+    return selectedCountries.size === 0 ? "1=0" : OCEANTRAX_ACTIVE_DEFINITION;
   }
   if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
   if (selectedCountries.size === 0) return "1=0";

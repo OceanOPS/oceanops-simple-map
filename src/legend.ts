@@ -2,8 +2,10 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
+import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
+import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
-import { makeCategorySwatch, makeShipLineStyleLegend } from "./categorySwatch";
+import { makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
@@ -90,10 +92,6 @@ type ExportMetadata = {
   OBS_PERIOD_UNTIL?: string;
 };
 
-function yearFromIso(isoDate: string): string {
-  return isoDate.slice(0, 4);
-}
-
 function formatAsOfMonthYear(isoDate: string): string {
   const date = new Date(`${isoDate}T12:00:00Z`);
   return date.toLocaleString("en-US", {
@@ -124,19 +122,6 @@ async function loadExportMetadata(): Promise<ExportMetadata | null> {
 }
 
 const GROUP_PICTOS: Record<string, string> = {
-  fixed: `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="10" y="3" width="4" height="13" fill="#f8f8f8"/>
-      <path d="M5 18h14" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round"/>
-      <path d="M3 20h18" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  `,
-  mobile: `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="9" r="5" fill="#f8f8f8"/>
-      <path d="M2 19c2.5-2 5-3 10-3s7.5 1 10 3" stroke="#f8f8f8" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-  `,
   country: `
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" stroke="#f8f8f8" stroke-width="1.5"/>
@@ -150,11 +135,7 @@ const GROUP_PICTOS: Record<string, string> = {
   `,
 };
 
-/** Same ship silhouette as VOS/ASAP/FVON map markers (white on legend). */
 function getGroupPicto(key: string): string {
-  if (key === "ship") {
-    return `<img src="${BASE}img/ship_yellow.png" alt="" class="o-legend-group-ship-icon" decoding="async" />`;
-  }
   return GROUP_PICTOS[key] ?? "";
 }
 
@@ -600,10 +581,10 @@ export function attachLegend(
               continue;
             }
             const active = await (layer as GeoJSONLayer).queryFeatureCount({
-              where: "line_status = 'active' OR line_style = 'solid'",
+              where: OCEANTRAX_ACTIVE_DEFINITION,
             });
             node.textContent = ` (${active.toLocaleString()})`;
-            node.title = `${active.toLocaleString()} active design lines`;
+            node.title = `${active.toLocaleString()} active Ocean TraX lines`;
             continue;
           }
 
@@ -755,13 +736,7 @@ export function attachLegend(
     }
   };
 
-  // Ship / Fixed / Mobile nested under Networks
-  const groups = [
-    { key: "ship", title: "Ship", startIndex: 0, endIndex: 7 },
-    { key: "fixed", title: "Fixed", startIndex: 7, endIndex: 12 },
-    { key: "mobile", title: "Mobile", startIndex: 12, endIndex: categories.length },
-  ];
-
+  // Network layers (flat list under Networks — no Ship / Fixed / Mobile sub-headers)
   selectAllRow.classList.add("o-legend-networks-select-all");
 
   const { groupBody: networksBody } = createCollapsibleGroup(content, {
@@ -771,89 +746,72 @@ export function attachLegend(
   });
   networksBody.prepend(selectAllRow);
 
-  let shipLineStyleLegend: HTMLElement | null = null;
+  for (const cat of categories) {
+    if (!isLegendRowCategory(cat)) continue;
+    const { row, checkbox: cb } = createCheckboxRow(cat.label);
 
-  groups.forEach((group) => {
-    const { groupBody } = createCollapsibleGroup(networksBody, {
-      key: group.key,
-      title: group.title,
-      nested: true,
-      startOpen: true,
+    const swatch = makeCategorySwatch(cat as Category);
+    row.insertBefore(swatch, row.children[1]);
+
+    const openGoshipBreakdown = () => {
+      const since =
+        exportMetadata?.GOSHIP_EDITION_SINCE ??
+        exportMetadata?.GOSHIP_SAMPLED_SINCE ??
+        "2025-01-01";
+      const until =
+        exportMetadata?.OBS_PERIOD_UNTIL ??
+        exportMetadata?.exportedAt ??
+        new Date().toISOString().slice(0, 10);
+      void openGoshipMetricsModal(since, until);
+    };
+
+    const count =
+      cat.id === "goship"
+        ? (() => {
+            const countBtn = document.createElement("span");
+            countBtn.className = "o-legend-count o-legend-count-btn";
+            countBtn.setAttribute("role", "button");
+            countBtn.tabIndex = 0;
+            countBtn.setAttribute("aria-label", "View GO-SHIP edition breakdown");
+            countBtn.title = "View GO-SHIP edition breakdown";
+            countBtn.textContent = " (…)";
+            const openFromCount = (event: Event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              openGoshipBreakdown();
+            };
+            countBtn.addEventListener("click", openFromCount);
+            countBtn.addEventListener("keydown", (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                openFromCount(event);
+              }
+            });
+            return countBtn;
+          })()
+        : (() => {
+            const countSpan = document.createElement("span");
+            countSpan.className = "o-legend-count";
+            countSpan.textContent = " (…)";
+            return countSpan;
+          })();
+    countNodes.set(cat.id, count);
+    row.appendChild(count);
+
+    cb.addEventListener("change", () => {
+      for (const layerId of legendLayerIdsForCategory(cat as Category)) {
+        const layer = layerById.get(layerId);
+        if (layer) (layer as GeoJSONLayer).visible = cb.checked;
+      }
+      updateSelectAllState();
+      updateLayerCounts();
+      void updateCountryRowCounts();
+      applyMooredBuoysStackSymbology(layerById, getProjection());
     });
 
-    // Add categories in this group
-    for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
-      const cat = categories[i];
-      if (!isLegendRowCategory(cat)) continue;
-      const { row, checkbox: cb } = createCheckboxRow(cat.label);
-
-      const swatch = makeCategorySwatch(cat as Category);
-      row.insertBefore(swatch, row.children[1]);
-
-      const openGoshipBreakdown = () => {
-        const since =
-          exportMetadata?.GOSHIP_EDITION_SINCE ??
-          exportMetadata?.GOSHIP_SAMPLED_SINCE ??
-          "2025-01-01";
-        const until =
-          exportMetadata?.OBS_PERIOD_UNTIL ??
-          exportMetadata?.exportedAt ??
-          new Date().toISOString().slice(0, 10);
-        void openGoshipMetricsModal(since, until);
-      };
-
-      const count =
-        cat.id === "goship"
-          ? (() => {
-              const countBtn = document.createElement("span");
-              countBtn.className = "o-legend-count o-legend-count-btn";
-              countBtn.setAttribute("role", "button");
-              countBtn.tabIndex = 0;
-              countBtn.setAttribute("aria-label", "View GO-SHIP edition breakdown");
-              countBtn.title = "View GO-SHIP edition breakdown";
-              countBtn.textContent = " (…)";
-              const openFromCount = (event: Event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                openGoshipBreakdown();
-              };
-              countBtn.addEventListener("click", openFromCount);
-              countBtn.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  openFromCount(event);
-                }
-              });
-              return countBtn;
-            })()
-          : (() => {
-              const countSpan = document.createElement("span");
-              countSpan.className = "o-legend-count";
-              countSpan.textContent = " (…)";
-              return countSpan;
-            })();
-      countNodes.set(cat.id, count);
-      row.appendChild(count);
-
-      cb.addEventListener("change", () => {
-        for (const layerId of legendLayerIdsForCategory(cat as Category)) {
-          const layer = layerById.get(layerId);
-          if (layer) (layer as GeoJSONLayer).visible = cb.checked;
-        }
-        updateSelectAllState();
-        updateLayerCounts();
-        void updateCountryRowCounts();
-      });
-
-      layerCheckboxes.push(cb);
-      layerCheckboxById.set(cat.id, cb);
-      groupBody.appendChild(row);
-    }
-
-    if (group.key === "ship") {
-      shipLineStyleLegend = makeShipLineStyleLegend();
-      groupBody.appendChild(shipLineStyleLegend);
-    }
-  });
+    layerCheckboxes.push(cb);
+    layerCheckboxById.set(cat.id, cb);
+    networksBody.appendChild(row);
+  }
 
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
@@ -978,12 +936,6 @@ export function attachLegend(
     const footerText = buildMapFooterFromMetadata(metadata);
     if (footerText) {
       dataNote.textContent = footerText;
-    }
-    const goshipSince = metadata.GOSHIP_EDITION_SINCE ?? metadata.GOSHIP_SAMPLED_SINCE;
-    if (goshipSince && shipLineStyleLegend) {
-      const updated = makeShipLineStyleLegend(yearFromIso(goshipSince));
-      shipLineStyleLegend.replaceWith(updated);
-      shipLineStyleLegend = updated;
     }
   });
 

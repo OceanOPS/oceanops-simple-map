@@ -2,6 +2,10 @@ import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import EsriMap from "@arcgis/core/Map.js";
 import type SceneView from "@arcgis/core/views/SceneView.js";
 import { categories, type Category, type Shape } from "./categories";
+import {
+  applyOperationalLayerStackOrder,
+  sortedOperationalLayerIds,
+} from "./layerStackOrder";
 import { attachLegend } from "./legend";
 import {
   applyViewNavigationDefaults,
@@ -19,7 +23,10 @@ import {
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
-import { makeCategoryRenderer, makeGoshipLineRenderer, makeOceanTraxLineRenderer } from "./renderers";
+import { getMooredBuoysGeoJsonUrl } from "./mooringStackGeojson";
+import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
+import { makeCategoryRenderer, makeGoshipLineRenderer, makeMooredBuoysRenderer } from "./renderers";
+import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
   bindPlateCarreeLayoutSync,
@@ -69,27 +76,37 @@ function lineLayerPopupTemplate(cat: Category) {
   };
 }
 
-function createGeoJsonLayer(cat: Category, projection: ProjectionId): GeoJSONLayer {
+function createGeoJsonLayer(
+  cat: Category,
+  projection: ProjectionId,
+  layerUrl?: string
+): GeoJSONLayer {
   const kind =
     cat.type === "image" ? "image" : cat.type === "line" ? "line" : "point";
   const renderer =
     cat.id === "goship"
       ? makeGoshipLineRenderer(projection, cat.color)
       : cat.id === "oceantrax"
-        ? makeOceanTraxLineRenderer(projection, cat.color)
-        : makeCategoryRenderer(
-          projection,
-          kind,
-          cat.color,
-          cat.type === "image" ? cat.imagePath : undefined,
-          cat.type === "point" ? ((cat.shape ?? "circle") as Shape) : undefined
-        );
+        ? makeCategoryRenderer(projection, "line", cat.color)
+        : cat.id === "moored_buoys"
+          ? makeMooredBuoysRenderer(projection, cat.color)
+          : makeCategoryRenderer(
+            projection,
+            kind,
+            cat.color,
+            cat.type === "image" ? cat.imagePath : undefined,
+            cat.type === "point" ? ((cat.shape ?? "circle") as Shape) : undefined,
+            undefined,
+            cat.type === "point" ? (cat.markerSize ?? undefined) : undefined
+          );
 
   const layer = new GeoJSONLayer({
-    url: geojsonLayerUrl(cat, projection),
+    url: layerUrl ?? geojsonLayerUrl(cat, projection),
     title: cat.label,
     outFields: ["*"],
     renderer,
+    definitionExpression:
+      cat.id === "oceantrax" ? OCEANTRAX_ACTIVE_DEFINITION : undefined,
     popupTemplate:
       cat.type === "line"
         ? lineLayerPopupTemplate(cat)
@@ -121,14 +138,23 @@ async function addOperationalLayers(
   layerById.clear();
   const layerPromises: Promise<unknown>[] = [];
 
-  for (const cat of categories) {
-    const layer = createGeoJsonLayer(cat as Category, projection);
+  const sortedCategories = sortedOperationalLayerIds()
+    .map((id) => categories.find((c) => c.id === id))
+    .filter((c): c is (typeof categories)[number] => c != null);
+
+  const mooredBuoysUrl = await getMooredBuoysGeoJsonUrl(BASE);
+
+  for (const cat of sortedCategories) {
+    const layerUrl = cat.id === "moored_buoys" ? mooredBuoysUrl : undefined;
+    const layer = createGeoJsonLayer(cat as Category, projection, layerUrl);
     map.add(layer);
     layerById.set(cat.id, layer);
     layerPromises.push(layer.when());
   }
 
   await Promise.all(layerPromises);
+  applyOperationalLayerStackOrder(map, layerById);
+  applyMooredBuoysStackSymbology(layerById, projection);
 }
 
 async function computeLayerUnion(layerById: Map<string, GeoJSONLayer>) {

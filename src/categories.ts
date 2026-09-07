@@ -1,6 +1,31 @@
 export type LayerKind = "point" | "image" | "line";
 export type Shape = "circle" | "square" | "triangle" ;
 
+/** Square marker sizes for overlapping fixed moorings (largest → smallest). */
+export const MOORING_SQUARE_MARKER_SIZES = {
+  moored_buoys: 10,
+  oceansites: 7,
+  soconet_moorings: 5,
+} as const;
+
+/** Map draw order for nested mooring squares (bottom → top). */
+export const MAP_LAYER_STACK: Partial<Record<string, number>> = {
+  moored_buoys: 910,
+  oceansites: 911,
+  soconet_moorings: 912,
+};
+
+/** Layers that share locations and must stay stacked (largest bottom, smallest top). */
+export const MOORING_STACK_LAYER_IDS = [
+  "moored_buoys",
+  "oceansites",
+  "soconet_moorings",
+] as const;
+
+export function mapLayerStackRank(layerId: string, defaultIndex: number): number {
+  return MAP_LAYER_STACK[layerId] ?? defaultIndex;
+}
+
 /** Test colour for SOCONET ships + moorings (replacing blue ship). */
 export const SOCONET_COLOR = "#ec4899";
 
@@ -21,6 +46,8 @@ export type Category =
       color: string;
       type: "point";
       shape?: Shape;
+      /** Point marker diameter (px); used for nested mooring squares. */
+      markerSize?: number;
       /** Omit separate legend row — controlled by the companion primary layer. */
       legendHidden?: boolean;
     };
@@ -43,13 +70,14 @@ export const categories = [
     color: SOCONET_COLOR,
     type: 'point',
     shape: 'square',
+    markerSize: MOORING_SQUARE_MARKER_SIZES.soconet_moorings,
     legendHidden: true,
   },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
-  { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square'  },
-  { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square' },
+  { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.oceansites  },
+  { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.moored_buoys },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – DBCP/TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
   { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square'  },
   { id: 'drifting_buoys',               label: 'Drifting buoys – DBCP/GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
@@ -68,4 +96,17 @@ export function legendLayerIdsForCategory(cat: Category): string[] {
 
 export function isLegendRowCategory(cat: Category): boolean {
   return !("legendHidden" in cat && cat.legendHidden);
+}
+
+/** Labels in country modal / breakdown lists (distinct sub-layers). */
+export function getLayerDisplayLabel(
+  layerId: string,
+  context: "legend" | "modal" = "legend"
+): string {
+  if (context === "modal") {
+    if (layerId === "soconet") return "Surface ocean CO₂ – ship";
+    if (layerId === "soconet_moorings") return "Surface ocean CO₂ – moored buoys";
+  }
+  const cat = categories.find((c) => c.id === layerId);
+  return cat?.label ?? layerId;
 }

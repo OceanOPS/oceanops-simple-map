@@ -40,7 +40,7 @@ function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): vo
 
   for (const row of rows) {
     const item = document.createElement("li");
-    const picto = makeNetworkPicto(row.layerId);
+    const picto = makeNetworkPicto(row.layerId, "modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = row.label;
@@ -70,7 +70,7 @@ function appendLineNetworkList(
     const header = document.createElement("div");
     header.className = "o-country-modal-platform-header";
 
-    const picto = makeNetworkPicto(row.layerId);
+    const picto = makeNetworkPicto(row.layerId, "modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = row.label;
@@ -292,7 +292,7 @@ function appendEmanuelaTable(parent: HTMLElement, rows: PlatformCountryCount[]):
 
     const platformCell = document.createElement("td");
     platformCell.className = "o-country-modal-emanuela-platform";
-    const picto = makeNetworkPicto(row.layerId);
+    const picto = makeNetworkPicto(row.layerId, "modal");
     const platformName = document.createElement("span");
     platformName.textContent = row.label;
     platformCell.append(picto, platformName);
@@ -336,7 +336,7 @@ export function appendExpandablePlatformList(
     expandBtn.setAttribute("aria-label", `Show countries for ${platform.label}`);
     expandBtn.textContent = EXPAND_CLOSED_LABEL;
 
-    const picto = makeNetworkPicto(platform.layerId);
+    const picto = makeNetworkPicto(platform.layerId, "modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = platform.label;

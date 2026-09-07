@@ -1,4 +1,4 @@
-import { categories, type Category, SOCONET_COLOR } from "./categories";
+import { categories, type Category, SOCONET_COLOR, MOORING_SQUARE_MARKER_SIZES } from "./categories";
 import { makeNetworkIconImg } from "./networkIcons";
 
 const BASE = import.meta.env.BASE_URL;
@@ -32,33 +32,33 @@ function appendLineSample(
   container.appendChild(svg);
 }
 
-function appendDualLineSwatch(
+function appendStackedDualLineSwatch(
   container: HTMLDivElement,
   solidColor: string,
   dashColor: string
 ) {
-  container.classList.add("o-legend-swatch--dual-line");
+  container.classList.add("o-legend-swatch--dual-line", "o-legend-swatch--dual-line-stacked");
   const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "32");
-  svg.setAttribute("height", "12");
-  svg.setAttribute("viewBox", "0 0 32 12");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
+  svg.setAttribute("viewBox", "0 0 20 20");
 
   const solid = document.createElementNS(svgNS, "line");
-  solid.setAttribute("x1", "1");
+  solid.setAttribute("x1", "2");
   solid.setAttribute("y1", "6");
-  solid.setAttribute("x2", "11");
+  solid.setAttribute("x2", "18");
   solid.setAttribute("y2", "6");
   solid.setAttribute("stroke", solidColor);
-  solid.setAttribute("stroke-width", "3");
+  solid.setAttribute("stroke-width", "2.5");
   solid.setAttribute("stroke-linecap", "round");
 
   const dashed = document.createElementNS(svgNS, "line");
-  dashed.setAttribute("x1", "20");
-  dashed.setAttribute("y1", "6");
-  dashed.setAttribute("x2", "30");
-  dashed.setAttribute("y2", "6");
+  dashed.setAttribute("x1", "2");
+  dashed.setAttribute("y1", "14");
+  dashed.setAttribute("x2", "18");
+  dashed.setAttribute("y2", "14");
   dashed.setAttribute("stroke", dashColor);
-  dashed.setAttribute("stroke-width", "3");
+  dashed.setAttribute("stroke-width", "2.5");
   dashed.setAttribute("stroke-linecap", "round");
   dashed.setAttribute("stroke-dasharray", "4 3");
 
@@ -66,20 +66,25 @@ function appendDualLineSwatch(
   container.appendChild(svg);
 }
 
-function appendSquareSwatch(container: HTMLElement, color: string, size = 8) {
+function legendSquarePx(markerSize: number): number {
+  return Math.max(6, Math.round(markerSize * 1.05));
+}
+
+function appendSquareSwatch(container: HTMLElement, color: string, markerSize = 8) {
+  const px = legendSquarePx(markerSize);
+  const pad = Math.max(1, Math.floor((14 - px) / 2));
   const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("width", "12");
-  svg.setAttribute("height", "12");
-  svg.setAttribute("viewBox", "0 0 12 12");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.setAttribute("viewBox", "0 0 14 14");
   svg.setAttribute("aria-hidden", "true");
   svg.style.display = "block";
   svg.style.flexShrink = "0";
-  const inset = 1;
   const r = document.createElementNS(svgNS, "rect");
-  r.setAttribute("x", String(inset));
-  r.setAttribute("y", String(inset));
-  r.setAttribute("width", String(size));
-  r.setAttribute("height", String(size));
+  r.setAttribute("x", String(pad));
+  r.setAttribute("y", String(pad));
+  r.setAttribute("width", String(px));
+  r.setAttribute("height", String(px));
   r.setAttribute("fill", color);
   r.setAttribute("stroke", "#fff");
   r.setAttribute("stroke-width", "1");
@@ -103,7 +108,7 @@ export function makeSoconetDualSwatch(
   img.decoding = "async";
 
   container.appendChild(img);
-  appendSquareSwatch(container, color);
+  appendSquareSwatch(container, color, MOORING_SQUARE_MARKER_SIZES.soconet_moorings);
   return container;
 }
 
@@ -129,14 +134,17 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
     svg.setAttribute("height", "14");
 
     if (cat.shape === "square") {
+      const px = legendSquarePx(cat.markerSize ?? 8);
+      const pad = Math.max(1, Math.floor((14 - px) / 2));
       const r = document.createElementNS(svgNS, "rect");
-      r.setAttribute("x", "2");
-      r.setAttribute("y", "2");
-      r.setAttribute("width", "10");
-      r.setAttribute("height", "10");
+      r.setAttribute("x", String(pad));
+      r.setAttribute("y", String(pad));
+      r.setAttribute("width", String(px));
+      r.setAttribute("height", String(px));
       r.setAttribute("fill", cat.color);
       r.setAttribute("stroke", "#fff");
       r.setAttribute("stroke-width", "1");
+      svg.setAttribute("viewBox", "0 0 14 14");
       svg.appendChild(r);
       container.appendChild(svg);
       return container;
@@ -176,12 +184,7 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   }
 
   if (cat.id === "goship") {
-    appendDualLineSwatch(container, cat.color, cat.color);
-    return container;
-  }
-
-  if (cat.id === "oceantrax") {
-    appendDualLineSwatch(container, cat.color, cat.color);
+    appendStackedDualLineSwatch(container, cat.color, cat.color);
     return container;
   }
 
@@ -199,15 +202,6 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   svg.appendChild(line);
   container.appendChild(svg);
   return container;
-}
-
-function appendLineStyleRow(
-  parent: HTMLElement,
-  color: string,
-  style: "solid" | "dash",
-  label: string
-) {
-  parent.appendChild(createLineStyleRow(color, style, label));
 }
 
 /** Solid/dash line sample row (shared by sidebar legend and GO-SHIP modal). */
@@ -231,62 +225,10 @@ export function createLineStyleRow(
   return row;
 }
 
-function appendLineStyleGroupTitle(parent: HTMLElement, title: string) {
-  const heading = document.createElement("p");
-  heading.className = "o-legend-line-style-title";
-  heading.textContent = title;
-  parent.appendChild(heading);
-}
-
-function makeGoshipLineStyleGroup(goshipSinceYear = "2025"): HTMLElement | null {
-  const goship = categories.find((cat) => cat.id === "goship");
-  if (!goship) return null;
-
-  const group = document.createElement("div");
-  group.className = "o-legend-line-style-group";
-  appendLineStyleGroupTitle(group, "GO-SHIP");
-  appendLineStyleRow(
-    group,
-    goship.color,
-    "solid",
-    `Sampled since ${goshipSinceYear}`
-  );
-  appendLineStyleRow(
-    group,
-    goship.color,
-    "dash",
-    `Not sampled since ${goshipSinceYear}`
-  );
-  return group;
-}
-
-function makeOceanTraxLineStyleGroup(): HTMLElement | null {
-  const oceantrax = categories.find((cat) => cat.id === "oceantrax");
-  if (!oceantrax) return null;
-
-  const group = document.createElement("div");
-  group.className = "o-legend-line-style-group";
-  appendLineStyleGroupTitle(group, "Ocean TraX");
-  appendLineStyleRow(group, oceantrax.color, "solid", "Active");
-  appendLineStyleRow(group, oceantrax.color, "dash", "Reactivate");
-  return group;
-}
-
-/** Ocean TraX + GO-SHIP solid/dash keys — block at the bottom of the Ship group. */
-export function makeShipLineStyleLegend(goshipSinceYear = "2025"): HTMLElement {
-  const wrap = document.createElement("div");
-  wrap.className = "o-legend-line-styles o-legend-line-styles--section";
-
-  const oceantrax = makeOceanTraxLineStyleGroup();
-  if (oceantrax) wrap.appendChild(oceantrax);
-
-  const goship = makeGoshipLineStyleGroup(goshipSinceYear);
-  if (goship) wrap.appendChild(goship);
-
-  return wrap;
-}
-
-export function makeNetworkPicto(layerId: string): HTMLElement {
+export function makeNetworkPicto(
+  layerId: string,
+  _context: "legend" | "modal" = "legend"
+): HTMLElement {
   const icon = makeNetworkIconImg(layerId);
   if (icon) return icon;
 
