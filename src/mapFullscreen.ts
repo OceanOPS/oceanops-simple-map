@@ -1,5 +1,6 @@
 const FULLSCREEN_BODY_CLASS = "map-fullscreen";
 export const MAP_FULLSCREEN_MESSAGE = "oceanops-simple-map-fullscreen";
+export const MAP_RESIZE_MESSAGE = "oceanops-map-resize";
 
 export function isMapFullscreen(): boolean {
   return document.body.classList.contains(FULLSCREEN_BODY_CLASS);
@@ -140,5 +141,35 @@ export function bindMapFullscreenSync(onLayoutChange?: () => void): () => void {
   return () => {
     document.removeEventListener("fullscreenchange", onFullscreenChange);
     document.removeEventListener("keydown", onKeyDown);
+  };
+}
+
+/** Keep ArcGIS layout in sync when the embed iframe or host page resizes. */
+export function bindMapEmbedResizeSync(
+  onLayoutChange?: () => void
+): () => void {
+  const notify = () => {
+    void onLayoutChange?.();
+  };
+
+  const onMessage = (event: MessageEvent) => {
+    if (event.data?.type !== MAP_RESIZE_MESSAGE) return;
+    notify();
+  };
+
+  window.addEventListener("message", onMessage);
+  window.addEventListener("resize", notify);
+
+  const shell = mapShell();
+  let observer: ResizeObserver | undefined;
+  if (shell && isEmbedded()) {
+    observer = new ResizeObserver(() => notify());
+    observer.observe(shell);
+  }
+
+  return () => {
+    window.removeEventListener("message", onMessage);
+    window.removeEventListener("resize", notify);
+    observer?.disconnect();
   };
 }

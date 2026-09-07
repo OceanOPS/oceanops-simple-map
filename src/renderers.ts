@@ -10,7 +10,7 @@ import { is3dProjection, type ProjectionId } from "./projections";
 
 const BASE = import.meta.env.BASE_URL;
 
-export function makeImageRenderer3D(imagePath: string) {
+export function makeImageRenderer3D(imagePath: string, tintColor?: string) {
   return new SimpleRenderer({
     symbol: new PointSymbol3D({
       symbolLayers: [
@@ -18,6 +18,7 @@ export function makeImageRenderer3D(imagePath: string) {
           resource: { href: `${BASE}${imagePath}` },
           size: 11,
           anchor: "center",
+          ...(tintColor ? { material: { color: tintColor } } : {}),
         }),
       ],
     }),
@@ -107,12 +108,13 @@ const MERCATOR_SHIP_WIDTH = 11;
 const MERCATOR_SHIP_HEIGHT = 6;
 const MERCATOR_POINT_SIZE = 5;
 
-export function makeImageRenderer2D(imagePath: string) {
+export function makeImageRenderer2D(imagePath: string, tintColor?: string) {
   return new SimpleRenderer({
     symbol: new PictureMarkerSymbol({
       url: `${BASE}${imagePath}`,
       width: MERCATOR_SHIP_WIDTH,
       height: MERCATOR_SHIP_HEIGHT,
+      ...(tintColor ? { color: tintColor } : {}),
     }),
   });
 }
@@ -209,13 +211,14 @@ export function makeCategoryRenderer(
   kind: "image" | "line" | "point",
   color: string,
   imagePath?: string,
-  shape?: Shape
+  shape?: Shape,
+  imageTintColor?: string
 ) {
   const use3d = is3dProjection(projection);
   if (kind === "image") {
     return use3d
-      ? makeImageRenderer3D(imagePath ?? "")
-      : makeImageRenderer2D(imagePath ?? "");
+      ? makeImageRenderer3D(imagePath ?? "", imageTintColor)
+      : makeImageRenderer2D(imagePath ?? "", imageTintColor);
   }
   if (kind === "line") {
     return use3d ? makeLineRenderer3D(color) : makeLineRenderer2D(color);

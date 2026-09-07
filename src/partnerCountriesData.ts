@@ -110,7 +110,9 @@ export type CountryLayerCount = {
   displayCount: string;
 };
 
-const labelByLayerId = new Map(categories.map((c) => [c.id, c.label]));
+const labelByLayerId = new Map<string, string>(
+  categories.map((c) => [c.id, c.label])
+);
 
 export function getCountryBreakdownFromPartner(
   geoCountry: CountryName,

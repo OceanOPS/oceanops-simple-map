@@ -29,7 +29,7 @@ import {
 } from "./viewLayout";
 import { applyProjectionShellLayout } from "./projectionLayout";
 import { mountMapServerLoader } from "./mapServerLoader";
-import { bindMapFullscreenEmbedSync, bindMapFullscreenSync } from "./mapFullscreen";
+import { bindMapEmbedResizeSync, bindMapFullscreenEmbedSync, bindMapFullscreenSync } from "./mapFullscreen";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -241,6 +241,12 @@ function createRotationController(
   let unbindPlateCarreeLayout: (() => void) | null = null;
   let unbindMapFullscreen: (() => void) | null = null;
   let unbindMapFullscreenEmbed: (() => void) | null = null;
+  let unbindMapEmbedResize: (() => void) | null = null;
+
+  if (window.self !== window.top) {
+    document.documentElement.classList.add("map-embedded");
+    document.body.classList.add("map-embedded");
+  }
 
   const onShellLayoutChange = () => {
     void refreshViewLayout(viewHolder.view).then(() => {
@@ -315,6 +321,8 @@ function createRotationController(
     unbindMapFullscreen = bindMapFullscreenSync(onShellLayoutChange);
     unbindMapFullscreenEmbed?.();
     unbindMapFullscreenEmbed = bindMapFullscreenEmbedSync(onShellLayoutChange);
+    unbindMapEmbedResize?.();
+    unbindMapEmbedResize = bindMapEmbedResizeSync(onShellLayoutChange);
 
     attachLegendToView();
 
@@ -340,6 +348,8 @@ function createRotationController(
     unbindMapFullscreen = null;
     unbindMapFullscreenEmbed?.();
     unbindMapFullscreenEmbed = null;
+    unbindMapEmbedResize?.();
+    unbindMapEmbedResize = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;

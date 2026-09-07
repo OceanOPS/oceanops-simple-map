@@ -1,16 +1,50 @@
 export type LayerKind = "point" | "image" | "line";
 export type Shape = "circle" | "square" | "triangle" ;
 
+/** Test colour for SOCONET ships + moorings (replacing blue ship). */
+export const SOCONET_COLOR = "#ec4899";
+
 export type Category =
-  | { id: string; label: string; color: string; type: "image"; imagePath: string }
+  | {
+      id: string;
+      label: string;
+      color: string;
+      type: "image";
+      imagePath: string;
+      /** Toggle this layer together with the primary legend row (e.g. moorings). */
+      legendCompanionId?: string;
+    }
   | { id: string; label: string; color: string; type: "line" }
-  | { id: string; label: string; color: string; type: "point"; shape?: Shape };
+  | {
+      id: string;
+      label: string;
+      color: string;
+      type: "point";
+      shape?: Shape;
+      /** Omit separate legend row — controlled by the companion primary layer. */
+      legendHidden?: boolean;
+    };
 
 export const categories = [
   { id: 'vos',                        label: 'Ship based meteorological – SOT/VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
   { id: 'oceantrax',                        label: 'Ship based oceanographic – SOT/Ocean TraX',                 color: '#faa62d', type: 'line' },
   { id: 'asap',                        label: 'Ship based aerological – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
-  { id: 'soconet',                     label: 'Ships - SOCONET',                                   color: '#2563eb', type: 'image', imagePath: '/img/ship_blue.png' },
+  {
+    id: 'soconet',
+    label: 'Surface ocean CO₂ – SOCONET',
+    color: SOCONET_COLOR,
+    type: 'image',
+    imagePath: '/img/ship_pink.png',
+    legendCompanionId: 'soconet_moorings',
+  },
+  {
+    id: 'soconet_moorings',
+    label: 'Surface ocean CO₂ – SOCONET',
+    color: SOCONET_COLOR,
+    type: 'point',
+    shape: 'square',
+    legendHidden: true,
+  },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
@@ -22,4 +56,16 @@ export const categories = [
   { id: 'argo',                        label: 'Profiling floats – Argo',      color: '#2357a7', type: 'point', shape: 'circle' },
   { id: 'oceangliders',                      label: 'Gliders – OceanGliders',         color: '#71bf44', type: 'point', shape: 'circle'  },
   { id: 'anibos',                      label: 'Animal borne sensors - AniBOS',         color: '#ffffff', type: 'point', shape: 'circle' },
-];
+] as const satisfies readonly Category[];
+
+/** Layer ids toggled together with a legend row (primary + companions). */
+export function legendLayerIdsForCategory(cat: Category): string[] {
+  if (cat.type === "image" && cat.legendCompanionId) {
+    return [cat.id, cat.legendCompanionId];
+  }
+  return [cat.id];
+}
+
+export function isLegendRowCategory(cat: Category): boolean {
+  return !("legendHidden" in cat && cat.legendHidden);
+}

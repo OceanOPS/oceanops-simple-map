@@ -1,4 +1,4 @@
-import { categories, type Category } from "./categories";
+import { categories, type Category, SOCONET_COLOR } from "./categories";
 import { makeNetworkIconImg } from "./networkIcons";
 
 const BASE = import.meta.env.BASE_URL;
@@ -66,6 +66,47 @@ function appendDualLineSwatch(
   container.appendChild(svg);
 }
 
+function appendSquareSwatch(container: HTMLElement, color: string, size = 8) {
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("width", "12");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("viewBox", "0 0 12 12");
+  svg.setAttribute("aria-hidden", "true");
+  svg.style.display = "block";
+  svg.style.flexShrink = "0";
+  const inset = 1;
+  const r = document.createElementNS(svgNS, "rect");
+  r.setAttribute("x", String(inset));
+  r.setAttribute("y", String(inset));
+  r.setAttribute("width", String(size));
+  r.setAttribute("height", String(size));
+  r.setAttribute("fill", color);
+  r.setAttribute("stroke", "#fff");
+  r.setAttribute("stroke-width", "1");
+  svg.appendChild(r);
+  container.appendChild(svg);
+}
+
+/** SOCONET legend: ship + square side by side, same colour. */
+export function makeSoconetDualSwatch(
+  imagePath: string,
+  color: string = SOCONET_COLOR
+): HTMLDivElement {
+  const container = document.createElement("div");
+  container.className = "o-legend-swatch o-legend-swatch--soconet-dual";
+  container.setAttribute("aria-hidden", "true");
+
+  const img = document.createElement("img");
+  img.src = `${BASE}${imagePath}`;
+  img.className = "o-legend-swatch-img";
+  img.alt = "";
+  img.decoding = "async";
+
+  container.appendChild(img);
+  appendSquareSwatch(container, color);
+  return container;
+}
+
 export function getCategoryById(layerId: string): Category | undefined {
   return categories.find((cat) => cat.id === layerId) as Category | undefined;
 }
@@ -77,6 +118,10 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   const container = document.createElement("div");
   container.className = "o-legend-swatch";
   container.setAttribute("aria-hidden", "true");
+
+  if (cat.id === "soconet" && cat.type === "image") {
+    return makeSoconetDualSwatch(cat.imagePath, cat.color);
+  }
 
   if (cat.type === "point") {
     const svg = document.createElementNS(svgNS, "svg");

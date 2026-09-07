@@ -91,7 +91,9 @@ function sensorCrossCountryWhere(country: CountryName): string {
   return `${provider} AND country_iso_reporting IS NOT NULL AND country_iso_reporting <> '${isoLit}'`;
 }
 
-const labelByLayerId = new Map(categories.map((c) => [c.id, c.label]));
+const labelByLayerId = new Map<string, string>(
+  categories.map((c) => [c.id, c.label])
+);
 
 async function queryCountryTotal(
   where: string,

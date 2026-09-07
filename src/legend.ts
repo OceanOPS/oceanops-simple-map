@@ -2,7 +2,7 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
-import { categories, type Category } from "./categories";
+import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
 import { makeCategorySwatch, makeShipLineStyleLegend } from "./categorySwatch";
 import {
   EU_COUNTRIES,
@@ -420,6 +420,7 @@ export function attachLegend(
   const countNodes = new Map<string, HTMLElement>();
   let exportMetadata: ExportMetadata | null = null;
   const layerCheckboxes: HTMLInputElement[] = [];
+  const layerCheckboxById = new Map<string, HTMLInputElement>();
   const content = document.createElement("div");
   content.className = "o-legend-content";
 
@@ -544,9 +545,14 @@ export function attachLegend(
 
   const getVisibleLayerIds = (): Set<string> => {
     const visible = new Set<string>();
-    categories.forEach((cat, i) => {
-      if (layerCheckboxes[i]?.checked) visible.add(cat.id);
-    });
+    for (const cat of categories) {
+      if (!isLegendRowCategory(cat)) continue;
+      const cb = layerCheckboxById.get(cat.id);
+      if (!cb?.checked) continue;
+      for (const layerId of legendLayerIdsForCategory(cat)) {
+        visible.add(layerId);
+      }
+    }
     return visible;
   };
 
@@ -570,6 +576,8 @@ export function attachLegend(
     );
 
     for (const [id, layer] of layerById) {
+      if (id === "soconet_moorings") continue;
+
       if (lineLayerIds.has(id)) {
         const node = countNodes.get(id);
         if (!node) continue;
@@ -631,8 +639,15 @@ export function attachLegend(
 
       try {
         const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
+        let total = n;
+        if (id === "soconet") {
+          const moorLayer = layerById.get("soconet_moorings");
+          if (moorLayer && typeof moorLayer.queryFeatureCount === "function") {
+            total += await moorLayer.queryFeatureCount({ where });
+          }
+        }
         const node = countNodes.get(id);
-        if (node) node.textContent = ` (${n.toLocaleString()})`;
+        if (node) node.textContent = ` (${total.toLocaleString()})`;
       } catch {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
@@ -742,9 +757,9 @@ export function attachLegend(
 
   // Ship / Fixed / Mobile nested under Networks
   const groups = [
-    { key: "ship", title: "Ship", startIndex: 0, endIndex: 6 },
-    { key: "fixed", title: "Fixed", startIndex: 6, endIndex: 11 },
-    { key: "mobile", title: "Mobile", startIndex: 11, endIndex: categories.length },
+    { key: "ship", title: "Ship", startIndex: 0, endIndex: 7 },
+    { key: "fixed", title: "Fixed", startIndex: 7, endIndex: 12 },
+    { key: "mobile", title: "Mobile", startIndex: 12, endIndex: categories.length },
   ];
 
   selectAllRow.classList.add("o-legend-networks-select-all");
@@ -769,6 +784,7 @@ export function attachLegend(
     // Add categories in this group
     for (let i = group.startIndex; i < group.endIndex && i < categories.length; i++) {
       const cat = categories[i];
+      if (!isLegendRowCategory(cat)) continue;
       const { row, checkbox: cb } = createCheckboxRow(cat.label);
 
       const swatch = makeCategorySwatch(cat as Category);
@@ -819,14 +835,17 @@ export function attachLegend(
       row.appendChild(count);
 
       cb.addEventListener("change", () => {
-        const layer = layerById.get(cat.id);
-        if (layer) (layer as GeoJSONLayer).visible = cb.checked;
+        for (const layerId of legendLayerIdsForCategory(cat as Category)) {
+          const layer = layerById.get(layerId);
+          if (layer) (layer as GeoJSONLayer).visible = cb.checked;
+        }
         updateSelectAllState();
         updateLayerCounts();
         void updateCountryRowCounts();
       });
 
       layerCheckboxes.push(cb);
+      layerCheckboxById.set(cat.id, cb);
       groupBody.appendChild(row);
     }
 

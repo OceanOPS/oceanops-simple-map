@@ -13,6 +13,18 @@ body {
   overflow: hidden;
 }
 
+html.map-embedded,
+body.map-embedded {
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+}
+
+body.map-embedded #mapShell {
+  height: 100%;
+  min-height: 100%;
+}
+
 #mapShell {
   position: relative;
   width: 100%;
@@ -540,7 +552,8 @@ body.map-fullscreen:fullscreen #mapShell {
   left: 0;
   width: 100%;
   max-width: 550px;
-  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #12336e;
   box-shadow: 2px 0 12px rgba(0,0,0,0.15);
   transform: translateX(-100%);
@@ -1310,6 +1323,26 @@ body.o-country-modal-open {
 
 .o-legend-swatch--dual-line {
   width: 36px;
+}
+
+.o-legend-swatch.o-legend-swatch--soconet-dual {
+  width: 40px;
+  height: auto;
+  min-height: 24px;
+  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  overflow: visible;
+}
+
+.o-legend-swatch.o-legend-swatch--soconet-dual svg {
+  display: block;
+  flex-shrink: 0;
+  transform: translateY(2px);
+}
+
+.o-legend-swatch.o-legend-swatch--soconet-dual .o-legend-swatch-img {
+  flex-shrink: 0;
 }
 
 /* Ship markers are ~38×21; never force a square box or they look squashed. */
