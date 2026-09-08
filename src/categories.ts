@@ -104,8 +104,9 @@ export function getLayerDisplayLabel(
   context: "legend" | "modal" = "legend"
 ): string {
   if (context === "modal") {
-    if (layerId === "soconet") return "Surface ocean CO₂ – ship";
-    if (layerId === "soconet_moorings") return "Surface ocean CO₂ – moored buoys";
+    if (layerId === "soconet") return "Surface ocean CO₂ / ship - SOCONET";
+    if (layerId === "soconet_moorings")
+      return "Surface ocean CO₂ / moored buoys - SOCONET";
   }
   const cat = categories.find((c) => c.id === layerId);
   return cat?.label ?? layerId;

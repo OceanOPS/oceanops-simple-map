@@ -1556,6 +1556,33 @@ body.o-country-modal-open {
   border-bottom: none;
 }
 
+.o-country-modal-list--goship-expandable .o-country-modal-line-style-stat {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.o-country-modal-list--goship-expandable .o-country-modal-line-style-stat .o-legend-line-style-row {
+  width: 100%;
+}
+
+.o-goship-sampled-panel {
+  padding: 0 0 12px;
+}
+
+.o-country-modal-goship-line-name a {
+  color: rgba(248, 248, 248, 0.92);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.o-country-modal-goship-line-name a:hover,
+.o-country-modal-goship-line-name a:focus-visible {
+  color: #f48b25;
+  text-decoration: underline;
+  outline: none;
+}
+
 .o-country-modal-emanuela-count {
   width: 56px;
   font-weight: 600;

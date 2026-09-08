@@ -12,6 +12,19 @@ export type GoshipUnsampledLine = {
   editionStatus: string;
 };
 
+export type GoshipSampledLineRow = {
+  lineName: string;
+  countryLabel: string;
+  isoCode?: string;
+};
+
+export type GoshipSampledCountryRow = {
+  countryLabel: string;
+  isoCode?: string;
+  lineCount: number;
+  lineNames: string[];
+};
+
 export type GoshipEditionStats = {
   periodSince: string;
   periodUntil: string;
@@ -22,6 +35,8 @@ export type GoshipEditionStats = {
   lineAssociationCount: number;
   legendCruiseCount: number;
   sampledLineNames: string[];
+  sampledLineRows: GoshipSampledLineRow[];
+  sampledLinesByCountry: GoshipSampledCountryRow[];
   unsampledLines: GoshipUnsampledLine[];
   unsampledByStatus: { status: string; count: number; lineNames: string[] }[];
   cruisesByCountry: { country: string; count: number }[];
@@ -64,12 +79,46 @@ function isSampledFeature(attrs: Record<string, unknown>): boolean {
   );
 }
 
+function aggregateSampledLinesByCountry(
+  rows: GoshipSampledLineRow[]
+): GoshipSampledCountryRow[] {
+  const groups = new Map<string, GoshipSampledCountryRow>();
+
+  for (const row of rows) {
+    const key = row.isoCode || row.countryLabel;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        countryLabel: row.countryLabel,
+        isoCode: row.isoCode,
+        lineCount: 0,
+        lineNames: [],
+      };
+      groups.set(key, group);
+    }
+    group.lineCount += 1;
+    group.lineNames.push(row.lineName);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      lineNames: group.lineNames.sort((a, b) => a.localeCompare(b)),
+    }))
+    .sort(
+      (a, b) =>
+        b.lineCount - a.lineCount ||
+        a.countryLabel.localeCompare(b.countryLabel)
+    );
+}
+
 function buildStatsFromFeatures(
   features: Array<{ properties?: Record<string, unknown> }>,
   periodSince: string,
   periodUntil: string
 ): GoshipEditionStats {
   const sampledLineNames: string[] = [];
+  const sampledLineRows: GoshipSampledLineRow[] = [];
   const unsampledLines: GoshipUnsampledLine[] = [];
   const linesWithMultipleCruises: GoshipEditionStats["linesWithMultipleCruises"] =
     [];
@@ -87,6 +136,20 @@ function buildStatsFromFeatures(
     if (isSampledFeature(attrs)) {
       sampledLineNames.push(lineName);
       const cruises = parseEditionCruisesRaw(attrs.edition_cruises);
+      const countryLabel =
+        cruises.find((cruise) => cruise.program_country?.trim())?.program_country?.trim() ||
+        String(attrs.last_cruise_countries ?? "")
+          .split(",")[0]
+          ?.trim() ||
+        "Unknown";
+      const isoCode = String(attrs.edition_country_codes ?? "")
+        .split(",")[0]
+        ?.trim();
+      sampledLineRows.push({
+        lineName,
+        countryLabel,
+        isoCode: isoCode || undefined,
+      });
       if (cruises.length > 1) {
         linesWithMultipleCruises.push({ lineName, cruises });
       }
@@ -125,6 +188,11 @@ function buildStatsFromFeatures(
   }
 
   sampledLineNames.sort((a, b) => a.localeCompare(b));
+  sampledLineRows.sort(
+    (a, b) =>
+      a.countryLabel.localeCompare(b.countryLabel) ||
+      a.lineName.localeCompare(b.lineName)
+  );
   unsampledLines.sort((a, b) => a.lineName.localeCompare(b.lineName));
 
   const statusGroups = new Map<string, string[]>();
@@ -169,6 +237,8 @@ function buildStatsFromFeatures(
     lineAssociationCount,
     legendCruiseCount,
     sampledLineNames,
+    sampledLineRows,
+    sampledLinesByCountry: aggregateSampledLinesByCountry(sampledLineRows),
     unsampledLines,
     unsampledByStatus,
     cruisesByCountry: partnerCruiseCountByCountry(),

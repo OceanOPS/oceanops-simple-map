@@ -1,5 +1,7 @@
 import { createLineStyleRow, getCategoryById, makeNetworkPicto } from "./categorySwatch";
+import { appendCountryFlag } from "./countryFlags";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
+import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 import {
   loadGoshipEditionStats,
   type GoshipEditionStats,
@@ -22,14 +24,118 @@ function goshipLineColor(): string {
   return getCategoryById("goship")?.color ?? "#ee2f2b";
 }
 
-function editionSinceYear(periodSince: string): string {
-  return periodSince.slice(0, 4);
+const LAST_12_MONTHS = "the latest 12 months";
+
+function buildSampledLinesTable(stats: GoshipEditionStats): HTMLTableElement {
+  const table = document.createElement("table");
+  table.className =
+    "o-country-modal-emanuela-table o-country-modal-emanuela-table--goship";
+
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th scope="col">Lines count</th>
+      <th scope="col">Lines</th>
+      <th scope="col">Operating country</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  for (const row of stats.sampledLinesByCountry) {
+    const tr = document.createElement("tr");
+
+    const countCell = document.createElement("td");
+    countCell.className = "o-country-modal-emanuela-count";
+    countCell.textContent = row.lineCount.toLocaleString();
+
+    const lineCell = document.createElement("td");
+    lineCell.className = "o-country-modal-goship-line-name";
+    appendGoshipLineNames(lineCell, row.lineNames);
+
+    const countryCell = document.createElement("td");
+    countryCell.className = "o-country-modal-emanuela-country";
+    const flag = document.createElement("span");
+    flag.className = "o-country-modal-contributor-flag";
+    flag.setAttribute("title", row.countryLabel);
+    flag.setAttribute("aria-label", row.countryLabel);
+    appendCountryFlag(flag, row.isoCode, row.countryLabel);
+    countryCell.appendChild(flag);
+
+    tr.append(countCell, lineCell, countryCell);
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  return table;
 }
 
-function appendStatLine(list: HTMLElement, text: string): void {
-  const item = document.createElement("li");
-  item.textContent = text;
-  list.appendChild(item);
+function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
+  const section = document.createElement("section");
+  section.className = "o-country-modal-section";
+
+  const sampledList = document.createElement("ul");
+  sampledList.className =
+    "o-country-modal-list o-country-modal-list--expandable o-country-modal-list--goship-expandable";
+
+  const block = document.createElement("li");
+  block.className = "o-country-modal-platform-block";
+
+  const header = document.createElement("div");
+  header.className = "o-country-modal-platform-header";
+
+  const lineLabel = createLineStyleRow(
+    goshipLineColor(),
+    "solid",
+    `${stats.sampledLineCount.toLocaleString()} lines — sampled in ${LAST_12_MONTHS}`
+  );
+  lineLabel.classList.add("o-country-modal-line-style-stat");
+  lineLabel.style.flex = "1";
+
+  const expandBtn = document.createElement("button");
+  expandBtn.type = "button";
+  expandBtn.className = "o-country-modal-expand-btn";
+  expandBtn.setAttribute("aria-expanded", "false");
+  expandBtn.setAttribute("aria-label", "Show sampled lines by country");
+  expandBtn.textContent = "+";
+
+  header.append(lineLabel, expandBtn);
+
+  const panel = document.createElement("div");
+  panel.className = "o-goship-sampled-panel";
+  panel.hidden = true;
+
+  if (stats.sampledLinesByCountry.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "o-country-modal-empty";
+    empty.textContent = "No sampled lines in the latest 12 months.";
+    panel.appendChild(empty);
+  } else {
+    panel.appendChild(buildSampledLinesTable(stats));
+  }
+
+  expandBtn.addEventListener("click", () => {
+    const open = block.classList.toggle("open");
+    panel.hidden = !open;
+    expandBtn.setAttribute("aria-expanded", String(open));
+    expandBtn.textContent = open ? "−" : "+";
+  });
+
+  block.append(header, panel);
+  sampledList.appendChild(block);
+  section.appendChild(sampledList);
+
+  const dashList = document.createElement("ul");
+  dashList.className = "o-country-modal-list o-country-modal-list--line-style";
+  appendLineStyleStatLine(
+    dashList,
+    "dash",
+    `${stats.unsampledLineCount.toLocaleString()} lines — not sampled during ${LAST_12_MONTHS}`
+  );
+  section.appendChild(dashList);
+
+  parent.appendChild(section);
 }
 
 function appendLineStyleStatLine(
@@ -43,286 +149,18 @@ function appendLineStyleStatLine(
   list.appendChild(item);
 }
 
-function extraCruiseCount(stats: GoshipEditionStats): number {
-  return stats.linesWithMultipleCruises.reduce(
-    (sum, row) => sum + Math.max(0, row.cruises.length - 1),
-    0
-  );
-}
-
-function sharedCruiseDeduction(stats: GoshipEditionStats): number {
-  return stats.sharedCruises.reduce(
-    (sum, row) => sum + Math.max(0, row.lines.length - 1),
-    0
-  );
-}
-
-function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
-  const section = document.createElement("section");
-  section.className = "o-country-modal-section";
-
-  const heading = document.createElement("h3");
-  heading.className = "o-country-modal-section-title";
-  heading.textContent = "Edition window";
-  section.appendChild(heading);
-
-  const period = document.createElement("p");
-  period.className = "o-country-modal-section-desc";
-  period.textContent = `${stats.periodSince} → ${stats.periodUntil}`;
-  section.appendChild(period);
-
-  const list = document.createElement("ul");
-  list.className = "o-country-modal-list o-country-modal-list--line-style";
-
-  const sinceYear = editionSinceYear(stats.periodSince);
-
-  appendStatLine(
-    list,
-    `${stats.designLineCount.toLocaleString()} GO-SHIP design lines on map`
-  );
-  appendLineStyleStatLine(
-    list,
-    "solid",
-    `${stats.sampledLineCount.toLocaleString()} — Sampled since ${sinceYear}`
-  );
-  appendStatLine(
-    list,
-    `${stats.distinctCruiseCount.toLocaleString()} distinct cruises on sampled lines (legend counts cruises, not lines)`
-  );
-  appendLineStyleStatLine(
-    list,
-    "dash",
-    `${stats.unsampledLineCount.toLocaleString()} — Not sampled since ${sinceYear}`
-  );
-  appendStatLine(
-    list,
-    `${stats.legendCruiseCount.toLocaleString()} edition cruises (legend count, lead program country)`
-  );
-  if (stats.lineAssociationCount !== stats.distinctCruiseCount) {
-    appendStatLine(
-      list,
-      `${stats.lineAssociationCount.toLocaleString()} line–cruise links (same cruise can appear on several lines)`
-    );
-  }
-
-  section.appendChild(list);
-  parent.appendChild(section);
-}
-
-function appendCountryList(
-  parent: HTMLElement,
-  stats: GoshipEditionStats
-): void {
-  const section = document.createElement("section");
-  section.className = "o-country-modal-section";
-
-  const heading = document.createElement("h3");
-  heading.className = "o-country-modal-section-title";
-  heading.textContent = "Edition cruises by lead program country";
-  section.appendChild(heading);
-
-  const desc = document.createElement("p");
-  desc.className = "o-country-modal-section-desc";
-  desc.textContent =
-    "Partner export counts distinct cruises (not lines), attributed to the lead cruise program country.";
-  section.appendChild(desc);
-
-  if (stats.cruisesByCountry.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "o-country-modal-empty";
-    empty.textContent = "No edition cruises recorded.";
-    section.appendChild(empty);
-    parent.appendChild(section);
-    return;
-  }
-
-  const list = document.createElement("ul");
-  list.className = "o-country-modal-list";
-  for (const row of stats.cruisesByCountry) {
-    const item = document.createElement("li");
-    item.textContent = `${row.country} (${row.count.toLocaleString()})`;
-    list.appendChild(item);
-  }
-  section.appendChild(list);
-  parent.appendChild(section);
-}
-
-function appendSampledLines(parent: HTMLElement, stats: GoshipEditionStats): void {
-  const section = document.createElement("section");
-  section.className = "o-country-modal-section";
-
-  const headingWrap = document.createElement("div");
-  headingWrap.className = "o-country-modal-section-title-row";
-  headingWrap.appendChild(
-    createLineStyleRow(
-      goshipLineColor(),
-      "solid",
-      "Sampled lines"
-    )
-  );
-  section.appendChild(headingWrap);
-
-  const list = document.createElement("ul");
-  list.className = "o-country-modal-line-names";
-  for (const lineName of stats.sampledLineNames) {
-    const item = document.createElement("li");
+function appendGoshipLineNames(cell: HTMLElement, lineNames: string[]): void {
+  lineNames.forEach((lineName, index) => {
+    if (index > 0) {
+      cell.append(", ");
+    }
     const link = document.createElement("a");
     link.href = `${INSPECT_LINE_BASE}${encodeURIComponent(lineName)}`;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = lineName;
-    item.appendChild(link);
-    list.appendChild(item);
-  }
-  section.appendChild(list);
-  parent.appendChild(section);
-}
-
-function appendUnsampledLines(parent: HTMLElement, stats: GoshipEditionStats): void {
-  if (stats.unsampledLineCount === 0) return;
-
-  const section = document.createElement("section");
-  section.className = "o-country-modal-section";
-
-  const headingWrap = document.createElement("div");
-  headingWrap.className = "o-country-modal-section-title-row";
-  headingWrap.appendChild(
-    createLineStyleRow(
-      goshipLineColor(),
-      "dash",
-      "Not sampled in edition"
-    )
-  );
-  section.appendChild(headingWrap);
-
-  const list = document.createElement("ul");
-  list.className = "o-country-modal-list o-country-modal-list--expandable";
-
-  for (const group of stats.unsampledByStatus) {
-    const block = document.createElement("li");
-    block.className = "o-country-modal-platform-block";
-
-    const header = document.createElement("div");
-    header.className = "o-country-modal-platform-header";
-
-    const label = document.createElement("span");
-    label.className = "o-country-modal-network";
-    label.textContent = group.status;
-
-    const count = document.createElement("span");
-    count.className = "o-legend-count";
-    count.textContent = ` (${group.count.toLocaleString()})`;
-
-    header.append(label, count);
-
-    if (group.lineNames.length > 0) {
-      const expandBtn = document.createElement("button");
-      expandBtn.type = "button";
-      expandBtn.className = "o-country-modal-expand-btn";
-      expandBtn.setAttribute("aria-expanded", "false");
-      expandBtn.setAttribute("aria-label", `Show lines for ${group.status}`);
-      expandBtn.textContent = "+";
-      header.appendChild(expandBtn);
-
-      const children = document.createElement("ul");
-      children.className = "o-country-modal-line-names";
-      children.hidden = true;
-
-      for (const lineName of group.lineNames) {
-        const item = document.createElement("li");
-        const link = document.createElement("a");
-        link.href = `${INSPECT_LINE_BASE}${encodeURIComponent(lineName)}`;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = lineName;
-        item.appendChild(link);
-        children.appendChild(item);
-      }
-
-      expandBtn.addEventListener("click", () => {
-        const open = block.classList.toggle("open");
-        children.hidden = !open;
-        expandBtn.setAttribute("aria-expanded", String(open));
-        expandBtn.textContent = open ? "−" : "+";
-      });
-
-      block.append(header, children);
-    } else {
-      block.appendChild(header);
-    }
-
-    list.appendChild(block);
-  }
-
-  section.appendChild(list);
-  parent.appendChild(section);
-}
-
-function appendLegendVsLinesExplanation(
-  parent: HTMLElement,
-  stats: GoshipEditionStats
-): void {
-  if (stats.distinctCruiseCount === stats.sampledLineCount) return;
-
-  const extra = extraCruiseCount(stats);
-  const shared = sharedCruiseDeduction(stats);
-  const lines = stats.sampledLineCount;
-  const cruises = stats.distinctCruiseCount;
-
-  const section = document.createElement("section");
-  section.className = "o-country-modal-section";
-
-  const heading = document.createElement("h3");
-  heading.className = "o-country-modal-section-title";
-  heading.textContent = `Why ${cruises} ≠ ${lines}`;
-  section.appendChild(heading);
-
-  const list = document.createElement("ul");
-  list.className = "o-country-modal-list";
-
-  appendStatLine(
-    list,
-    `${lines.toLocaleString()} = sampled lines (solid on map)`
-  );
-  appendStatLine(
-    list,
-    `${cruises.toLocaleString()} = distinct edition cruises (legend count)`
-  );
-
-  if (extra > 0) {
-    const multiDetail = stats.linesWithMultipleCruises
-      .map((row) => {
-        const dates = row.cruises
-          .map((cruise) => cruise.cruise_date || cruise.cruise_ref || "—")
-          .join(", ");
-        return `${row.lineName} (${dates})`;
-      })
-      .join("; ");
-    appendStatLine(
-      list,
-      `+${extra.toLocaleString()} extra cruise${extra === 1 ? "" : "s"} — ${multiDetail}`
-    );
-  }
-
-  if (shared > 0) {
-    for (const row of stats.sharedCruises) {
-      const deduct = Math.max(0, row.lines.length - 1);
-      const details = [row.shipName, row.cruiseDate, row.programCountry].filter(Boolean);
-      appendStatLine(
-        list,
-        `−${deduct.toLocaleString()} shared cruise — ${row.cruiseRef}${details.length > 0 ? ` (${details.join(", ")})` : ""} on lines ${row.lines.join(" + ")}`
-      );
-    }
-  }
-
-  appendStatLine(list, `→ ${lines} + ${extra} − ${shared} = ${cruises}`);
-
-  section.appendChild(list);
-  parent.appendChild(section);
-}
-
-function appendNotes(parent: HTMLElement, stats: GoshipEditionStats): void {
-  appendLegendVsLinesExplanation(parent, stats);
+    cell.appendChild(link);
+  });
 }
 
 export async function openGoshipMetricsModal(
@@ -330,6 +168,7 @@ export async function openGoshipMetricsModal(
   periodUntil: string
 ): Promise<void> {
   closeCountryMetricsModal();
+  closeSoconetMetricsModal();
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
 
@@ -353,7 +192,7 @@ export async function openGoshipMetricsModal(
   const title = document.createElement("h2");
   title.id = "o-goship-modal-title";
   title.className = "o-country-modal-title";
-  title.textContent = "GO-SHIP edition breakdown";
+  title.textContent = "GO-SHIP Reference lines";
   titleWrap.append(picto, title);
 
   const closeBtn = document.createElement("button");
@@ -396,10 +235,6 @@ export async function openGoshipMetricsModal(
     const stats = await loadGoshipEditionStats(periodSince, periodUntil);
     body.replaceChildren();
     appendSummary(body, stats);
-    appendNotes(body, stats);
-    appendCountryList(body, stats);
-    appendSampledLines(body, stats);
-    appendUnsampledLines(body, stats);
   } catch {
     body.innerHTML = `<p class="o-country-modal-empty">Could not load GO-SHIP breakdown.</p>`;
   }

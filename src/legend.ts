@@ -33,6 +33,10 @@ import {
   closeGoshipMetricsModal,
   openGoshipMetricsModal,
 } from "./goshipMetricsModal";
+import {
+  closeSoconetMetricsModal,
+  openSoconetMetricsModal,
+} from "./soconetMetricsModal";
 import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 
 const BASE = import.meta.env.BASE_URL;
@@ -288,6 +292,7 @@ export function attachLegend(
   document.getElementById("legend-toggle")?.remove();
   closeCountryMetricsModal();
   closeGoshipMetricsModal();
+  closeSoconetMetricsModal();
   document.body.classList.remove("menu-open");
 
   // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
@@ -762,6 +767,14 @@ export function attachLegend(
       void openGoshipMetricsModal(since, until);
     };
 
+    const openSoconetBreakdown = () => {
+      const where = getCountryCountWhere(selectedCountries, filterableCountries);
+      void openSoconetMetricsModal(
+        layerById as Map<string, GeoJSONLayer>,
+        where
+      );
+    };
+
     const count =
       cat.id === "goship"
         ? (() => {
@@ -769,8 +782,8 @@ export function attachLegend(
             countBtn.className = "o-legend-count o-legend-count-btn";
             countBtn.setAttribute("role", "button");
             countBtn.tabIndex = 0;
-            countBtn.setAttribute("aria-label", "View GO-SHIP edition breakdown");
-            countBtn.title = "View GO-SHIP edition breakdown";
+            countBtn.setAttribute("aria-label", "View GO-SHIP reference lines");
+            countBtn.title = "View GO-SHIP reference lines";
             countBtn.textContent = " (…)";
             const openFromCount = (event: Event) => {
               event.preventDefault();
@@ -785,12 +798,34 @@ export function attachLegend(
             });
             return countBtn;
           })()
-        : (() => {
-            const countSpan = document.createElement("span");
-            countSpan.className = "o-legend-count";
-            countSpan.textContent = " (…)";
-            return countSpan;
-          })();
+        : cat.id === "soconet"
+          ? (() => {
+              const countBtn = document.createElement("span");
+              countBtn.className = "o-legend-count o-legend-count-btn";
+              countBtn.setAttribute("role", "button");
+              countBtn.tabIndex = 0;
+              countBtn.setAttribute("aria-label", "View SOCONET breakdown");
+              countBtn.title = "View SOCONET breakdown (ships + moored buoys)";
+              countBtn.textContent = " (…)";
+              const openFromCount = (event: Event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openSoconetBreakdown();
+              };
+              countBtn.addEventListener("click", openFromCount);
+              countBtn.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  openFromCount(event);
+                }
+              });
+              return countBtn;
+            })()
+          : (() => {
+              const countSpan = document.createElement("span");
+              countSpan.className = "o-legend-count";
+              countSpan.textContent = " (…)";
+              return countSpan;
+            })();
     countNodes.set(cat.id, count);
     row.appendChild(count);
 

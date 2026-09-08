@@ -2,6 +2,8 @@ import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
+import { closeGoshipMetricsModal } from "./goshipMetricsModal";
+import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 import {
   getCountryBreakdownFromMap,
   getCountryLineDetailsFromMap,
@@ -534,6 +536,8 @@ export async function openCountryMetricsModal(
   getVisibleLayerIds: () => ReadonlySet<string>,
   layerById: Map<string, GeoJSONLayer>
 ): Promise<void> {
+  closeGoshipMetricsModal();
+  closeSoconetMetricsModal();
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
 
