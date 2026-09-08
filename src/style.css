@@ -885,6 +885,23 @@ body.map-fullscreen:fullscreen #mapShell {
   color: rgba(248, 248, 248, 0.7);
 }
 
+.o-legend-data-note__text {
+  margin: 0;
+}
+
+.o-legend-inline-line {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 3px;
+  line-height: 0;
+}
+
+.o-legend-line-styles--inline {
+  margin: 12px 0 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .o-legend-line-styles {
   display: grid;
   grid-template-columns: 1fr 1fr;

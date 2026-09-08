@@ -5,7 +5,7 @@ import type { ViewHolder } from "./viewHolder";
 import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
-import { makeCategorySwatch } from "./categorySwatch";
+import { buildNetworksDataNote, makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
@@ -78,9 +78,6 @@ function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
   }
 }
 
-const DEFAULT_MAP_FOOTER =
-  "Latest locations of operational platforms as of October 2025. Data source: OceanOPS.";
-
 type ExportMetadata = {
   exportedAt?: string;
   OCEAN_GLIDERS_MIN_LOC_DATE?: string;
@@ -88,6 +85,7 @@ type ExportMetadata = {
   FVON_MIN_LOC_DATE?: string;
   SOOP_XBT_SAMPLED_SINCE?: string;
   GOSHIP_EDITION_SINCE?: string;
+  GOSHIP_RECENT_SINCE?: string;
   GOSHIP_SAMPLED_SINCE?: string;
   OBS_PERIOD_UNTIL?: string;
 };
@@ -101,12 +99,11 @@ function formatAsOfMonthYear(isoDate: string): string {
   });
 }
 
-/** Build footer from export date (line styles use the visual legend above). */
-function buildMapFooterFromMetadata(metadata: ExportMetadata): string | null {
-  const asOf = metadata.exportedAt
+function networksDataNoteFromMetadata(metadata: ExportMetadata | null) {
+  const asOf = metadata?.exportedAt
     ? formatAsOfMonthYear(metadata.exportedAt)
     : "October 2025";
-  return `Latest locations of operational platforms as of ${asOf}. Data source: OceanOPS.`;
+  return buildNetworksDataNote({ asOf });
 }
 
 async function loadExportMetadata(): Promise<ExportMetadata | null> {
@@ -815,6 +812,12 @@ export function attachLegend(
     networksBody.appendChild(row);
   }
 
+  const dataNoteWrap = document.createElement("div");
+  dataNoteWrap.className = "o-legend-data-note";
+  let dataNoteText = networksDataNoteFromMetadata(null);
+  dataNoteWrap.appendChild(dataNoteText);
+  networksBody.appendChild(dataNoteWrap);
+
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
     title: "Contributing countries",
@@ -917,11 +920,6 @@ export function attachLegend(
 
   addCountryRows(sortedFilterableCountries, countryList, countrySelectAllCheckbox);
 
-  const dataNote = document.createElement("p");
-  dataNote.className = "o-legend-data-note";
-  dataNote.textContent = DEFAULT_MAP_FOOTER;
-  countryBody.appendChild(dataNote);
-
   // Create footer and add it to content (not legend)
   const footer = document.createElement("div");
   footer.className = "o-legend-footer";
@@ -935,10 +933,9 @@ export function attachLegend(
   void loadExportMetadata().then((metadata) => {
     if (!metadata) return;
     exportMetadata = metadata;
-    const footerText = buildMapFooterFromMetadata(metadata);
-    if (footerText) {
-      dataNote.textContent = footerText;
-    }
+    const updated = networksDataNoteFromMetadata(metadata);
+    dataNoteText.replaceWith(updated);
+    dataNoteText = updated;
   });
 
   legend.appendChild(content);

@@ -204,6 +204,51 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
   return container;
 }
 
+/** Small inline line icon for prose-style legend notes. */
+export function makeInlineLineSample(
+  color: string,
+  style: "solid" | "dash"
+): HTMLSpanElement {
+  const wrap = document.createElement("span");
+  wrap.className = "o-legend-inline-line";
+  wrap.setAttribute("aria-hidden", "true");
+  appendLineSample(wrap, color, style);
+  return wrap;
+}
+
+export type NetworksDataNoteOptions = {
+  asOf: string;
+};
+
+const LAST_12_MONTHS = "the last 12 months";
+
+/** Networks footer — platform locations + inline XBT/GO-SHIP line keys. */
+export function buildNetworksDataNote({
+  asOf,
+}: NetworksDataNoteOptions): HTMLParagraphElement {
+  const oceantrax = categories.find((cat) => cat.id === "oceantrax");
+  const goship = categories.find((cat) => cat.id === "goship");
+  const xbtColor = oceantrax?.color ?? "#faa62d";
+  const goshipColor = goship?.color ?? "#ee2f2b";
+
+  const paragraph = document.createElement("p");
+  paragraph.className = "o-legend-data-note__text";
+
+  paragraph.append(`Latest locations of operational platforms as of ${asOf}. `);
+  paragraph.append("XBT reference lines ");
+  paragraph.append(makeInlineLineSample(xbtColor, "solid"));
+  paragraph.append(` sampled in ${LAST_12_MONTHS}. `);
+  paragraph.append("GO-SHIP lines: ");
+  paragraph.append(makeInlineLineSample(goshipColor, "solid"));
+  paragraph.append(` sampled in ${LAST_12_MONTHS}, `);
+  paragraph.append(makeInlineLineSample(goshipColor, "dash"));
+  paragraph.append(
+    ` not sampled in ${LAST_12_MONTHS}. Data source: OceanOPS.`
+  );
+
+  return paragraph;
+}
+
 /** Solid/dash line sample row (shared by sidebar legend and GO-SHIP modal). */
 export function createLineStyleRow(
   color: string,
