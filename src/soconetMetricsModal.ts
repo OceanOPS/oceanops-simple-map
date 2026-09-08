@@ -41,8 +41,7 @@ async function loadSoconetBreakdown(
 function soconetBreakdownPicto(
   layerId: "soconet" | "soconet_moorings"
 ): HTMLElement {
-  // Ships = VOS-style ship icon; moorings = DBCP moored buoy (network table icons).
-  return makeNetworkPicto(layerId === "soconet" ? "vos" : "soconet_moorings", "modal");
+  return makeNetworkPicto(layerId, "modal");
 }
 
 function appendBreakdownRow(
