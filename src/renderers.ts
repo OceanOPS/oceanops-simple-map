@@ -56,8 +56,32 @@ export function makeHollowSquareRenderer3D(color: string, size: number) {
   });
 }
 
-/** Screen size (px) for 3D ship lines — solid and dashed share the same width. */
+/** Screen size (px) for 3D ship lines when zoomed in — solid and dashed share the same width. */
 export const LINE_3D_LINE_SIZE_PX = 3;
+/** Very thin ship lines when the globe camera is pulled back. */
+export const LINE_3D_LINE_SIZE_PX_UNZOOMED = 1.5;
+
+/** Default SceneView camera altitude (m) — matches `createGlobeView`. */
+export const GLOBE_CAMERA_Z_REF = 2.2e7;
+/** Approximate closest globe camera altitude (m) used for width interpolation. */
+export const GLOBE_CAMERA_Z_MIN = 2.5e6;
+
+function globeZoomFactor(cameraZ: number): number {
+  const z = Math.max(cameraZ, GLOBE_CAMERA_Z_MIN);
+  if (z >= GLOBE_CAMERA_Z_REF) return 1;
+  const logRef = Math.log(GLOBE_CAMERA_Z_REF);
+  const logMin = Math.log(GLOBE_CAMERA_Z_MIN);
+  return (Math.log(z) - logMin) / (logRef - logMin);
+}
+
+/** Interpolate line width (px) from zoomed-in to very thin when de-zoomed. */
+export function lineSizePxForCameraZ(cameraZ: number): number {
+  const t = globeZoomFactor(cameraZ);
+  return (
+    LINE_3D_LINE_SIZE_PX +
+    (LINE_3D_LINE_SIZE_PX_UNZOOMED - LINE_3D_LINE_SIZE_PX) * t
+  );
+}
 
 /** Diameter of generic 3D path tubes (non ship dual-style layers), in meters. */
 export const LINE_3D_WIDTH_METERS = 20000;
@@ -244,7 +268,8 @@ export function makeMooredBuoysRenderer(
   color: string,
   stackVisibility: MooringStackVisibility = { oceansites: true, soconetMoorings: true }
 ) {
-  const size = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
+  const stackedSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
+  const aloneSize = MERCATOR_POINT_SIZE;
   const use3d = is3dProjection(projection);
   const solidSymbol = use3d
     ? new PointSymbol3D({
@@ -252,7 +277,7 @@ export function makeMooredBuoysRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color },
-            size,
+            size: aloneSize,
             outline: { color: "black", size: 0.5 },
           }),
         ],
@@ -260,7 +285,7 @@ export function makeMooredBuoysRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color,
-        size,
+        size: aloneSize,
         outline: { color: [0, 0, 0, 1], width: 0.5 },
       });
   const hollowSymbol = use3d
@@ -269,7 +294,7 @@ export function makeMooredBuoysRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color: [0, 0, 0, 0] },
-            size,
+            size: stackedSize,
             outline: { color, size: 2 },
           }),
         ],
@@ -277,7 +302,7 @@ export function makeMooredBuoysRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color: [0, 0, 0, 0],
-        size,
+        size: stackedSize,
         outline: { color, width: 2 },
       });
 

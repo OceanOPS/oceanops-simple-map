@@ -3,7 +3,6 @@ import EsriMap from "@arcgis/core/Map.js";
 import type SceneView from "@arcgis/core/views/SceneView.js";
 import { categories, type Category, type Shape } from "./categories";
 import {
-  applyOperationalLayerStackOrder,
   sortedOperationalLayerIds,
 } from "./layerStackOrder";
 import { attachLegend } from "./legend";
@@ -17,7 +16,6 @@ import {
 } from "./map";
 import {
   is3dProjection,
-  isPlateCarreeProjection,
   PROJECTION_3D_GLOBE,
   type ProjectionId,
 } from "./projections";
@@ -25,13 +23,12 @@ import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
 import { getMooredBuoysGeoJsonUrl } from "./mooringStackGeojson";
 import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
-import { makeCategoryRenderer, makeGoshipLineRenderer, makeMooredBuoysRenderer } from "./renderers";
+import { bindGlobeLineWidthZoomSync } from "./lineWidthZoom";
+import { makeCategoryRenderer, makeGoshipLineRenderer, makeMooredBuoysRenderer, makeOceanTraxLineRenderer } from "./renderers";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
-  bindPlateCarreeLayoutSync,
   fitViewInitialExtent,
-  reflowPlateCarreeIfWorldScale,
   refreshViewLayout,
 } from "./viewLayout";
 import { applyProjectionShellLayout } from "./projectionLayout";
@@ -87,8 +84,8 @@ function createGeoJsonLayer(
     cat.id === "goship"
       ? makeGoshipLineRenderer(projection, cat.color)
       : cat.id === "oceantrax"
-        ? makeCategoryRenderer(projection, "line", cat.color)
-        : cat.id === "moored_buoys"
+        ? makeOceanTraxLineRenderer(projection, cat.color)
+        : cat.id === "moored_buoys" && is3dProjection(projection)
           ? makeMooredBuoysRenderer(projection, cat.color)
           : makeCategoryRenderer(
             projection,
@@ -137,15 +134,19 @@ async function addOperationalLayers(
 ): Promise<void> {
   layerById.clear();
   const layerPromises: Promise<unknown>[] = [];
+  const use3d = is3dProjection(projection);
 
-  const sortedCategories = sortedOperationalLayerIds()
-    .map((id) => categories.find((c) => c.id === id))
-    .filter((c): c is (typeof categories)[number] => c != null);
+  const mooredBuoysUrl = use3d ? await getMooredBuoysGeoJsonUrl(BASE) : undefined;
 
-  const mooredBuoysUrl = await getMooredBuoysGeoJsonUrl(BASE);
+  const layersToAdd = use3d
+    ? sortedOperationalLayerIds()
+        .map((id) => categories.find((c) => c.id === id))
+        .filter((c): c is (typeof categories)[number] => c != null)
+    : [...categories];
 
-  for (const cat of sortedCategories) {
-    const layerUrl = cat.id === "moored_buoys" ? mooredBuoysUrl : undefined;
+  for (const cat of layersToAdd) {
+    const layerUrl =
+      cat.id === "moored_buoys" && mooredBuoysUrl ? mooredBuoysUrl : undefined;
     const layer = createGeoJsonLayer(cat as Category, projection, layerUrl);
     map.add(layer);
     layerById.set(cat.id, layer);
@@ -153,8 +154,9 @@ async function addOperationalLayers(
   }
 
   await Promise.all(layerPromises);
-  applyOperationalLayerStackOrder(map, layerById);
-  applyMooredBuoysStackSymbology(layerById, projection);
+  if (use3d) {
+    applyMooredBuoysStackSymbology(layerById, projection);
+  }
 }
 
 async function computeLayerUnion(layerById: Map<string, GeoJSONLayer>) {
@@ -264,10 +266,10 @@ function createRotationController(
     stopRotation: () => {},
   };
   let unbindMapServerLoader: (() => void) | null = null;
-  let unbindPlateCarreeLayout: (() => void) | null = null;
   let unbindMapFullscreen: (() => void) | null = null;
   let unbindMapFullscreenEmbed: (() => void) | null = null;
   let unbindMapEmbedResize: (() => void) | null = null;
+  let unbindGlobeLineWidthZoom: (() => void) | null = null;
 
   if (window.self !== window.top) {
     document.documentElement.classList.add("map-embedded");
@@ -275,9 +277,7 @@ function createRotationController(
   }
 
   const onShellLayoutChange = () => {
-    void refreshViewLayout(viewHolder.view).then(() => {
-      void reflowPlateCarreeIfWorldScale(viewHolder.view, currentProjection);
-    });
+    void refreshViewLayout(viewHolder.view);
   };
 
   const attachLegendToView = () => {
@@ -350,32 +350,26 @@ function createRotationController(
     unbindMapEmbedResize?.();
     unbindMapEmbedResize = bindMapEmbedResizeSync(onShellLayoutChange);
 
-    attachLegendToView();
+    unbindGlobeLineWidthZoom?.();
+    unbindGlobeLineWidthZoom = is3dProjection(projection)
+      ? bindGlobeLineWidthZoomSync(view, layerById, () => currentProjection)
+      : null;
 
-    unbindPlateCarreeLayout?.();
-    if (isPlateCarreeProjection(projection)) {
-      await reflowPlateCarreeIfWorldScale(view, projection);
-      unbindPlateCarreeLayout = bindPlateCarreeLayoutSync(
-        view,
-        () => currentProjection
-      );
-    } else {
-      unbindPlateCarreeLayout = null;
-    }
+    attachLegendToView();
   }
 
   async function swapProjection(projection: ProjectionId) {
     rotationApi.stopRotation();
     unbindMapServerLoader?.();
     unbindMapServerLoader = null;
-    unbindPlateCarreeLayout?.();
-    unbindPlateCarreeLayout = null;
     unbindMapFullscreen?.();
     unbindMapFullscreen = null;
     unbindMapFullscreenEmbed?.();
     unbindMapFullscreenEmbed = null;
     unbindMapEmbedResize?.();
     unbindMapEmbedResize = null;
+    unbindGlobeLineWidthZoom?.();
+    unbindGlobeLineWidthZoom = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;

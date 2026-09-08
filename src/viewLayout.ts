@@ -137,6 +137,9 @@ export async function fitViewInitialExtent(
   layerUnion: __esri.Extent | null
 ): Promise<void> {
   if (isPlateCarreeProjection(projection)) {
+    if (view.type === "2d") {
+      await fitPlateCarreeView(view as MapView);
+    }
     return;
   }
 

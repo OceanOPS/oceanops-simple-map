@@ -805,7 +805,9 @@ export function attachLegend(
       updateSelectAllState();
       updateLayerCounts();
       void updateCountryRowCounts();
-      applyMooredBuoysStackSymbology(layerById, getProjection());
+      if (is3dProjection(getProjection())) {
+        applyMooredBuoysStackSymbology(layerById, getProjection());
+      }
     });
 
     layerCheckboxes.push(cb);

@@ -27,7 +27,7 @@ export function mapLayerStackRank(layerId: string, defaultIndex: number): number
 }
 
 /** Test colour for SOCONET ships + moorings (replacing blue ship). */
-export const SOCONET_COLOR = "#ec4899";
+export const SOCONET_COLOR = "#e8bceb";
 
 export type Category =
   | {
@@ -77,7 +77,7 @@ export const categories = [
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.oceansites  },
-  { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.moored_buoys },
+  { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: 5 },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – DBCP/TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
   { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square'  },
   { id: 'drifting_buoys',               label: 'Drifting buoys – DBCP/GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
