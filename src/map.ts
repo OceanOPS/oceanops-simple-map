@@ -445,7 +445,7 @@ export function mountBasemapProjectionControl(
   const fullscreenBtn = document.createElement("button");
   fullscreenBtn.type = "button";
   fullscreenBtn.className = "o-map-fullscreen-toggle";
-  fullscreenBtn.setAttribute("aria-label", "Full screen map");
+  fullscreenBtn.setAttribute("aria-label", "Expand map");
 
   const fullscreenHint = document.createElement("span");
   fullscreenHint.className = "o-basemap-kind-label";
@@ -463,11 +463,11 @@ export function mountBasemapProjectionControl(
     const active = isMapFullscreen();
     fullscreenBtn.classList.toggle("is-active", active);
     fullscreenBtn.innerHTML = active ? compressIcon : expandIcon;
-    fullscreenHint.textContent = active ? "Exit full screen" : "Full screen";
-    fullscreenBtn.title = active ? "Exit full screen" : "Full screen map";
+    fullscreenHint.textContent = active ? "Collapse" : "Expand";
+    fullscreenBtn.title = active ? "Collapse map" : "Expand map";
     fullscreenBtn.setAttribute(
       "aria-label",
-      active ? "Exit full screen" : "Full screen map"
+      active ? "Collapse map" : "Expand map"
     );
   };
 

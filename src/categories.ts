@@ -3,9 +3,9 @@ export type Shape = "circle" | "square" | "triangle" ;
 
 /** Square marker sizes for overlapping fixed moorings (largest → smallest). */
 export const MOORING_SQUARE_MARKER_SIZES = {
-  moored_buoys: 10,
-  oceansites: 7,
-  soconet_moorings: 5,
+  moored_buoys: 7,
+  oceansites: 5,
+  soconet_moorings: 4,
 } as const;
 
 /** Map draw order for nested mooring squares (bottom → top). */

@@ -40,6 +40,9 @@ export function makePointRenderer3D(color: string, shape: Shape = "circle", size
   });
 }
 
+/** Outline width (px) for hollow mooring stack rings — keep subtle vs inner tiers. */
+export const MOORING_STACK_OUTLINE_WIDTH = 1.5;
+
 /** Largest mooring tier: hollow ring so inner squares stay visible in SceneView. */
 export function makeHollowSquareRenderer3D(color: string, size: number) {
   return new SimpleRenderer({
@@ -49,7 +52,7 @@ export function makeHollowSquareRenderer3D(color: string, size: number) {
           resource: { primitive: "square" },
           material: { color: [0, 0, 0, 0] },
           size,
-          outline: { color, size: 2 },
+          outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
         }),
       ],
     }),
@@ -176,7 +179,7 @@ export function makeHollowSquareRenderer2D(color: string, size: number) {
       style: "square",
       color: [0, 0, 0, 0],
       size,
-      outline: { color, width: 2 },
+      outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
     }),
   });
 }
@@ -295,7 +298,7 @@ export function makeMooredBuoysRenderer(
             resource: { primitive: "square" },
             material: { color: [0, 0, 0, 0] },
             size: stackedSize,
-            outline: { color, size: 2 },
+            outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
           }),
         ],
       })
@@ -303,7 +306,7 @@ export function makeMooredBuoysRenderer(
         style: "square",
         color: [0, 0, 0, 0],
         size: stackedSize,
-        outline: { color, width: 2 },
+        outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
       });
 
   const oceansitesOn = stackVisibility.oceansites ? 1 : 0;
