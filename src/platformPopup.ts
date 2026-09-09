@@ -21,6 +21,28 @@ function hasCountryValue(value: unknown): boolean {
   return text.length > 0 && !isIgnoredGeoCountry(text);
 }
 
+function parseSensorProviderCountries(csv: string): string[] {
+  const seen = new Set<string>();
+  const countries: string[] = [];
+  for (const raw of csv.split(",")) {
+    const trimmed = raw.trim();
+    const key = trimmed.toUpperCase();
+    if (!hasCountryValue(trimmed) || seen.has(key)) continue;
+    seen.add(key);
+    countries.push(trimmed);
+  }
+  return countries;
+}
+
+function crossProgramSensorCountries(
+  sensorCsv: string,
+  contributingCountry: string
+): string[] {
+  return parseSensorProviderCountries(sensorCsv).filter(
+    (country) => !countryNamesMatch(contributingCountry, country)
+  );
+}
+
 function formatCountryLabelHtml(country: string, reportingIso?: string): string {
   if (!country) return "";
   const label = getContributingCountryLabel(country, reportingIso);
@@ -49,11 +71,13 @@ export function platformPopupContent(cat: Category) {
       !countryNamesMatch(contributingCountry, shipCountry)
         ? `<p><b>Ship country:</b> ${formatCountryLabelHtml(shipCountry)}</p>`
         : "";
-    const sensorCountry = String(attrs.country_sensor_provider ?? "").trim();
+    const sensorCountries = crossProgramSensorCountries(
+      String(attrs.country_sensor_provider ?? ""),
+      contributingCountry
+    );
     const sensorCountryHtml =
-      hasCountryValue(sensorCountry) &&
-      !countryNamesMatch(contributingCountry, sensorCountry)
-        ? `<p>Equipped with at least one sensor from ${formatCountryLabelHtml(sensorCountry)}</p>`
+      sensorCountries.length > 0
+        ? `<p>In addition to sensors from the contributing country, at least one cross-program sensor from ${formatCountriesWithFlagsHtml(sensorCountries.join(", "))}</p>`
         : "";
 
     const inspectUrl = ptfRef

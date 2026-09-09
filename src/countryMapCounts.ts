@@ -73,10 +73,15 @@ function shipCrossCountryWhere(country: CountryName): string {
 }
 
 function sensorProviderCountryWhere(country: CountryName): string {
-  const names = geoCountryNamesForFilter(country);
-  const list = names.map((n) => `'${n.replace(/'/g, "''")}'`).join(", ");
-  const inClause = names.length === 1 ? `= ${list}` : `IN (${list})`;
-  return `country_sensor_provider ${inClause} AND country_sensor_provider IS NOT NULL`;
+  const matchParts: string[] = [];
+  for (const name of geoCountryNamesForFilter(country)) {
+    const lit = name.replace(/'/g, "''");
+    matchParts.push(`country_sensor_provider = '${lit}'`);
+    matchParts.push(`country_sensor_provider LIKE '${lit},%'`);
+    matchParts.push(`country_sensor_provider LIKE '%, ${lit},%'`);
+    matchParts.push(`country_sensor_provider LIKE '%, ${lit}'`);
+  }
+  return `(${matchParts.join(" OR ")}) AND country_sensor_provider IS NOT NULL`;
 }
 
 /**
