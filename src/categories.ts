@@ -53,9 +53,9 @@ export type Category =
     };
 
 export const categories = [
-  { id: 'vos',                        label: 'Ship based meteorological – SOT/VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
-  { id: 'oceantrax',                        label: 'Ship based oceanographic – SOT/Ocean TraX',                 color: '#faa62d', type: 'line' },
-  { id: 'asap',                        label: 'Ship based aerological – SOT/ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
+  { id: 'vos',                        label: 'Ship based meteorological – VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
+  { id: 'oceantrax',                        label: 'Ship based oceanographic – Ocean TraX',                 color: '#faa62d', type: 'line' },
+  { id: 'asap',                        label: 'Ship based aerological – ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   {
     id: 'soconet',
     label: 'Surface ocean CO₂ – SOCONET',
@@ -77,10 +77,10 @@ export const categories = [
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.oceansites  },
-  { id: 'moored_buoys',                 label: 'Moored buoys – DBCP/MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: 5 },
-  { id: 'tsunami_buoys',                      label: 'Tsunami buoys – DBCP/TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
+  { id: 'moored_buoys',                 label: 'Moored buoys – MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: 5 },
+  { id: 'tsunami_buoys',                      label: 'Tsunami buoys – TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
   { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square'  },
-  { id: 'drifting_buoys',               label: 'Drifting buoys – DBCP/GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
+  { id: 'drifting_buoys',               label: 'Drifting buoys – GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
   { id: 'argo',                        label: 'Profiling floats – Argo',      color: '#2357a7', type: 'point', shape: 'circle' },
   { id: 'oceangliders',                      label: 'Gliders – OceanGliders',         color: '#71bf44', type: 'point', shape: 'circle'  },
   { id: 'anibos',                      label: 'Animal borne sensors - AniBOS',         color: '#ffffff', type: 'point', shape: 'circle' },

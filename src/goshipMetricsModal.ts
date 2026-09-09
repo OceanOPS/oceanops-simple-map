@@ -95,10 +95,10 @@ function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
 
   const expandBtn = document.createElement("button");
   expandBtn.type = "button";
-  expandBtn.className = "o-country-modal-expand-btn";
+  expandBtn.className = "o-country-modal-text-expand-btn";
   expandBtn.setAttribute("aria-expanded", "false");
   expandBtn.setAttribute("aria-label", "Show sampled lines by country");
-  expandBtn.textContent = "+";
+  expandBtn.textContent = "By country";
 
   header.append(lineLabel, expandBtn);
 
@@ -119,7 +119,11 @@ function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
     const open = block.classList.toggle("open");
     panel.hidden = !open;
     expandBtn.setAttribute("aria-expanded", String(open));
-    expandBtn.textContent = open ? "−" : "+";
+    expandBtn.textContent = open ? "Hide" : "By country";
+    expandBtn.setAttribute(
+      "aria-label",
+      open ? "Hide sampled lines by country" : "Show sampled lines by country"
+    );
   });
 
   block.append(header, panel);

@@ -42,8 +42,8 @@ import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 const BASE = import.meta.env.BASE_URL;
 
 const MENU_TOGGLE_HINT = {
-  closed: "Show filters & countries",
-  open: "Hide filters",
+  closed: "Map Legend and Contributing Countries",
+  open: "Hide map legend and contributing countries",
 } as const;
 
 const menuToggleIconClosed = `
@@ -199,76 +199,81 @@ function createCheckboxRow(
 ) {
   const row = document.createElement("label");
   row.className = className;
-  row.style.display = "flex";
-  row.style.alignItems = "center";
-  row.style.gap = "8px";
-  row.style.margin = "12px 0";
-  row.style.cursor = "pointer";
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = true;
 
   const text = document.createElement("span");
+  text.className = "o-legend-filter-row-label";
   text.textContent = labelText;
-  text.style.flex = "1";
 
   row.append(checkbox, text);
   return { row, checkbox, text };
 }
 
-const METRICS_BTN_ICON = `
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M2 13V8M6 13V4M10 13V6M14 13V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+const NETWORK_DETAILS_PLUS_ICON = `
+  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+    <path d="M5.5 2.5v6M2.5 5.5h6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
   </svg>
 `;
 
-function createCountryFilterRow(labelText: string, geoCountry: CountryName) {
-  const row = document.createElement("div");
-  row.className = "o-legend-country-row";
-  row.style.display = "flex";
-  row.style.alignItems = "center";
-  row.style.gap = "8px";
-  row.style.margin = "12px 0";
+function formatNetworkLegendCount(value: number): string {
+  return `(${value.toLocaleString()})`;
+}
 
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = true;
+function createLegendNetworkDetailsBtn(options: {
+  ariaLabel: string;
+  title: string;
+  onOpen: () => void;
+}): { button: HTMLButtonElement; count: HTMLSpanElement } {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "o-legend-network-details-btn";
+  button.setAttribute("aria-label", options.ariaLabel);
+  button.title = options.title;
+
+  const count = document.createElement("span");
+  count.className = "o-legend-count o-legend-network-details-count";
+  count.textContent = "(…)";
+  count.setAttribute("aria-hidden", "true");
+
+  const icon = document.createElement("span");
+  icon.className = "o-legend-network-details-icon";
+  icon.innerHTML = NETWORK_DETAILS_PLUS_ICON;
+  icon.setAttribute("aria-hidden", "true");
+
+  button.append(icon, count);
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    options.onOpen();
+  });
+
+  return { button, count };
+}
+
+function createCountryFilterRow(
+  labelText: string,
+  geoCountry: CountryName,
+  onMetricsOpen: () => void
+) {
+  const { row, checkbox, text: name } = createCheckboxRow(labelText);
+  name.className = "o-legend-country-name";
 
   const flag = document.createElement("span");
   flag.className = "o-legend-country-flag";
   appendCountryFlag(flag, getCountryIsoCode(geoCountry), labelText);
+  row.insertBefore(flag, name);
 
-  const name = document.createElement("span");
-  name.className = "o-legend-country-name";
-  name.textContent = labelText;
-  name.setAttribute("role", "button");
-  name.tabIndex = 0;
+  const { button: metricsBtn, count: total } = createLegendNetworkDetailsBtn({
+    ariaLabel: `View metrics for ${labelText}`,
+    title: "View network breakdown",
+    onOpen: onMetricsOpen,
+  });
+  row.appendChild(metricsBtn);
 
-  const metricsBtn = document.createElement("button");
-  metricsBtn.type = "button";
-  metricsBtn.className = "o-legend-country-metrics-btn";
-  metricsBtn.setAttribute("aria-label", `View metrics for ${labelText}`);
-  metricsBtn.title = "View network breakdown";
-
-  const total = document.createElement("span");
-  total.className = "o-legend-count o-legend-country-total";
-  total.textContent = "(…)";
-  total.setAttribute("aria-hidden", "true");
-
-  const metricsIcon = document.createElement("span");
-  metricsIcon.className = "o-legend-country-metrics-icon";
-  metricsIcon.innerHTML = METRICS_BTN_ICON;
-  metricsIcon.setAttribute("aria-hidden", "true");
-
-  metricsBtn.append(total, metricsIcon);
-  row.append(checkbox, flag, name, metricsBtn);
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "o-legend-country-block";
-  wrapper.append(row);
-
-  return { wrapper, row, checkbox, total, name, metricsBtn };
+  return { row, checkbox, total, name };
 }
 
 /**
@@ -545,7 +550,7 @@ export function attachLegend(
     for (const country of filterableCountries) {
       if (!countryTotalNodes.has(country)) continue;
       const programTotal = await getCountryProgramTotalFromMap(country, layers, visible);
-      setCountryTotalDisplay(country, `(${programTotal.toLocaleString()})`);
+      setCountryTotalDisplay(country, formatNetworkLegendCount(programTotal));
     }
   };
 
@@ -570,7 +575,7 @@ export function attachLegend(
             const total = networkKey
               ? getNetworkTotalFromPartner(networkKey, getPartnerDataSnapshot())
               : 0;
-            node.textContent = ` (${total.toLocaleString()})`;
+            node.textContent = formatNetworkLegendCount(total);
             node.title = `${total.toLocaleString()} edition cruises (lead program country)`;
             continue;
           }
@@ -585,7 +590,7 @@ export function attachLegend(
             const active = await (layer as GeoJSONLayer).queryFeatureCount({
               where: OCEANTRAX_ACTIVE_DEFINITION,
             });
-            node.textContent = ` (${active.toLocaleString()})`;
+            node.textContent = formatNetworkLegendCount(active);
             node.title = `${active.toLocaleString()} active Ocean TraX lines`;
             continue;
           }
@@ -601,7 +606,7 @@ export function attachLegend(
             id as "goship" | "oceantrax"
           );
           const n = await (layer as GeoJSONLayer).queryFeatureCount({ where: lineWhere });
-          node.textContent = ` (${n.toLocaleString()})`;
+          node.textContent = formatNetworkLegendCount(n);
           node.title =
             id === "goship"
               ? `${n.toLocaleString()} lines with edition cruises (selected countries)`
@@ -630,7 +635,7 @@ export function attachLegend(
           }
         }
         const node = countNodes.get(id);
-        if (node) node.textContent = ` (${total.toLocaleString()})`;
+        if (node) node.textContent = formatNetworkLegendCount(total);
       } catch {
         const node = countNodes.get(id);
         if (node) node.textContent = "";
@@ -697,44 +702,24 @@ export function attachLegend(
     selectAllCheckbox: HTMLInputElement
   ) => {
     for (const country of countries) {
-      const { wrapper, checkbox, total, name, metricsBtn } =
-        createCountryFilterRow(getCountryLabel(country), country);
+      const { row, checkbox, total } = createCountryFilterRow(
+        getCountryLabel(country),
+        country,
+        () => {
+          void openCountryMetricsModal(
+            country,
+            getVisibleLayerIds,
+            layerById as Map<string, GeoJSONLayer>
+          );
+        }
+      );
 
-      wrapper.setAttribute("data-country", country);
-      countryRowWrappers.set(country, wrapper);
+      row.setAttribute("data-country", country);
+      countryRowWrappers.set(country, row);
       registerCountryTotalNode(country, total);
       registerCountryCheckbox(country, checkbox, selectAllCheckbox);
 
-      const toggleCountryFromName = () => {
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event("change"));
-      };
-
-      name.addEventListener("click", (event) => {
-        event.stopPropagation();
-        toggleCountryFromName();
-      });
-
-      name.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          event.stopPropagation();
-          toggleCountryFromName();
-        }
-      });
-
-      const openDetails = (event: Event) => {
-        event.stopPropagation();
-        void openCountryMetricsModal(
-          country,
-          getVisibleLayerIds,
-          layerById as Map<string, GeoJSONLayer>
-        );
-      };
-
-      metricsBtn.addEventListener("click", openDetails);
-
-      container.appendChild(wrapper);
+      container.appendChild(row);
     }
   };
 
@@ -775,59 +760,30 @@ export function attachLegend(
       );
     };
 
-    const count =
-      cat.id === "goship"
-        ? (() => {
-            const countBtn = document.createElement("span");
-            countBtn.className = "o-legend-count o-legend-count-btn";
-            countBtn.setAttribute("role", "button");
-            countBtn.tabIndex = 0;
-            countBtn.setAttribute("aria-label", "View GO-SHIP reference lines");
-            countBtn.title = "View GO-SHIP reference lines";
-            countBtn.textContent = " (…)";
-            const openFromCount = (event: Event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              openGoshipBreakdown();
-            };
-            countBtn.addEventListener("click", openFromCount);
-            countBtn.addEventListener("keydown", (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                openFromCount(event);
-              }
-            });
-            return countBtn;
-          })()
-        : cat.id === "soconet"
-          ? (() => {
-              const countBtn = document.createElement("span");
-              countBtn.className = "o-legend-count o-legend-count-btn";
-              countBtn.setAttribute("role", "button");
-              countBtn.tabIndex = 0;
-              countBtn.setAttribute("aria-label", "View SOCONET breakdown");
-              countBtn.title = "View SOCONET breakdown (ships + moored buoys)";
-              countBtn.textContent = " (…)";
-              const openFromCount = (event: Event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                openSoconetBreakdown();
-              };
-              countBtn.addEventListener("click", openFromCount);
-              countBtn.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  openFromCount(event);
-                }
-              });
-              return countBtn;
-            })()
-          : (() => {
-              const countSpan = document.createElement("span");
-              countSpan.className = "o-legend-count";
-              countSpan.textContent = " (…)";
-              return countSpan;
-            })();
-    countNodes.set(cat.id, count);
-    row.appendChild(count);
+    let countEl: HTMLSpanElement;
+    if (cat.id === "goship") {
+      const { button, count } = createLegendNetworkDetailsBtn({
+        ariaLabel: "View GO-SHIP reference lines",
+        title: "View GO-SHIP reference lines",
+        onOpen: openGoshipBreakdown,
+      });
+      countEl = count;
+      row.appendChild(button);
+    } else if (cat.id === "soconet") {
+      const { button, count } = createLegendNetworkDetailsBtn({
+        ariaLabel: "View SOCONET breakdown",
+        title: "View SOCONET breakdown (ships + moored buoys)",
+        onOpen: openSoconetBreakdown,
+      });
+      countEl = count;
+      row.appendChild(button);
+    } else {
+      countEl = document.createElement("span");
+      countEl.className = "o-legend-count";
+      countEl.textContent = "(…)";
+      row.appendChild(countEl);
+    }
+    countNodes.set(cat.id, countEl);
 
     cb.addEventListener("change", () => {
       for (const layerId of legendLayerIdsForCategory(cat as Category)) {

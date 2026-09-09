@@ -49,6 +49,12 @@ export function platformPopupContent(cat: Category) {
       !countryNamesMatch(contributingCountry, shipCountry)
         ? `<p><b>Ship country:</b> ${formatCountryLabelHtml(shipCountry)}</p>`
         : "";
+    const sensorCountry = String(attrs.country_sensor_provider ?? "").trim();
+    const sensorCountryHtml =
+      hasCountryValue(sensorCountry) &&
+      !countryNamesMatch(contributingCountry, sensorCountry)
+        ? `<p>Equipped with at least one sensor from ${formatCountryLabelHtml(sensorCountry)}</p>`
+        : "";
 
     const inspectUrl = ptfRef
       ? `https://www.ocean-ops.org/board/wa/Platform?ref=${encodeURIComponent(ptfRef)}`
@@ -60,6 +66,7 @@ export function platformPopupContent(cat: Category) {
           <p><b>Model:</b> ${escapeHtml(String(attrs.ptf_model ?? ""))}</p>
           ${contributingCountryHtml}
           ${shipCountryHtml}
+          ${sensorCountryHtml}
           ${inspectUrl ? `<p><a target="_blank" rel="noopener noreferrer" href="${inspectUrl}">Inspect at OceanOPS</a></p>` : ""}
           </div>`;
   };
