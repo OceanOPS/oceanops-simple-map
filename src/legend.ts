@@ -9,6 +9,7 @@ import { buildNetworksDataNote, makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
+  SIDS_COUNTRIES,
   applyCountryFilter,
   getCountryCountWhere,
   getCountryLabel,
@@ -501,13 +502,17 @@ export function attachLegend(
   const euFilterable = EU_COUNTRIES.filter((country) =>
     filterableCountrySet.has(country)
   );
+  const sidsFilterable = SIDS_COUNTRIES.filter((country) =>
+    filterableCountrySet.has(country)
+  );
 
-  type CountryListFilter = "all" | "g7" | "eu";
+  type CountryListFilter = "all" | "g7" | "eu" | "sids";
   let countryListFilter: CountryListFilter = "all";
 
   const getVisibleListCountries = (): CountryName[] => {
     if (countryListFilter === "g7") return g7Filterable;
     if (countryListFilter === "eu") return euFilterable;
+    if (countryListFilter === "sids") return sidsFilterable;
     return sortedFilterableCountries;
   };
 
@@ -871,6 +876,14 @@ export function attachLegend(
   euFilterBtn.textContent = "EU";
   euFilterBtn.setAttribute("aria-pressed", "false");
 
+  const sidsFilterBtn = document.createElement("button");
+  sidsFilterBtn.type = "button";
+  sidsFilterBtn.className = "o-legend-country-group-btn";
+  sidsFilterBtn.textContent = "SIDS";
+  sidsFilterBtn.setAttribute("aria-pressed", "false");
+  sidsFilterBtn.title =
+    "Small Island Developing States (UN OHRLLS list — contributing countries on this map)";
+
   const updateCountryGroupFilterButtons = () => {
     allFilterBtn.classList.toggle("active", countryListFilter === "all");
     allFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "all"));
@@ -878,6 +891,8 @@ export function attachLegend(
     g7FilterBtn.setAttribute("aria-pressed", String(countryListFilter === "g7"));
     euFilterBtn.classList.toggle("active", countryListFilter === "eu");
     euFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "eu"));
+    sidsFilterBtn.classList.toggle("active", countryListFilter === "sids");
+    sidsFilterBtn.setAttribute("aria-pressed", String(countryListFilter === "sids"));
   };
 
   const applyCountryListFilter = (filter: CountryListFilter) => {
@@ -899,10 +914,12 @@ export function attachLegend(
   allFilterBtn.addEventListener("click", () => applyCountryListFilter("all"));
   g7FilterBtn.addEventListener("click", () => applyCountryListFilter("g7"));
   euFilterBtn.addEventListener("click", () => applyCountryListFilter("eu"));
+  sidsFilterBtn.addEventListener("click", () => applyCountryListFilter("sids"));
 
   countryGroupBtnRow.appendChild(allFilterBtn);
   if (g7Filterable.length > 0) countryGroupBtnRow.appendChild(g7FilterBtn);
   if (euFilterable.length > 0) countryGroupBtnRow.appendChild(euFilterBtn);
+  if (sidsFilterable.length > 0) countryGroupBtnRow.appendChild(sidsFilterBtn);
   countryBody.appendChild(countryGroupBtnRow);
 
   const countryList = document.createElement("div");

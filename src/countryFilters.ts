@@ -108,6 +108,27 @@ export const EU_COUNTRIES: CountryName[] = [
   "SWEDEN",
 ];
 
+/** UN SIDS — https://www.un.org/ohrlls/content/list-sids (members present in ALL_COUNTRIES). */
+export const SIDS_COUNTRIES: CountryName[] = [
+  "BAHAMAS",
+  "BERMUDA",
+  "COOK ISLANDS",
+  "CUBA",
+  "FIJI",
+  "GUINEA-BISSAU",
+  "KIRIBATI",
+  "MARSHALL IS.",
+  "MAURITIUS",
+  "MICRONESIA",
+  "NAURU",
+  "PNG",
+  "PUERTO RICO",
+  "SINGAPORE",
+  "TONGA",
+  "TUVALU",
+  "VANUATU",
+];
+
 const G7_SET = new Set<string>(G7_COUNTRIES);
 const EU_SET = new Set<string>(EU_COUNTRIES);
 
