@@ -8,6 +8,7 @@ export const PARTNER_NETWORK_TO_LAYER: Record<string, string> = {
   sotVos: "vos",
   sotAsap: "asap",
   soconet: "soconet",
+  soconetMoorings: "soconet_moorings",
   oceantrax: "oceantrax",
   goShip: "goship",
   gloss: "gloss",
