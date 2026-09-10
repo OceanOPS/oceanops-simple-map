@@ -10,6 +10,16 @@ function mapShell(): HTMLElement | null {
   return document.getElementById("mapShell");
 }
 
+/** Fullscreen the whole page so the legend (outside #mapShell) stays visible. */
+function nativeFullscreenRoot(): HTMLElement {
+  return document.documentElement;
+}
+
+function isNativeFullscreenActive(): boolean {
+  const root = document.fullscreenElement;
+  return root === document.documentElement || root === mapShell();
+}
+
 function isEmbedded(): boolean {
   try {
     return window.self !== window.top;
@@ -63,8 +73,9 @@ export async function setMapFullscreen(
 
     if (!embedded) {
       try {
-        if (document.fullscreenElement !== shell && shell.requestFullscreen) {
-          await shell.requestFullscreen();
+        const root = nativeFullscreenRoot();
+        if (document.fullscreenElement !== root && root.requestFullscreen) {
+          await root.requestFullscreen();
         }
       } catch {
         /* CSS-only fullscreen when the browser blocks the API */
@@ -113,8 +124,7 @@ export function bindMapFullscreenSync(onLayoutChange?: () => void): () => void {
   const onFullscreenChange = () => {
     if (isEmbedded()) return;
 
-    const shell = mapShell();
-    const nativeActive = shell != null && document.fullscreenElement === shell;
+    const nativeActive = isNativeFullscreenActive();
 
     if (!nativeActive && isMapFullscreen()) {
       document.body.classList.remove(FULLSCREEN_BODY_CLASS);

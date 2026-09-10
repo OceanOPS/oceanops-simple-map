@@ -514,9 +514,16 @@ body.map-fullscreen #viewDiv {
   }
 }
 
+html.map-fullscreen:fullscreen #mapShell,
 body.map-fullscreen:fullscreen #mapShell {
   position: relative;
   inset: auto;
+}
+
+/* #mapShell-only fullscreen (legacy): drop sidebar offset — panel is outside the element */
+#mapShell:fullscreen #viewDiv {
+  margin-left: 0 !important;
+  width: 100% !important;
 }
 
 /* Legend panel backdrop (only on mobile) */
@@ -722,14 +729,31 @@ body.map-fullscreen:fullscreen #mapShell {
 
 .o-legend-content label.o-legend-filter-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   cursor: pointer;
+}
+
+.o-legend-content label.o-legend-filter-row > input[type="checkbox"] {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+/* Fixed icon column so "Ship based…", "Surface ocean CO₂…", etc. share one text edge. */
+.o-legend-content label.o-legend-filter-row > .o-legend-swatch {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  flex: 0 0 40px;
+  justify-content: center;
+  margin-top: 1px;
 }
 
 .o-legend-filter-row-label {
   flex: 1;
   min-width: 0;
+  line-height: 1.35;
+  padding-top: 3px;
 }
 
 .o-legend-content label.o-legend-select-all {
@@ -967,6 +991,7 @@ body.map-fullscreen:fullscreen #mapShell {
 
 .o-legend-filter-row > .o-legend-count {
   margin-left: auto;
+  padding-top: 3px;
 }
 
 .o-legend-network-details-btn {
@@ -975,6 +1000,7 @@ body.map-fullscreen:fullscreen #mapShell {
   gap: 5px;
   margin-left: auto;
   margin-right: -6px;
+  margin-top: 1px;
   padding: 3px 6px 3px 6px;
   border: 1px solid rgba(248, 248, 248, 0.14);
   border-radius: 999px;
@@ -1332,7 +1358,9 @@ body.o-country-modal-open {
 }
 
 .o-legend-swatch--dual-line {
-  width: 36px;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
 }
 
 .o-legend-swatch--dual-line-stacked {
@@ -1346,11 +1374,14 @@ body.o-country-modal-open {
 
 .o-legend-swatch.o-legend-swatch--soconet-dual {
   width: 40px;
+  min-width: 40px;
+  max-width: 40px;
   height: auto;
   min-height: 24px;
-  gap: 4px;
+  gap: 2px;
   flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   overflow: visible;
 }
 
@@ -1594,6 +1625,11 @@ body.o-country-modal-open {
 
 .o-goship-sampled-panel {
   padding: 0 0 12px;
+}
+
+.o-country-modal-emanuela-table--goship .o-country-modal-goship-line-name {
+  text-align: center;
+  padding-left: 8px;
 }
 
 .o-country-modal-goship-line-name a {
