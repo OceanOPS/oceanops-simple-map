@@ -54,11 +54,11 @@ export type Category =
 
 export const categories = [
   { id: 'vos',                        label: 'Ship based meteorological – VOS',                 color: '#8B0000', type: 'image', imagePath: '/img/ship_yellow.png' },
-  { id: 'oceantrax',                        label: 'Ship based oceanographic – Ocean TraX',                 color: '#faa62d', type: 'line' },
+  { id: 'oceantrax',                        label: 'Ship based oceanographic – OceanTraX',                 color: '#faa62d', type: 'line' },
   { id: 'asap',                        label: 'Ship based aerological – ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   {
     id: 'soconet',
-    label: 'Surface ocean CO₂ – SOCONET',
+    label: 'Surface ocean CO2 cruises & sites - SOCONET',
     color: SOCONET_COLOR,
     type: 'image',
     imagePath: '/img/ship_pink.png',
@@ -66,7 +66,7 @@ export const categories = [
   },
   {
     id: 'soconet_moorings',
-    label: 'Surface ocean CO₂ – SOCONET',
+    label: 'Surface ocean CO2 cruises & sites - SOCONET',
     color: SOCONET_COLOR,
     type: 'point',
     shape: 'square',
@@ -104,9 +104,9 @@ export function getLayerDisplayLabel(
   context: "legend" | "modal" = "legend"
 ): string {
   if (context === "modal") {
-    if (layerId === "soconet") return "Surface ocean CO₂ / ship - SOCONET";
+    if (layerId === "soconet") return "Surface ocean CO₂ cruises - SOCONET";
     if (layerId === "soconet_moorings")
-      return "Surface ocean CO₂ / moored buoys - SOCONET";
+      return "Surface ocean CO₂ sites - SOCONET";
   }
   const cat = categories.find((c) => c.id === layerId);
   return cat?.label ?? layerId;

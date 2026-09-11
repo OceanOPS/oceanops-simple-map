@@ -341,7 +341,7 @@ function oceanTraxLineDetailFromPartner(
 /**
  * Line networks for a country:
  * — GO-SHIP from map GeoJSON (edition lead or last cruise program country)
- * — Ocean TraX from partner export (manual ISO counts; no inspectable line list)
+ * — OceanTraX from partner export (manual ISO counts; no inspectable line list)
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
@@ -415,7 +415,7 @@ export async function getCountryLineTotalFromMap(
 }
 
 /**
- * GO-SHIP / Ocean TraX lines have no `country_name` on GeoJSON — counts come from partner export.
+ * GO-SHIP / OceanTraX lines have no `country_name` on GeoJSON — counts come from partner export.
  */
 export function getCountryLineBreakdownFromPartner(
   country: CountryName,
@@ -441,7 +441,7 @@ export function getCountryLineTotalFromPartner(
 
 /**
  * Cross-country design-line cruises: ship flag matches this country and lead
- * program country differs (GO-SHIP only — Ocean TraX has no cruise UI/filter).
+ * program country differs (GO-SHIP only — OceanTraX has no cruise UI/filter).
  */
 export async function getCountryLineCrossCruiseTotalFromMap(
   country: CountryName,
@@ -555,7 +555,7 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
 
 /**
  * Program-country totals: platforms from map GeoJSON, GO-SHIP lines from the
- * map, Ocean TraX lines from partner export.
+ * map, OceanTraX lines from partner export.
  */
 export async function getCountryProgramTotalFromMap(
   country: CountryName,

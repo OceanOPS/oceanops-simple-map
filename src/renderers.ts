@@ -201,7 +201,7 @@ export function makeLineRenderer2D(color: string) {
   });
 }
 
-/** GO-SHIP / Ocean TraX: solid vs dash by line_style field. */
+/** GO-SHIP / OceanTraX: solid vs dash by line_style field. */
 export function makeDualStyleLineRenderer(
   projection: ProjectionId,
   solidColor: string,
@@ -242,7 +242,7 @@ export function makeDualStyleLineRenderer(
   });
 }
 
-/** Ocean TraX (SOT): solid = active, dash = reactivate — same orange for both. */
+/** OceanTraX (SOT): solid = active, dash = reactivate — same orange for both. */
 export function makeOceanTraxLineRenderer(
   projection: ProjectionId,
   color: string,
@@ -266,13 +266,16 @@ export type MooringStackVisibility = {
   soconetMoorings: boolean;
 };
 
-export function makeMooredBuoysRenderer(
+export type OceanSitesStackVisibility = {
+  soconetMoorings: boolean;
+};
+
+function makeStackedSquareRenderer(
   projection: ProjectionId,
   color: string,
-  stackVisibility: MooringStackVisibility = { oceansites: true, soconetMoorings: true }
+  size: number,
+  valueExpression: string
 ) {
-  const stackedSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
-  const aloneSize = MERCATOR_POINT_SIZE;
   const use3d = is3dProjection(projection);
   const solidSymbol = use3d
     ? new PointSymbol3D({
@@ -280,7 +283,7 @@ export function makeMooredBuoysRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color },
-            size: aloneSize,
+            size,
             outline: { color: "black", size: 0.5 },
           }),
         ],
@@ -288,7 +291,7 @@ export function makeMooredBuoysRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color,
-        size: aloneSize,
+        size,
         outline: { color: [0, 0, 0, 1], width: 0.5 },
       });
   const hollowSymbol = use3d
@@ -297,7 +300,7 @@ export function makeMooredBuoysRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color: [0, 0, 0, 0] },
-            size: stackedSize,
+            size,
             outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
           }),
         ],
@@ -305,20 +308,12 @@ export function makeMooredBuoysRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color: [0, 0, 0, 0],
-        size: stackedSize,
+        size,
         outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
       });
 
-  const oceansitesOn = stackVisibility.oceansites ? 1 : 0;
-  const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
-
   return new UniqueValueRenderer({
-    valueExpression: `
-      var hollow = 0;
-      if ($feature.stack_oceansites == 1 && ${oceansitesOn} == 1) { hollow = 1; }
-      if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
-      return hollow;
-    `,
+    valueExpression,
     uniqueValueInfos: [
       { value: 0, symbol: solidSymbol },
       { value: 1, symbol: hollowSymbol },
@@ -327,6 +322,49 @@ export function makeMooredBuoysRenderer(
     ],
     defaultSymbol: solidSymbol,
   });
+}
+
+export function makeMooredBuoysRenderer(
+  projection: ProjectionId,
+  color: string,
+  stackVisibility: MooringStackVisibility = { oceansites: true, soconetMoorings: true }
+) {
+  const stackedSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
+  const oceansitesOn = stackVisibility.oceansites ? 1 : 0;
+  const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
+
+  return makeStackedSquareRenderer(
+    projection,
+    color,
+    stackedSize,
+    `
+      var hollow = 0;
+      if ($feature.stack_oceansites == 1 && ${oceansitesOn} == 1) { hollow = 1; }
+      if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
+      return hollow;
+    `
+  );
+}
+
+/** Solid when alone; hollow ring when SOCONET moorings share the location. */
+export function makeOceanSitesRenderer(
+  projection: ProjectionId,
+  color: string,
+  stackVisibility: OceanSitesStackVisibility = { soconetMoorings: true }
+) {
+  const size = MOORING_SQUARE_MARKER_SIZES.oceansites;
+  const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
+
+  return makeStackedSquareRenderer(
+    projection,
+    color,
+    size,
+    `
+      var hollow = 0;
+      if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
+      return hollow;
+    `
+  );
 }
 
 export function makeCategoryRenderer(

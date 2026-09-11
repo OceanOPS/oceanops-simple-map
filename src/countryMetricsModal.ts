@@ -234,8 +234,8 @@ function appendOperatedPlatformsSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append("Operational platforms operated by ");
-  appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
+  heading.append(`${count.toLocaleString()} platforms/sites/stations operated by `);
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, ".");
 }
 
 function appendOperatedLinesSectionTitle(
@@ -258,7 +258,7 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
 
   const title = document.createElement("h2");
   title.className = "o-country-modal-group-title";
-  title.textContent = "Countries collaboration";
+  title.textContent = "Country collaboration";
 
   header.append(title);
   group.appendChild(header);
@@ -269,16 +269,38 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
 
 // type BreakdownView = "platformCountry" | "emanuela";
 
-function appendEmanuelaTable(parent: HTMLElement, rows: PlatformCountryCount[]): void {
+type EmanuelaTableHeaders = {
+  count: string;
+  network: string;
+  country: string;
+};
+
+const SHIP_DEPLOYMENT_TABLE_HEADERS: EmanuelaTableHeaders = {
+  count: "Platforms/sites count",
+  network: "Networks",
+  country: "Operating country",
+};
+
+const SENSOR_PROVIDER_TABLE_HEADERS: EmanuelaTableHeaders = {
+  count: "Platforms/sites count",
+  network: "Networks",
+  country: "Operating countries",
+};
+
+function appendEmanuelaTable(
+  parent: HTMLElement,
+  rows: PlatformCountryCount[],
+  headers: EmanuelaTableHeaders = SHIP_DEPLOYMENT_TABLE_HEADERS
+): void {
   const table = document.createElement("table");
   table.className = "o-country-modal-emanuela-table";
 
   const thead = document.createElement("thead");
   thead.innerHTML = `
     <tr>
-      <th scope="col">Platform</th>
-      <th scope="col">Network</th>
-      <th scope="col">Operating country</th>
+      <th scope="col">${headers.count}</th>
+      <th scope="col">${headers.network}</th>
+      <th scope="col">${headers.country}</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -397,12 +419,12 @@ function appendShipFlagSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append(`${count.toLocaleString()} Operational platforms deployed from `);
+  heading.append(`${count.toLocaleString()} platforms/sites/stations deployed by research ships of `);
   appendInlineCountryPhrase(
     heading,
     countryLabel,
     isoCode,
-    " ships and operated by other countries"
+    " and operated by other countries"
   );
 }
 
@@ -424,7 +446,7 @@ function appendSensorProviderSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append(`${count.toLocaleString()} Operational platforms equipped with sensors provided by `);
+  heading.append(`${count.toLocaleString()} platforms/sites/stations equipped with sensors provided by `);
   appendInlineCountryPhrase(heading, countryLabel, isoCode, " and operated by other countries");
 }
 
@@ -435,7 +457,8 @@ function appendToggleBreakdownSection(
   description: string | undefined,
   platformCountryRows: PlatformCountryCount[],
   emptyMessage: string,
-  _toggleAriaLabel: string
+  _toggleAriaLabel: string,
+  tableHeaders: EmanuelaTableHeaders = SHIP_DEPLOYMENT_TABLE_HEADERS
 ): void {
   if (count === 0) return;
 
@@ -509,7 +532,7 @@ function appendToggleBreakdownSection(
       appendEmanuelaTable(panel, platformCountryRows);
     }
     */
-    appendEmanuelaTable(panel, platformCountryRows);
+    appendEmanuelaTable(panel, platformCountryRows, tableHeaders);
   };
 
   /*
@@ -731,6 +754,7 @@ export async function openCountryMetricsModal(
         sensorPlatformCountryRows,
         "No cross-program sensors on the selected networks.",
         "Sensor provider breakdown view",
+        SENSOR_PROVIDER_TABLE_HEADERS,
       );
     }
   } catch {

@@ -1,4 +1,4 @@
-/** User-facing labels for Ocean TraX `line_status` (network design, not cruise-based). */
+/** User-facing labels for OceanTraX `line_status` (network design, not cruise-based). */
 
 export function normalizeOceanTraxLineStatus(status: unknown): string {
   return String(status ?? "").trim().toLowerCase();
@@ -20,15 +20,15 @@ export function oceanTraxStatusLabel(status: unknown): string {
 export function oceanTraxStatusDetail(status: unknown): string {
   switch (normalizeOceanTraxLineStatus(status)) {
     case "active":
-      return "Part of the current Ocean TraX network design and considered operational.";
+      return "Part of the current OceanTraX network design and considered operational.";
     case "reactivate":
       return "In the network design but marked for reactivation—not currently operational.";
     default:
-      return "Status from the Ocean TraX network design in OceanOPS (not based on cruise activity).";
+      return "Status from the OceanTraX network design in OceanOPS (not based on cruise activity).";
   }
 }
 
 export const OCEAN_TRAX_LEGEND_ACTIVE = "Operational in network";
 export const OCEAN_TRAX_LEGEND_REACTIVATE = "To reactivate";
 export const OCEAN_TRAX_LEGEND_NOTE =
-  "Line status reflects the Ocean TraX network design, not recent cruises.";
+  "Line status reflects the OceanTraX network design, not recent cruises.";

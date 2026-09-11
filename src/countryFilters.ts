@@ -141,7 +141,7 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
-/** Line layers — GO-SHIP filtered by edition / last cruise country; Ocean TraX is not. */
+/** Line layers — GO-SHIP filtered by edition / last cruise country; OceanTraX is not. */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON text names for ship/sensor fields (no ISO on those properties). Not partner rollup — see sql/_partner_country_iso.sql. */
@@ -379,7 +379,7 @@ function buildStrictLineCountryExpression(
   return `(${attribution} AND (${include}))`;
 }
 
-/** Line-layer country filter — GO-SHIP only (Ocean TraX is never filtered by country). */
+/** Line-layer country filter — GO-SHIP only (OceanTraX is never filtered by country). */
 export function buildLineCountryExpression(
   selectedCountries: Iterable<string>,
   filterableCountries: readonly string[]

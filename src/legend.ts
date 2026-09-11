@@ -2,10 +2,10 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
-import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
+import { applyMooringStackSymbology } from "./mooringStackSymbology";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
-import { buildNetworksDataNote, makeCategorySwatch } from "./categorySwatch";
+import { makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
   G7_COUNTRIES,
@@ -95,22 +95,6 @@ type ExportMetadata = {
   GOSHIP_SAMPLED_SINCE?: string;
   OBS_PERIOD_UNTIL?: string;
 };
-
-function formatAsOfMonthYear(isoDate: string): string {
-  const date = new Date(`${isoDate}T12:00:00Z`);
-  return date.toLocaleString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function networksDataNoteFromMetadata(metadata: ExportMetadata | null) {
-  const asOf = metadata?.exportedAt
-    ? formatAsOfMonthYear(metadata.exportedAt)
-    : "October 2025";
-  return buildNetworksDataNote({ asOf });
-}
 
 async function loadExportMetadata(): Promise<ExportMetadata | null> {
   try {
@@ -593,7 +577,7 @@ export function attachLegend(
             );
             if (legendTotal != null) {
               node.textContent = formatNetworkLegendCount(legendTotal);
-              node.title = `${legendTotal.toLocaleString()} active Ocean TraX lines`;
+              node.title = `${legendTotal.toLocaleString()} active OceanTraX lines`;
               continue;
             }
             const canCount =
@@ -606,7 +590,7 @@ export function attachLegend(
               where: OCEANTRAX_ACTIVE_DEFINITION,
             });
             node.textContent = formatNetworkLegendCount(active);
-            node.title = `${active.toLocaleString()} active Ocean TraX lines`;
+            node.title = `${active.toLocaleString()} active OceanTraX lines`;
             continue;
           }
 
@@ -778,8 +762,8 @@ export function attachLegend(
     let countEl: HTMLSpanElement;
     if (cat.id === "goship") {
       const { button, count } = createLegendNetworkDetailsBtn({
-        ariaLabel: "View GO-SHIP reference lines",
-        title: "View GO-SHIP reference lines",
+        ariaLabel: "View GO-SHIP decadal reference lines",
+        title: "View GO-SHIP decadal reference lines",
         onOpen: openGoshipBreakdown,
       });
       countEl = count;
@@ -809,7 +793,7 @@ export function attachLegend(
       updateLayerCounts();
       void updateCountryRowCounts();
       if (is3dProjection(getProjection())) {
-        applyMooredBuoysStackSymbology(layerById, getProjection());
+        applyMooringStackSymbology(layerById, getProjection());
       }
     });
 
@@ -817,12 +801,6 @@ export function attachLegend(
     layerCheckboxById.set(cat.id, cb);
     networksBody.appendChild(row);
   }
-
-  const dataNoteWrap = document.createElement("div");
-  dataNoteWrap.className = "o-legend-data-note";
-  let dataNoteText = networksDataNoteFromMetadata(null);
-  dataNoteWrap.appendChild(dataNoteText);
-  networksBody.appendChild(dataNoteWrap);
 
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
@@ -949,11 +927,7 @@ export function attachLegend(
   content.appendChild(footer);
 
   void loadExportMetadata().then((metadata) => {
-    if (!metadata) return;
-    exportMetadata = metadata;
-    const updated = networksDataNoteFromMetadata(metadata);
-    dataNoteText.replaceWith(updated);
-    dataNoteText = updated;
+    if (metadata) exportMetadata = metadata;
   });
 
   legend.appendChild(content);

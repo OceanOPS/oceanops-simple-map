@@ -156,7 +156,7 @@ export function getNetworkTotalFromPartner(
   return total;
 }
 
-/** Legend total when it must match a DB-wide count (e.g. Ocean TraX active lines). */
+/** Legend total when it must match a DB-wide count (e.g. OceanTraX active lines). */
 export function getNetworkLegendTotal(
   networkKey: string,
   data: PartnerCountriesFile = getPartnerDataSnapshot()

@@ -24,7 +24,7 @@ function goshipLineColor(): string {
   return getCategoryById("goship")?.color ?? "#ee2f2b";
 }
 
-const LAST_12_MONTHS = "the latest 12 months";
+const LAST_12_MONTHS = "the last 12 months";
 
 function buildSampledLinesTable(stats: GoshipEditionStats): HTMLTableElement {
   const table = document.createElement("table");
@@ -88,7 +88,7 @@ function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
   const lineLabel = createLineStyleRow(
     goshipLineColor(),
     "solid",
-    `${stats.sampledLineCount.toLocaleString()} lines — sampled in ${LAST_12_MONTHS}`
+    `${stats.sampledLineCount.toLocaleString()} lines sampled in ${LAST_12_MONTHS}`
   );
   lineLabel.classList.add("o-country-modal-line-style-stat");
   lineLabel.style.flex = "1";
@@ -109,7 +109,7 @@ function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
   if (stats.sampledLinesByCountry.length === 0) {
     const empty = document.createElement("p");
     empty.className = "o-country-modal-empty";
-    empty.textContent = "No sampled lines in the latest 12 months.";
+    empty.textContent = "No sampled lines in the last 12 months.";
     panel.appendChild(empty);
   } else {
     panel.appendChild(buildSampledLinesTable(stats));
@@ -135,7 +135,7 @@ function appendSummary(parent: HTMLElement, stats: GoshipEditionStats): void {
   appendLineStyleStatLine(
     dashList,
     "dash",
-    `${stats.unsampledLineCount.toLocaleString()} lines — not sampled during ${LAST_12_MONTHS}`
+    `${stats.unsampledLineCount.toLocaleString()} lines to be sampled in the next decade`
   );
   section.appendChild(dashList);
 
@@ -196,7 +196,7 @@ export async function openGoshipMetricsModal(
   const title = document.createElement("h2");
   title.id = "o-goship-modal-title";
   title.className = "o-country-modal-title";
-  title.textContent = "GO-SHIP Reference lines";
+  title.textContent = "GO-SHIP Decadal Reference lines";
   titleWrap.append(picto, title);
 
   const closeBtn = document.createElement("button");

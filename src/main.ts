@@ -3,6 +3,7 @@ import EsriMap from "@arcgis/core/Map.js";
 import type SceneView from "@arcgis/core/views/SceneView.js";
 import { categories, type Category, type Shape } from "./categories";
 import {
+  applyOperationalLayerStackOrder,
   sortedOperationalLayerIds,
 } from "./layerStackOrder";
 import { attachLegend } from "./legend";
@@ -21,10 +22,16 @@ import {
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
-import { getMooredBuoysGeoJsonUrl } from "./mooringStackGeojson";
-import { applyMooredBuoysStackSymbology } from "./mooringStackSymbology";
+import { getMooringStackGeoJsonUrls } from "./mooringStackGeojson";
+import { applyMooringStackSymbology } from "./mooringStackSymbology";
 import { bindGlobeLineWidthZoomSync } from "./lineWidthZoom";
-import { makeCategoryRenderer, makeGoshipLineRenderer, makeMooredBuoysRenderer, makeOceanTraxLineRenderer } from "./renderers";
+import {
+  makeCategoryRenderer,
+  makeGoshipLineRenderer,
+  makeMooredBuoysRenderer,
+  makeOceanSitesRenderer,
+  makeOceanTraxLineRenderer,
+} from "./renderers";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
@@ -87,7 +94,9 @@ function createGeoJsonLayer(
         ? makeOceanTraxLineRenderer(projection, cat.color)
         : cat.id === "moored_buoys" && is3dProjection(projection)
           ? makeMooredBuoysRenderer(projection, cat.color)
-          : makeCategoryRenderer(
+          : cat.id === "oceansites" && is3dProjection(projection)
+            ? makeOceanSitesRenderer(projection, cat.color)
+            : makeCategoryRenderer(
             projection,
             kind,
             cat.color,
@@ -114,13 +123,25 @@ function createGeoJsonLayer(
   });
 
   if (is3dProjection(projection)) {
+    const mooringElevationMeters: Partial<Record<string, string>> = {
+      moored_buoys: "0",
+      oceansites: "1",
+      soconet_moorings: "2",
+    };
+    const mooringElevation = mooringElevationMeters[cat.id];
+
     layer.elevationInfo =
       cat.type === "line"
         ? { mode: "on-the-ground" }
-        : {
-            mode: "absolute-height",
-            featureExpressionInfo: { expression: "0" },
-          };
+        : mooringElevation
+          ? {
+              mode: "absolute-height",
+              featureExpressionInfo: { expression: mooringElevation },
+            }
+          : {
+              mode: "absolute-height",
+              featureExpressionInfo: { expression: "0" },
+            };
     layer.screenSizePerspectiveEnabled = true;
   }
 
@@ -136,7 +157,7 @@ async function addOperationalLayers(
   const layerPromises: Promise<unknown>[] = [];
   const use3d = is3dProjection(projection);
 
-  const mooredBuoysUrl = use3d ? await getMooredBuoysGeoJsonUrl(BASE) : undefined;
+  const mooringStackUrls = use3d ? await getMooringStackGeoJsonUrls(BASE) : undefined;
 
   const layersToAdd = use3d
     ? sortedOperationalLayerIds()
@@ -145,8 +166,15 @@ async function addOperationalLayers(
     : [...categories];
 
   for (const cat of layersToAdd) {
-    const layerUrl =
-      cat.id === "moored_buoys" && mooredBuoysUrl ? mooredBuoysUrl : undefined;
+    const layerUrl = mooringStackUrls
+      ? cat.id === "moored_buoys"
+        ? mooringStackUrls.mooredBuoys
+        : cat.id === "oceansites"
+          ? mooringStackUrls.oceansites
+          : cat.id === "soconet_moorings"
+            ? mooringStackUrls.soconetMoorings
+            : undefined
+      : undefined;
     const layer = createGeoJsonLayer(cat as Category, projection, layerUrl);
     map.add(layer);
     layerById.set(cat.id, layer);
@@ -154,8 +182,9 @@ async function addOperationalLayers(
   }
 
   await Promise.all(layerPromises);
+  applyOperationalLayerStackOrder(map, layerById);
   if (use3d) {
-    applyMooredBuoysStackSymbology(layerById, projection);
+    applyMooringStackSymbology(layerById, projection);
   }
 }
 

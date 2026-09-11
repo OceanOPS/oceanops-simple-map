@@ -38,19 +38,13 @@ async function loadSoconetBreakdown(
   return { shipCount, mooringCount };
 }
 
-function soconetBreakdownPicto(
-  layerId: "soconet" | "soconet_moorings"
-): HTMLElement {
-  return makeNetworkPicto(layerId, "modal");
-}
-
 function appendBreakdownRow(
   list: HTMLElement,
   layerId: "soconet" | "soconet_moorings",
   count: number
 ): void {
   const item = document.createElement("li");
-  const picto = soconetBreakdownPicto(layerId);
+  const picto = makeNetworkPicto(layerId, "modal");
   const nameSpan = document.createElement("span");
   nameSpan.className = "o-country-modal-network";
   nameSpan.textContent = getLayerDisplayLabel(layerId, "modal");

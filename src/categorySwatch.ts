@@ -92,6 +92,21 @@ function appendSquareSwatch(container: HTMLElement, color: string, markerSize = 
   container.appendChild(svg);
 }
 
+/** SOCONET breakdown rows: pink ship (matches main legend ship icon). */
+export function makeSoconetShipLegendIcon(): HTMLDivElement {
+  const container = document.createElement("div");
+  container.className = "o-legend-swatch";
+  container.setAttribute("aria-hidden", "true");
+
+  const img = document.createElement("img");
+  img.src = `${BASE}/img/ship_pink.png`;
+  img.className = "o-legend-swatch-img";
+  img.alt = "";
+  img.decoding = "async";
+  container.appendChild(img);
+  return container;
+}
+
 /** SOCONET legend: ship + square side by side, same colour. */
 export function makeSoconetDualSwatch(
   imagePath: string,
@@ -272,8 +287,16 @@ export function createLineStyleRow(
 
 export function makeNetworkPicto(
   layerId: string,
-  _context: "legend" | "modal" = "legend"
+  context: "legend" | "modal" = "legend"
 ): HTMLElement {
+  if (context === "modal") {
+    if (layerId === "soconet") return makeSoconetShipLegendIcon();
+    if (layerId === "soconet_moorings") {
+      const moorCat = getCategoryById("soconet_moorings");
+      if (moorCat) return makeCategorySwatch(moorCat);
+    }
+  }
+
   const icon = makeNetworkIconImg(layerId);
   if (icon) return icon;
 

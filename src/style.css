@@ -1593,7 +1593,8 @@ body.o-country-modal-open {
   border-bottom: 1px solid rgba(248, 248, 248, 0.12);
 }
 
-.o-country-modal-emanuela-table th:nth-child(2) {
+.o-country-modal-emanuela-table th:nth-child(2),
+.o-country-modal-emanuela-table td:nth-child(2) {
   text-align: center;
   padding-left: 8px;
 }
@@ -1655,6 +1656,7 @@ body.o-country-modal-open {
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: center;
   min-width: 0;
 }
 
