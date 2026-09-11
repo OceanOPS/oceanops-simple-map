@@ -21,6 +21,7 @@ import {
 import {
   getCountryProgramTotalFromMap,
   getFilterableCountryNames,
+  getNetworkLegendTotal,
   getNetworkTotalFromPartner,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
@@ -586,6 +587,15 @@ export function attachLegend(
           }
 
           if (id === "oceantrax" && allCountriesSelected) {
+            const legendTotal = getNetworkLegendTotal(
+              "oceantrax",
+              getPartnerDataSnapshot()
+            );
+            if (legendTotal != null) {
+              node.textContent = formatNetworkLegendCount(legendTotal);
+              node.title = `${legendTotal.toLocaleString()} active Ocean TraX lines`;
+              continue;
+            }
             const canCount =
               typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
             if (!canCount) {

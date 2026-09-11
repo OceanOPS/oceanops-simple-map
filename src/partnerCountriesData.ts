@@ -25,6 +25,8 @@ export type PartnerCountriesFile = {
   contributingCountries?: number;
   countries: PartnerCountryRecord[];
   byGeoCountryName: Record<string, string>;
+  /** Global legend totals that differ from summing per-country partner counts. */
+  networkLegendTotals?: Record<string, number>;
 };
 
 export function getPartnerDataSnapshot(): PartnerCountriesFile {
@@ -152,4 +154,14 @@ export function getNetworkTotalFromPartner(
     total += numericContribution(country.networks[networkKey] ?? 0);
   }
   return total;
+}
+
+/** Legend total when it must match a DB-wide count (e.g. Ocean TraX active lines). */
+export function getNetworkLegendTotal(
+  networkKey: string,
+  data: PartnerCountriesFile = getPartnerDataSnapshot()
+): number | undefined {
+  const explicit = data.networkLegendTotals?.[networkKey];
+  if (explicit != null && Number.isFinite(explicit)) return explicit;
+  return undefined;
 }
