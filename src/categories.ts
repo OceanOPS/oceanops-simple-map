@@ -1,12 +1,24 @@
 export type LayerKind = "point" | "image" | "line";
 export type Shape = "circle" | "square" | "triangle" ;
 
-/** Square marker sizes for overlapping fixed moorings (largest → smallest). */
-export const MOORING_SQUARE_MARKER_SIZES = {
-  moored_buoys: 7,
-  oceansites: 5,
-  soconet_moorings: 4,
+/** Uniform solo square marker size on the map (GLOSS, HF radars, moorings, etc.). */
+export const MAP_SQUARE_MARKER_SIZE = 5;
+
+/** Square swatch size in the sidebar legend (larger for readability). */
+export const LEGEND_SQUARE_MARKER_SIZE = 8;
+
+/** Nested stack draw sizes when 2+ mooring networks are visible (outer → inner). */
+export const MOORING_NESTED_STACK_SIZES = {
+  moored_buoys: MAP_SQUARE_MARKER_SIZE + 4,
+  oceansites: MAP_SQUARE_MARKER_SIZE,
+  soconet_moorings: MAP_SQUARE_MARKER_SIZE - 2,
 } as const;
+
+/** Wider OceanSITES middle ring when all 3 mooring networks are stacked. */
+export const MOORING_TRIPLE_STACK_OCEANSITES_SIZE = MAP_SQUARE_MARKER_SIZE + 2;
+
+/** Larger SOCONET inner square when stacked with moored buoys only (stack-5.png). */
+export const MOORING_MB_SOCNET_STACK_SOCNET_SIZE = MAP_SQUARE_MARKER_SIZE + 1;
 
 /** Map draw order for nested mooring squares (bottom → top). */
 export const MAP_LAYER_STACK: Partial<Record<string, number>> = {
@@ -70,16 +82,16 @@ export const categories = [
     color: SOCONET_COLOR,
     type: 'point',
     shape: 'square',
-    markerSize: MOORING_SQUARE_MARKER_SIZES.soconet_moorings,
+    markerSize: MAP_SQUARE_MARKER_SIZE,
     legendHidden: true,
   },
   { id: 'goship',                      label: 'Repeated transects – GO-SHIP',         color: '#ee2f2b', type: 'line' },
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
-  { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square' },
-  { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MOORING_SQUARE_MARKER_SIZES.oceansites  },
-  { id: 'moored_buoys',                 label: 'Moored buoys – MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: 5 },
+  { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
+  { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
+  { id: 'moored_buoys',                 label: 'Moored buoys – MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
-  { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square'  },
+  { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'drifting_buoys',               label: 'Drifting buoys – GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
   { id: 'argo',                        label: 'Profiling floats – Argo',      color: '#2357a7', type: 'point', shape: 'circle' },
   { id: 'oceangliders',                      label: 'Gliders – OceanGliders',         color: '#71bf44', type: 'point', shape: 'circle'  },

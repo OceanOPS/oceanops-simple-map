@@ -22,14 +22,16 @@ import {
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
 import { platformPopupContent } from "./platformPopup";
-import { getMooringStackGeoJsonUrls } from "./mooringStackGeojson";
-import { applyMooringStackSymbology } from "./mooringStackSymbology";
+import {
+  applyMooringStackSymbology,
+  loadMooringStackData,
+  makeMooringStackRenderer,
+  MOORING_STACK_LAYER_ID,
+} from "./mooringStacks";
 import { bindGlobeLineWidthZoomSync } from "./lineWidthZoom";
 import {
   makeCategoryRenderer,
   makeGoshipLineRenderer,
-  makeMooredBuoysRenderer,
-  makeOceanSitesRenderer,
   makeOceanTraxLineRenderer,
 } from "./renderers";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
@@ -80,6 +82,16 @@ function lineLayerPopupTemplate(cat: Category) {
   };
 }
 
+function mooringLayerUrl(
+  catId: string,
+  mooringData: Awaited<ReturnType<typeof loadMooringStackData>>
+): string | undefined {
+  if (catId === "moored_buoys") return mooringData.mooredBuoysSolo;
+  if (catId === "oceansites") return mooringData.oceansitesSolo;
+  if (catId === "soconet_moorings") return mooringData.soconetMooringsSolo;
+  return undefined;
+}
+
 function createGeoJsonLayer(
   cat: Category,
   projection: ProjectionId,
@@ -92,11 +104,7 @@ function createGeoJsonLayer(
       ? makeGoshipLineRenderer(projection, cat.color)
       : cat.id === "oceantrax"
         ? makeOceanTraxLineRenderer(projection, cat.color)
-        : cat.id === "moored_buoys" && is3dProjection(projection)
-          ? makeMooredBuoysRenderer(projection, cat.color)
-          : cat.id === "oceansites" && is3dProjection(projection)
-            ? makeOceanSitesRenderer(projection, cat.color)
-            : makeCategoryRenderer(
+        : makeCategoryRenderer(
             projection,
             kind,
             cat.color,
@@ -123,25 +131,45 @@ function createGeoJsonLayer(
   });
 
   if (is3dProjection(projection)) {
-    const mooringElevationMeters: Partial<Record<string, string>> = {
-      moored_buoys: "0",
-      oceansites: "1",
-      soconet_moorings: "2",
-    };
-    const mooringElevation = mooringElevationMeters[cat.id];
-
     layer.elevationInfo =
       cat.type === "line"
         ? { mode: "on-the-ground" }
-        : mooringElevation
-          ? {
-              mode: "absolute-height",
-              featureExpressionInfo: { expression: mooringElevation },
-            }
-          : {
-              mode: "absolute-height",
-              featureExpressionInfo: { expression: "0" },
-            };
+        : {
+            mode: "absolute-height",
+            featureExpressionInfo: { expression: "0" },
+          };
+    layer.screenSizePerspectiveEnabled = true;
+  }
+
+  return layer;
+}
+
+function createMooringStackLayer(
+  projection: ProjectionId,
+  stackLayerUrl: string
+): GeoJSONLayer {
+  const popupCat = categories.find((c) => c.id === "moored_buoys") as Category;
+
+  const layer = new GeoJSONLayer({
+    url: stackLayerUrl,
+    title: "Co-located mooring stacks",
+    outFields: ["*"],
+    renderer: makeMooringStackRenderer(projection, {
+      mooredBuoys: true,
+      oceansites: true,
+      soconetMoorings: true,
+    }),
+    popupTemplate: {
+      title: "{ptf_ref}",
+      content: platformPopupContent(popupCat),
+    },
+  });
+
+  if (is3dProjection(projection)) {
+    layer.elevationInfo = {
+      mode: "absolute-height",
+      featureExpressionInfo: { expression: "0" },
+    };
     layer.screenSizePerspectiveEnabled = true;
   }
 
@@ -157,7 +185,7 @@ async function addOperationalLayers(
   const layerPromises: Promise<unknown>[] = [];
   const use3d = is3dProjection(projection);
 
-  const mooringStackUrls = use3d ? await getMooringStackGeoJsonUrls(BASE) : undefined;
+  const mooringData = await loadMooringStackData(BASE);
 
   const layersToAdd = use3d
     ? sortedOperationalLayerIds()
@@ -166,31 +194,32 @@ async function addOperationalLayers(
     : [...categories];
 
   for (const cat of layersToAdd) {
-    const layerUrl = mooringStackUrls
-      ? cat.id === "moored_buoys"
-        ? mooringStackUrls.mooredBuoys
-        : cat.id === "oceansites"
-          ? mooringStackUrls.oceansites
-          : cat.id === "soconet_moorings"
-            ? mooringStackUrls.soconetMoorings
-            : undefined
-      : undefined;
+    const layerUrl = mooringLayerUrl(cat.id, mooringData);
     const layer = createGeoJsonLayer(cat as Category, projection, layerUrl);
     map.add(layer);
     layerById.set(cat.id, layer);
     layerPromises.push(layer.when());
   }
 
+  const stackLayer = createMooringStackLayer(projection, mooringData.stackLayer);
+  map.add(stackLayer);
+  layerById.set(MOORING_STACK_LAYER_ID, stackLayer);
+  layerPromises.push(stackLayer.when());
+
   await Promise.all(layerPromises);
   applyOperationalLayerStackOrder(map, layerById);
-  if (use3d) {
-    applyMooringStackSymbology(layerById, projection);
+  applyMooringStackSymbology(layerById, projection);
+
+  const stack = layerById.get(MOORING_STACK_LAYER_ID);
+  if (stack && map.layers.includes(stack)) {
+    map.reorder(stack, map.layers.length - 1);
   }
 }
 
 async function computeLayerUnion(layerById: Map<string, GeoJSONLayer>) {
   let union: __esri.Extent | null = null;
-  for (const layer of layerById.values()) {
+  for (const [id, layer] of layerById) {
+    if (id === MOORING_STACK_LAYER_ID) continue;
     const ext = layer.fullExtent ?? null;
     if (ext) union = union ? union.union(ext) : ext;
   }

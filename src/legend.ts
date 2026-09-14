@@ -2,7 +2,11 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
 import type { ViewHolder } from "./viewHolder";
-import { applyMooringStackSymbology } from "./mooringStackSymbology";
+import {
+  applyMooringStackSymbology,
+  isMooringSquareLayerId,
+  queryMooringLayerCount,
+} from "./mooringStacks";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
 import { makeCategorySwatch } from "./categorySwatch";
@@ -626,13 +630,16 @@ export function attachLegend(
       }
 
       try {
-        const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
-        let total = n;
-        if (id === "soconet") {
-          const moorLayer = layerById.get("soconet_moorings");
-          if (moorLayer && typeof moorLayer.queryFeatureCount === "function") {
-            total += await moorLayer.queryFeatureCount({ where });
-          }
+        let total: number;
+        if (isMooringSquareLayerId(id)) {
+          total = await queryMooringLayerCount(id, layerById, where);
+        } else if (id === "soconet") {
+          const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
+          total =
+            n +
+            (await queryMooringLayerCount("soconet_moorings", layerById, where));
+        } else {
+          total = await (layer as GeoJSONLayer).queryFeatureCount({ where });
         }
         const node = countNodes.get(id);
         if (node) node.textContent = formatNetworkLegendCount(total);
@@ -793,9 +800,7 @@ export function attachLegend(
       updateSelectAllState();
       updateLayerCounts();
       void updateCountryRowCounts();
-      if (is3dProjection(getProjection())) {
-        applyMooringStackSymbology(layerById, getProjection());
-      }
+      applyMooringStackSymbology(layerById, getProjection());
     });
 
     layerCheckboxes.push(cb);

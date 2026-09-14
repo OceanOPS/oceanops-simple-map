@@ -5,7 +5,7 @@ import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer.js";
 import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol.js";
 import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol.js";
 import PictureMarkerSymbol from "@arcgis/core/symbols/PictureMarkerSymbol.js";
-import { MOORING_SQUARE_MARKER_SIZES, type Shape } from "./categories";
+import { MAP_SQUARE_MARKER_SIZE, type Shape } from "./categories";
 import { is3dProjection, type ProjectionId } from "./projections";
 
 const BASE = import.meta.env.BASE_URL;
@@ -34,25 +34,6 @@ export function makePointRenderer3D(color: string, shape: Shape = "circle", size
           material: { color },
           size,
           outline: { color: "black", size: 0.5 },
-        }),
-      ],
-    }),
-  });
-}
-
-/** Outline width (px) for hollow mooring stack rings — keep subtle vs inner tiers. */
-export const MOORING_STACK_OUTLINE_WIDTH = 1.5;
-
-/** Largest mooring tier: hollow ring so inner squares stay visible in SceneView. */
-export function makeHollowSquareRenderer3D(color: string, size: number) {
-  return new SimpleRenderer({
-    symbol: new PointSymbol3D({
-      symbolLayers: [
-        new IconSymbol3DLayer({
-          resource: { primitive: "square" },
-          material: { color: [0, 0, 0, 0] },
-          size,
-          outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
         }),
       ],
     }),
@@ -173,17 +154,6 @@ export function makePointRenderer2D(color: string, shape: Shape = "circle", size
   });
 }
 
-export function makeHollowSquareRenderer2D(color: string, size: number) {
-  return new SimpleRenderer({
-    symbol: new SimpleMarkerSymbol({
-      style: "square",
-      color: [0, 0, 0, 0],
-      size,
-      outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
-    }),
-  });
-}
-
 function makeStyledLineSymbol2D(
   color: string,
   style: "solid" | "dash" = "solid"
@@ -260,116 +230,6 @@ export function makeGoshipLineRenderer(
   return makeDualStyleLineRenderer(projection, color, color, lineSizePx);
 }
 
-/** Solid when alone; hollow ring when a visible stack partner shares the location. */
-export type MooringStackVisibility = {
-  oceansites: boolean;
-  soconetMoorings: boolean;
-};
-
-export type OceanSitesStackVisibility = {
-  soconetMoorings: boolean;
-};
-
-function makeStackedSquareRenderer(
-  projection: ProjectionId,
-  color: string,
-  solidSize: number,
-  valueExpression: string,
-  hollowSize: number = solidSize
-) {
-  const use3d = is3dProjection(projection);
-  const solidSymbol = use3d
-    ? new PointSymbol3D({
-        symbolLayers: [
-          new IconSymbol3DLayer({
-            resource: { primitive: "square" },
-            material: { color },
-            size: solidSize,
-            outline: { color: "black", size: 0.5 },
-          }),
-        ],
-      })
-    : new SimpleMarkerSymbol({
-        style: "square",
-        color,
-        size: solidSize,
-        outline: { color: [0, 0, 0, 1], width: 0.5 },
-      });
-  const hollowSymbol = use3d
-    ? new PointSymbol3D({
-        symbolLayers: [
-          new IconSymbol3DLayer({
-            resource: { primitive: "square" },
-            material: { color: [0, 0, 0, 0] },
-            size: hollowSize,
-            outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
-          }),
-        ],
-      })
-    : new SimpleMarkerSymbol({
-        style: "square",
-        color: [0, 0, 0, 0],
-        size: hollowSize,
-        outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
-      });
-
-  return new UniqueValueRenderer({
-    valueExpression,
-    uniqueValueInfos: [
-      { value: 0, symbol: solidSymbol },
-      { value: 1, symbol: hollowSymbol },
-      { value: "0", symbol: solidSymbol },
-      { value: "1", symbol: hollowSymbol },
-    ],
-    defaultSymbol: solidSymbol,
-  });
-}
-
-export function makeMooredBuoysRenderer(
-  projection: ProjectionId,
-  color: string,
-  stackVisibility: MooringStackVisibility = { oceansites: true, soconetMoorings: true }
-) {
-  const aloneSize = MERCATOR_POINT_SIZE;
-  const stackedRingSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
-  const oceansitesOn = stackVisibility.oceansites ? 1 : 0;
-  const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
-
-  return makeStackedSquareRenderer(
-    projection,
-    color,
-    aloneSize,
-    `
-      var hollow = 0;
-      if ($feature.stack_oceansites == 1 && ${oceansitesOn} == 1) { hollow = 1; }
-      if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
-      return hollow;
-    `,
-    stackedRingSize
-  );
-}
-
-/** Solid when alone; hollow ring when SOCONET moorings share the location. */
-export function makeOceanSitesRenderer(
-  projection: ProjectionId,
-  color: string,
-  stackVisibility: OceanSitesStackVisibility = { soconetMoorings: true }
-) {
-  const size = MOORING_SQUARE_MARKER_SIZES.oceansites;
-  const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
-
-  return makeStackedSquareRenderer(
-    projection,
-    color,
-    size,
-    `
-      var hollow = 0;
-      if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
-      return hollow;
-    `
-  );
-}
-
 export function makeCategoryRenderer(
   projection: ProjectionId,
   kind: "image" | "line" | "point",
@@ -388,7 +248,8 @@ export function makeCategoryRenderer(
   if (kind === "line") {
     return use3d ? makeLineRenderer3D(color) : makeLineRenderer2D(color);
   }
+  const size = shape === "square" ? MAP_SQUARE_MARKER_SIZE : pointSize;
   return use3d
-    ? makePointRenderer3D(color, shape ?? "circle", pointSize)
-    : makePointRenderer2D(color, shape ?? "circle", pointSize);
+    ? makePointRenderer3D(color, shape ?? "circle", size)
+    : makePointRenderer2D(color, shape ?? "circle", size);
 }

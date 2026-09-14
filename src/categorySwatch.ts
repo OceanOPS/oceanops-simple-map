@@ -1,4 +1,9 @@
-import { categories, type Category, SOCONET_COLOR, MOORING_SQUARE_MARKER_SIZES } from "./categories";
+import {
+  categories,
+  LEGEND_SQUARE_MARKER_SIZE,
+  type Category,
+  SOCONET_COLOR,
+} from "./categories";
 import { makeNetworkIconImg } from "./networkIcons";
 
 const BASE = import.meta.env.BASE_URL;
@@ -66,12 +71,10 @@ function appendStackedDualLineSwatch(
   container.appendChild(svg);
 }
 
-function legendSquarePx(markerSize: number): number {
-  return Math.max(6, Math.round(markerSize * 1.05));
-}
+const LEGEND_SQUARE_PX = LEGEND_SQUARE_MARKER_SIZE;
 
-function appendSquareSwatch(container: HTMLElement, color: string, markerSize = 8) {
-  const px = legendSquarePx(markerSize);
+function appendSquareSwatch(container: HTMLElement, color: string) {
+  const px = LEGEND_SQUARE_PX;
   const pad = Math.max(1, Math.floor((14 - px) / 2));
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("width", "14");
@@ -123,7 +126,7 @@ export function makeSoconetDualSwatch(
   img.decoding = "async";
 
   container.appendChild(img);
-  appendSquareSwatch(container, color, MOORING_SQUARE_MARKER_SIZES.soconet_moorings);
+  appendSquareSwatch(container, color);
   return container;
 }
 
@@ -149,7 +152,7 @@ export function makeCategorySwatch(cat: Category): HTMLDivElement {
     svg.setAttribute("height", "14");
 
     if (cat.shape === "square") {
-      const px = legendSquarePx(cat.markerSize ?? 8);
+      const px = LEGEND_SQUARE_PX;
       const pad = Math.max(1, Math.floor((14 - px) / 2));
       const r = document.createElementNS(svgNS, "rect");
       r.setAttribute("x", String(pad));

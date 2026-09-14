@@ -20,7 +20,7 @@ function operationalLayerBaseIndex(map: Map): number {
   return map.layers.indexOf(basemapGroup) + 1;
 }
 
-/** MapView layer order; SceneView also uses hollow rings + elevation for nested mooring squares. */
+/** MapView layer order (co-located mooring stacks use a sprite overlay layer on top). */
 export function applyOperationalLayerStackOrder(
   map: Map,
   layerById: ReadonlyMap<string, GeoJSONLayer>
