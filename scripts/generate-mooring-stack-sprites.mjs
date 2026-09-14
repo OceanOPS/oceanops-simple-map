@@ -1,14 +1,23 @@
 /**
- * One-off generator for static mooring stack PNG sprites.
- * Run: node scripts/generate-mooring-stack-sprites.mjs
+ * Generate static mooring stack PNG sprites.
+ * Run: npm run generate:mooring-stacks
+ *
+ * Filenames match STACK_PNG_BY_MASK in src/mooringStacks.ts (outer → inner).
  */
 import { createCanvas } from "canvas";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, "../public/img/mooring-stacks");
+
+const STACK_PNG_BY_MASK = {
+  3: "stack-mb-on-oceansites",
+  5: "stack-mb-on-soconet",
+  6: "stack-oceansites-on-soconet",
+  7: "stack-mb-on-oceansites-on-soconet",
+};
 
 const COLORS = {
   moored_buoys: "#ec2324",
@@ -23,11 +32,9 @@ const NESTED_SIZES = {
 };
 
 const TRIPLE_OCEANSITES = 7;
-/** MB + SOCONET only — wider pink inner (matches categories.ts). */
 const MB_SOCNET_SOCNET = 6;
 
 const DRAW_ORDER = ["moored_buoys", "oceansites", "soconet_moorings"];
-
 const BITS = { moored_buoys: 1, oceansites: 2, soconet_moorings: 4 };
 
 function layersForMask(mask) {
@@ -64,9 +71,19 @@ function drawSprite(mask) {
 
 mkdirSync(OUT_DIR, { recursive: true });
 
-for (const mask of [3, 5, 6, 7]) {
+for (const mask of Object.keys(STACK_PNG_BY_MASK).map(Number)) {
+  const basename = STACK_PNG_BY_MASK[mask];
   const canvas = drawSprite(mask);
-  const outPath = join(OUT_DIR, `stack-${mask}.png`);
+  const outPath = join(OUT_DIR, `${basename}.png`);
   writeFileSync(outPath, canvas.toBuffer("image/png"));
   console.log(`Wrote ${outPath} (${canvas.width}x${canvas.height})`);
+}
+
+for (const legacy of ["stack-3.png", "stack-5.png", "stack-6.png", "stack-7.png"]) {
+  try {
+    unlinkSync(join(OUT_DIR, legacy));
+    console.log(`Removed legacy ${legacy}`);
+  } catch {
+    /* already gone */
+  }
 }

@@ -33,6 +33,14 @@ const SOLO_BIT_TO_LAYER: Record<number, MooringStackLayerId> = {
   4: "soconet_moorings",
 };
 
+/** Display mask → PNG basename (outer → inner, e.g. mb-on-oceansites). */
+export const STACK_PNG_BY_MASK: Record<number, string> = {
+  3: "stack-mb-on-oceansites",
+  5: "stack-mb-on-soconet",
+  6: "stack-oceansites-on-soconet",
+  7: "stack-mb-on-oceansites-on-soconet",
+};
+
 const PNG_DISPLAY_SIZE: Record<number, number> = {
   3: MOORING_NESTED_STACK_SIZES.moored_buoys,
   5: MOORING_NESTED_STACK_SIZES.moored_buoys,
@@ -79,7 +87,9 @@ function popCount(mask: number): number {
 }
 
 function stackPngUrl(displayMask: number): string {
-  return `${BASE}img/mooring-stacks/stack-${displayMask}.png`;
+  const basename = STACK_PNG_BY_MASK[displayMask];
+  if (!basename) return "";
+  return `${BASE}img/mooring-stacks/${basename}.png`;
 }
 
 function visibleStackMaskValues(visibleMask: number): number[] {
