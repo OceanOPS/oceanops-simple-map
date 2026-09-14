@@ -1,6 +1,7 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { getLayerDisplayLabel } from "./categories";
-import { makeNetworkPicto } from "./categorySwatch";
+import { makeSoconetBreakdownPicto } from "./categorySwatch";
+import { makeNetworkIconImg } from "./networkIcons";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
 
@@ -44,7 +45,7 @@ function appendBreakdownRow(
   count: number
 ): void {
   const item = document.createElement("li");
-  const picto = makeNetworkPicto(layerId, "modal");
+  const picto = makeSoconetBreakdownPicto(layerId);
   const nameSpan = document.createElement("span");
   nameSpan.className = "o-country-modal-network";
   nameSpan.textContent = getLayerDisplayLabel(layerId, "modal");
@@ -79,13 +80,15 @@ export async function openSoconetMetricsModal(
 
   const titleWrap = document.createElement("div");
   titleWrap.className = "o-country-modal-title-wrap";
-  const picto = makeNetworkPicto("soconet", "modal");
-  picto.classList.add("o-country-modal-title-flag");
+  const pictoWrap = document.createElement("span");
+  pictoWrap.className = "o-country-modal-title-flag";
+  const titlePicto = makeNetworkIconImg("soconet");
+  if (titlePicto) pictoWrap.append(titlePicto);
   const title = document.createElement("h2");
   title.id = "o-soconet-modal-title";
   title.className = "o-country-modal-title";
   title.textContent = getLayerDisplayLabel("soconet");
-  titleWrap.append(picto, title);
+  titleWrap.append(pictoWrap, title);
 
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";

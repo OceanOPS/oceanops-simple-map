@@ -42,7 +42,7 @@ function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): vo
 
   for (const row of rows) {
     const item = document.createElement("li");
-    const picto = makeNetworkPicto(row.layerId, "modal");
+    const picto = makeNetworkPicto(row.layerId, "country-modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = row.label;
@@ -72,27 +72,37 @@ function appendLineNetworkList(
     const header = document.createElement("div");
     header.className = "o-country-modal-platform-header";
 
-    const picto = makeNetworkPicto(row.layerId, "modal");
+    const picto = makeNetworkPicto(row.layerId, "country-modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = row.label;
 
-    const countSpan = document.createElement("span");
-    countSpan.className = "o-legend-count";
-    countSpan.textContent = row.displayCount;
-
-    header.append(picto, nameSpan, countSpan);
+    const meta = document.createElement("span");
+    meta.className = "o-country-modal-line-meta";
 
     const canExpand = row.lineNames.length > 0;
+    let expandBtn: HTMLButtonElement | null = null;
     if (canExpand) {
-      const expandBtn = document.createElement("button");
+      expandBtn = document.createElement("button");
       expandBtn.type = "button";
       expandBtn.className = "o-country-modal-expand-btn";
       expandBtn.setAttribute("aria-expanded", "false");
       expandBtn.setAttribute("aria-label", `Show lines for ${row.label}`);
       expandBtn.textContent = EXPAND_CLOSED_LABEL;
-      header.appendChild(expandBtn);
+      meta.appendChild(expandBtn);
+    } else {
+      const spacer = document.createElement("span");
+      spacer.className = "o-country-modal-expand-btn-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      meta.appendChild(spacer);
     }
+
+    const countSpan = document.createElement("span");
+    countSpan.className = "o-legend-count o-country-modal-line-count";
+    countSpan.textContent = row.displayCount;
+    meta.appendChild(countSpan);
+
+    header.append(picto, nameSpan, meta);
 
     const children = document.createElement("ul");
     children.className = "o-country-modal-line-names";
@@ -109,19 +119,16 @@ function appendLineNetworkList(
       children.appendChild(child);
     }
 
-    if (canExpand) {
-      const expandBtn = header.querySelector(".o-country-modal-expand-btn");
-      expandBtn?.addEventListener("click", () => {
+    if (canExpand && expandBtn) {
+      expandBtn.addEventListener("click", () => {
         const isOpen = block.classList.toggle("open");
         children.hidden = !isOpen;
-        if (expandBtn instanceof HTMLButtonElement) {
-          expandBtn.textContent = isOpen ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
-          expandBtn.setAttribute("aria-expanded", String(isOpen));
-          expandBtn.setAttribute(
-            "aria-label",
-            isOpen ? `Hide lines for ${row.label}` : `Show lines for ${row.label}`
-          );
-        }
+        expandBtn.textContent = isOpen ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
+        expandBtn.setAttribute("aria-expanded", String(isOpen));
+        expandBtn.setAttribute(
+          "aria-label",
+          isOpen ? `Hide lines for ${row.label}` : `Show lines for ${row.label}`
+        );
       });
     }
 
@@ -245,8 +252,8 @@ function appendOperatedLinesSectionTitle(
   isoCode: string | undefined
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append("Lines operated by ");
-  appendInlineCountryPhrase(heading, countryLabel, isoCode, ` (${count.toLocaleString()})`);
+  heading.append(`${count.toLocaleString()} Lines operated by `);
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, ".");
 }
 
 function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
@@ -316,7 +323,7 @@ function appendEmanuelaTable(
 
     const platformCell = document.createElement("td");
     platformCell.className = "o-country-modal-emanuela-platform";
-    const picto = makeNetworkPicto(row.layerId, "modal");
+    const picto = makeNetworkPicto(row.layerId, "country-modal");
     const platformName = document.createElement("span");
     platformName.textContent = row.label;
     platformCell.append(picto, platformName);
@@ -360,7 +367,7 @@ export function appendExpandablePlatformList(
     expandBtn.setAttribute("aria-label", `Show countries for ${platform.label}`);
     expandBtn.textContent = EXPAND_CLOSED_LABEL;
 
-    const picto = makeNetworkPicto(platform.layerId, "modal");
+    const picto = makeNetworkPicto(platform.layerId, "country-modal");
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = platform.label;
@@ -424,7 +431,7 @@ function appendShipFlagSectionTitle(
     heading,
     countryLabel,
     isoCode,
-    " and operated by other countries"
+    " and operated by other countries."
   );
 }
 
@@ -447,7 +454,7 @@ function appendSensorProviderSectionTitle(
 ): void {
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
   heading.append(`${count.toLocaleString()} platforms/sites/stations equipped with sensors provided by `);
-  appendInlineCountryPhrase(heading, countryLabel, isoCode, " and operated by other countries");
+  appendInlineCountryPhrase(heading, countryLabel, isoCode, " and operated by other countries.");
 }
 
 function appendToggleBreakdownSection(

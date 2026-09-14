@@ -982,6 +982,36 @@ body.map-fullscreen:fullscreen #mapShell {
   padding-bottom: 4px;
 }
 
+.o-legend-content label.o-legend-filter-row.o-legend-country-row {
+  display: grid;
+  grid-template-columns: 20px 22px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 28px;
+}
+
+.o-legend-content label.o-legend-filter-row.o-legend-country-row > input[type="checkbox"] {
+  margin: 0;
+  place-self: center start;
+}
+
+.o-legend-content label.o-legend-filter-row.o-legend-country-row > .o-legend-country-flag {
+  height: 20px;
+  place-self: center start;
+}
+
+.o-legend-content label.o-legend-filter-row.o-legend-country-row > .o-legend-country-name {
+  line-height: 20px;
+  padding-top: 0;
+  place-self: center start;
+}
+
+.o-legend-content label.o-legend-filter-row.o-legend-country-row > .o-legend-network-details-btn {
+  margin-top: 0;
+  margin-right: -6px;
+  place-self: center end;
+}
+
 .o-legend-count {
   opacity: 0.7;
   font-size: 12px;
@@ -1092,6 +1122,7 @@ body.map-fullscreen:fullscreen #mapShell {
 .o-legend-country-name {
   flex: 1;
   min-width: 0;
+  line-height: 1.35;
 }
 
 body.o-country-modal-open {
@@ -1462,6 +1493,27 @@ body.o-country-modal-open {
   line-height: 1.4;
 }
 
+.o-country-modal-line-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.o-country-modal-line-count {
+  min-width: 2.75rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.o-country-modal-expand-btn-spacer {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 .o-country-modal-expand-btn {
   display: flex;
   align-items: center;
@@ -1469,7 +1521,7 @@ body.o-country-modal-open {
   width: 28px;
   height: 28px;
   padding: 0;
-  margin-left: 4px;
+  margin-left: 0;
   border: none;
   border-radius: 4px;
   background: transparent;

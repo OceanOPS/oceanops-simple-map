@@ -285,16 +285,18 @@ export function createLineStyleRow(
   return row;
 }
 
+export type NetworkPictoContext = "legend" | "country-modal";
+
 export function makeNetworkPicto(
   layerId: string,
-  context: "legend" | "modal" = "legend"
+  context: NetworkPictoContext = "legend"
 ): HTMLElement {
-  if (context === "modal") {
-    if (layerId === "soconet") return makeSoconetShipLegendIcon();
-    if (layerId === "soconet_moorings") {
-      const moorCat = getCategoryById("soconet_moorings");
-      if (moorCat) return makeCategorySwatch(moorCat);
-    }
+  if (
+    context === "country-modal" &&
+    (layerId === "soconet" || layerId === "soconet_moorings")
+  ) {
+    const icon = makeNetworkIconImg("soconet");
+    if (icon) return icon;
   }
 
   const icon = makeNetworkIconImg(layerId);
@@ -307,4 +309,14 @@ export function makeNetworkPicto(
   placeholder.className = "o-network-picto o-network-picto--empty";
   placeholder.setAttribute("aria-hidden", "true");
   return placeholder;
+}
+
+/** SOCONET metrics modal rows — map legend symbology (ship / mooring square). */
+export function makeSoconetBreakdownPicto(
+  layerId: "soconet" | "soconet_moorings"
+): HTMLElement {
+  if (layerId === "soconet") return makeSoconetShipLegendIcon();
+  const moorCat = getCategoryById("soconet_moorings");
+  if (moorCat) return makeCategorySwatch(moorCat);
+  return makeNetworkPicto(layerId);
 }

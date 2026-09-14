@@ -273,8 +273,9 @@ export type OceanSitesStackVisibility = {
 function makeStackedSquareRenderer(
   projection: ProjectionId,
   color: string,
-  size: number,
-  valueExpression: string
+  solidSize: number,
+  valueExpression: string,
+  hollowSize: number = solidSize
 ) {
   const use3d = is3dProjection(projection);
   const solidSymbol = use3d
@@ -283,7 +284,7 @@ function makeStackedSquareRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color },
-            size,
+            size: solidSize,
             outline: { color: "black", size: 0.5 },
           }),
         ],
@@ -291,7 +292,7 @@ function makeStackedSquareRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color,
-        size,
+        size: solidSize,
         outline: { color: [0, 0, 0, 1], width: 0.5 },
       });
   const hollowSymbol = use3d
@@ -300,7 +301,7 @@ function makeStackedSquareRenderer(
           new IconSymbol3DLayer({
             resource: { primitive: "square" },
             material: { color: [0, 0, 0, 0] },
-            size,
+            size: hollowSize,
             outline: { color, size: MOORING_STACK_OUTLINE_WIDTH },
           }),
         ],
@@ -308,7 +309,7 @@ function makeStackedSquareRenderer(
     : new SimpleMarkerSymbol({
         style: "square",
         color: [0, 0, 0, 0],
-        size,
+        size: hollowSize,
         outline: { color, width: MOORING_STACK_OUTLINE_WIDTH },
       });
 
@@ -329,20 +330,22 @@ export function makeMooredBuoysRenderer(
   color: string,
   stackVisibility: MooringStackVisibility = { oceansites: true, soconetMoorings: true }
 ) {
-  const stackedSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
+  const aloneSize = MERCATOR_POINT_SIZE;
+  const stackedRingSize = MOORING_SQUARE_MARKER_SIZES.moored_buoys;
   const oceansitesOn = stackVisibility.oceansites ? 1 : 0;
   const soconetOn = stackVisibility.soconetMoorings ? 1 : 0;
 
   return makeStackedSquareRenderer(
     projection,
     color,
-    stackedSize,
+    aloneSize,
     `
       var hollow = 0;
       if ($feature.stack_oceansites == 1 && ${oceansitesOn} == 1) { hollow = 1; }
       if ($feature.stack_soconet == 1 && ${soconetOn} == 1) { hollow = 1; }
       return hollow;
-    `
+    `,
+    stackedRingSize
   );
 }
 

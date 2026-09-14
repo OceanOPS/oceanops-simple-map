@@ -245,6 +245,7 @@ function createCountryFilterRow(
   onMetricsOpen: () => void
 ) {
   const { row, checkbox, text: name } = createCheckboxRow(labelText);
+  row.classList.add("o-legend-country-row");
   name.className = "o-legend-country-name";
 
   const flag = document.createElement("span");
