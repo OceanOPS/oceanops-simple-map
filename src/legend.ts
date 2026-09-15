@@ -18,6 +18,7 @@ import {
   getCountryCountWhere,
   getCountryLabel,
   getLineLayerCountWhere,
+  getPointLayerCountryExpression,
   isAllCountriesSelected,
   type CountryName,
   COUNTRY_FILTER_LINE_LAYER_IDS,
@@ -800,7 +801,12 @@ export function attachLegend(
       updateSelectAllState();
       updateLayerCounts();
       void updateCountryRowCounts();
-      applyMooringStackSymbology(layerById, getProjection());
+      applyMooringStackSymbology(
+        layerById,
+        getProjection(),
+        getPointLayerCountryExpression(selectedCountries, filterableCountries) ||
+          undefined
+      );
     });
 
     layerCheckboxes.push(cb);

@@ -116,6 +116,32 @@ function visibleMooringStackMask(visibility: MooringStackVisibility): number {
   return mask;
 }
 
+/** Stack visibility + optional country filter for the overlay layer. */
+export function buildMooringStackDefinitionExpression(
+  visibleMask: number,
+  countryExpression?: string
+): string {
+  if (visibleMask === 0 || countryExpression === "1=0") return "1=0";
+  const stackPart = `stack_mask IN (${visibleStackMaskValues(visibleMask).join(",")})`;
+  if (!countryExpression) return stackPart;
+  return `(${stackPart}) AND (${countryExpression})`;
+}
+
+export function updateMooringStackDefinitionExpression(
+  layerById: ReadonlyMap<string, GeoJSONLayer>,
+  countryExpression?: string
+): void {
+  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
+  if (!stackLayer) return;
+
+  const visibility = getMooringStackVisibility(layerById);
+  const visibleMask = visibleMooringStackMask(visibility);
+  stackLayer.definitionExpression = buildMooringStackDefinitionExpression(
+    visibleMask,
+    countryExpression
+  );
+}
+
 export function mooringCoordKey(lon: number, lat: number): string {
   return `${lon.toFixed(COORD_DECIMALS)},${lat.toFixed(COORD_DECIMALS)}`;
 }
@@ -363,18 +389,14 @@ export function makeMooringStackRenderer(
 /** Pick solo symbol or stack PNG when legend filters change. */
 export function applyMooringStackSymbology(
   layerById: ReadonlyMap<string, GeoJSONLayer>,
-  projection: ProjectionId
+  projection: ProjectionId,
+  countryExpression?: string
 ): void {
   const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
   if (!stackLayer) return;
 
   const visibility = getMooringStackVisibility(layerById);
-  const visibleMask = visibleMooringStackMask(visibility);
-
-  stackLayer.definitionExpression =
-    visibleMask === 0
-      ? "1=0"
-      : `stack_mask IN (${visibleStackMaskValues(visibleMask).join(",")})`;
+  updateMooringStackDefinitionExpression(layerById, countryExpression);
   stackLayer.renderer = makeMooringStackRenderer(projection, visibility);
   stackLayer.visible =
     visibility.mooredBuoys || visibility.oceansites || visibility.soconetMoorings;

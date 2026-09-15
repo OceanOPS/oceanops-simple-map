@@ -14,10 +14,10 @@ export const MOORING_NESTED_STACK_SIZES = {
   soconet_moorings: MAP_SQUARE_MARKER_SIZE - 2,
 } as const;
 
-/** Wider OceanSITES middle ring when all 3 mooring networks are stacked. */
+/** Wider OceanSITES middle ring in stack-mb-on-oceansites-on-soconet.png. */
 export const MOORING_TRIPLE_STACK_OCEANSITES_SIZE = MAP_SQUARE_MARKER_SIZE + 2;
 
-/** Larger SOCONET inner square when stacked with moored buoys only (stack-5.png). */
+/** Larger SOCONET inner square when stacked with moored buoys only (stack-mb-on-soconet.png). */
 export const MOORING_MB_SOCNET_STACK_SOCNET_SIZE = MAP_SQUARE_MARKER_SIZE + 1;
 
 /** Map draw order for nested mooring squares (bottom → top). */

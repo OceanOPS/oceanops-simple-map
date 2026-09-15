@@ -1,5 +1,6 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
+import { updateMooringStackDefinitionExpression } from "./mooringStacks";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
@@ -397,19 +398,31 @@ export function isAllCountriesSelected(
   );
 }
 
+/** Point-layer country filter — empty string when all countries are selected. */
+export function getPointLayerCountryExpression(
+  selectedCountries: ReadonlySet<string>,
+  filterableCountries: readonly string[] = ALL_COUNTRIES
+): string {
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "";
+  return buildCountryExpression(selectedCountries);
+}
+
 export function applyCountryFilter(
   layerById: Map<string, GeoJSONLayer>,
   selectedCountries: ReadonlySet<string>,
   filterableCountries: readonly string[] = ALL_COUNTRIES
 ): void {
-  const expression = isAllCountriesSelected(selectedCountries, filterableCountries)
-    ? ""
-    : buildCountryExpression(selectedCountries);
+  const expression = getPointLayerCountryExpression(
+    selectedCountries,
+    filterableCountries
+  );
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     const layer = layerById.get(layerId);
     if (layer) layer.definitionExpression = expression;
   }
+
+  updateMooringStackDefinitionExpression(layerById, expression || undefined);
 
   const allCountriesSelected = isAllCountriesSelected(
     selectedCountries,
