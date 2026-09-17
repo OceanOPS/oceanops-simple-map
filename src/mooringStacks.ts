@@ -404,6 +404,45 @@ export function applyMooringStackSymbology(
     visibility.mooredBuoys || visibility.oceansites || visibility.soconetMoorings;
 }
 
+function buildMooringStackLayerWhere(
+  layerId: MooringStackLayerId,
+  where: string
+): string {
+  const layerMasks = stackMasksIncludingLayer(MOORING_STACK_BITS[layerId]);
+  const maskClause = `stack_mask IN (${layerMasks.join(",")})`;
+  return where && where !== "1=1" ? `(${where}) AND ${maskClause}` : maskClause;
+}
+
+async function queryLayerFeaturesPaginated(
+  layer: GeoJSONLayer,
+  where: string,
+  outFields: string[]
+): Promise<Record<string, unknown>[]> {
+  const attrs: Record<string, unknown>[] = [];
+  const pageSize = 2000;
+  let start = 0;
+
+  while (true) {
+    const result = await layer.queryFeatures({
+      where,
+      outFields,
+      returnGeometry: false,
+      start,
+      num: pageSize,
+    });
+
+    for (const feature of result.features) {
+      if (feature.attributes) attrs.push(feature.attributes);
+    }
+
+    if (result.features.length === 0) break;
+    if (!result.exceededTransferLimit && result.features.length < pageSize) break;
+    start += result.features.length;
+  }
+
+  return attrs;
+}
+
 export async function queryMooringLayerCount(
   layerId: MooringStackLayerId,
   layerById: ReadonlyMap<string, GeoJSONLayer>,
@@ -411,7 +450,6 @@ export async function queryMooringLayerCount(
 ): Promise<number> {
   const soloLayer = layerById.get(layerId);
   const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
-  const layerMasks = stackMasksIncludingLayer(MOORING_STACK_BITS[layerId]);
 
   let total = 0;
 
@@ -420,13 +458,40 @@ export async function queryMooringLayerCount(
   }
 
   if (stackLayer && typeof stackLayer.queryFeatureCount === "function") {
-    const maskClause = `stack_mask IN (${layerMasks.join(",")})`;
-    const stackWhere =
-      where && where !== "1=1" ? `(${where}) AND ${maskClause}` : maskClause;
-    total += await stackLayer.queryFeatureCount({ where: stackWhere });
+    total += await stackLayer.queryFeatureCount({
+      where: buildMooringStackLayerWhere(layerId, where),
+    });
   }
 
   return total;
+}
+
+/** Solo + co-located stack features for one mooring network layer. */
+export async function queryMooringLayerFeatures(
+  layerId: MooringStackLayerId,
+  layerById: ReadonlyMap<string, GeoJSONLayer>,
+  where: string,
+  outFields: string[]
+): Promise<Record<string, unknown>[]> {
+  const attrs: Record<string, unknown>[] = [];
+  const soloLayer = layerById.get(layerId);
+  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
+
+  if (soloLayer && typeof soloLayer.queryFeatures === "function") {
+    attrs.push(...(await queryLayerFeaturesPaginated(soloLayer, where, outFields)));
+  }
+
+  if (stackLayer && typeof stackLayer.queryFeatures === "function") {
+    attrs.push(
+      ...(await queryLayerFeaturesPaginated(
+        stackLayer,
+        buildMooringStackLayerWhere(layerId, where),
+        outFields
+      ))
+    );
+  }
+
+  return attrs;
 }
 
 export function isMooringSquareLayerId(

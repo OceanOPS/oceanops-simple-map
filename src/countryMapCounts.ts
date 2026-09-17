@@ -16,6 +16,11 @@ import {
   parseProgramCountryNames,
 } from "./lineCrossCountryCruise";
 import {
+  isMooringSquareLayerId,
+  queryMooringLayerCount,
+  queryMooringLayerFeatures,
+} from "./mooringStacks";
+import {
   getCountryBreakdownFromPartner,
   getPartnerDataSnapshot,
   type CountryLayerCount,
@@ -98,6 +103,73 @@ function sensorCrossCountryWhere(country: CountryName): string {
 
 const labelByLayerId = (layerId: string) => getLayerDisplayLabel(layerId, "modal");
 
+const REPORTING_ISO_FIELD = ["country_iso_reporting"] as const;
+
+async function queryLayerFeatureCount(
+  layerId: string,
+  layerById: Map<string, GeoJSONLayer>,
+  where: string
+): Promise<number> {
+  if (isMooringSquareLayerId(layerId)) {
+    return queryMooringLayerCount(layerId, layerById, where);
+  }
+
+  const layer = layerById.get(layerId);
+  if (!layer || typeof layer.queryFeatureCount !== "function") return 0;
+  return layer.queryFeatureCount({ where });
+}
+
+async function queryLayerFeatureAttributes(
+  layerId: string,
+  layerById: Map<string, GeoJSONLayer>,
+  where: string,
+  outFields: readonly string[]
+): Promise<Record<string, unknown>[]> {
+  if (isMooringSquareLayerId(layerId)) {
+    return queryMooringLayerFeatures(layerId, layerById, where, [...outFields]);
+  }
+
+  const layer = layerById.get(layerId);
+  if (!layer || typeof layer.queryFeatures !== "function") return [];
+
+  const attrs: Record<string, unknown>[] = [];
+  const pageSize = 2000;
+  let start = 0;
+
+  while (true) {
+    const result = await layer.queryFeatures({
+      where,
+      outFields: [...outFields],
+      returnGeometry: false,
+      start,
+      num: pageSize,
+    });
+
+    for (const feature of result.features) {
+      if (feature.attributes) attrs.push(feature.attributes);
+    }
+
+    if (result.features.length === 0) break;
+    if (!result.exceededTransferLimit && result.features.length < pageSize) break;
+    start += result.features.length;
+  }
+
+  return attrs;
+}
+
+function addReportingIsoCounts(
+  totals: Map<string, number>,
+  attributes: readonly Record<string, unknown>[]
+): void {
+  for (const featureAttributes of attributes) {
+    const raw = featureAttributes.country_iso_reporting;
+    if (typeof raw !== "string" || !raw.trim()) continue;
+    const key = canonicalCountryFromReportingIso(raw);
+    if (!key) continue;
+    totals.set(key, (totals.get(key) ?? 0) + 1);
+  }
+}
+
 async function queryCountryTotal(
   where: string,
   layerById: Map<string, GeoJSONLayer>,
@@ -107,10 +179,8 @@ async function queryCountryTotal(
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     if (!visibleLayerIds.has(layerId)) continue;
-    const layer = layerById.get(layerId);
-    if (!layer || typeof layer.queryFeatureCount !== "function") continue;
     try {
-      total += await layer.queryFeatureCount({ where });
+      total += await queryLayerFeatureCount(layerId, layerById, where);
     } catch {
       /* layer not ready */
     }
@@ -128,12 +198,10 @@ async function queryCountryBreakdown(
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     if (!visibleLayerIds.has(layerId)) continue;
-    const layer = layerById.get(layerId);
-    if (!layer || typeof layer.queryFeatureCount !== "function") continue;
 
     let count = 0;
     try {
-      count = await layer.queryFeatureCount({ where });
+      count = await queryLayerFeatureCount(layerId, layerById, where);
     } catch {
       continue;
     }
@@ -157,38 +225,20 @@ async function aggregateContributorCounts(
   visibleLayerIds: ReadonlySet<string>
 ): Promise<Map<string, number>> {
   const totals = new Map<string, number>();
-  const pageSize = 2000;
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     if (!visibleLayerIds.has(layerId)) continue;
-    const layer = layerById.get(layerId);
-    if (!layer || typeof layer.queryFeatures !== "function") continue;
 
-    let start = 0;
-    while (true) {
-      try {
-        const result = await layer.queryFeatures({
-          where,
-          outFields: ["country_iso_reporting"],
-          returnGeometry: false,
-          start,
-          num: pageSize,
-        });
-
-        for (const feature of result.features) {
-          const raw = feature.attributes?.country_iso_reporting;
-          if (typeof raw !== "string" || !raw.trim()) continue;
-          const key = canonicalCountryFromReportingIso(raw);
-          if (!key) continue;
-          totals.set(key, (totals.get(key) ?? 0) + 1);
-        }
-
-        if (result.features.length === 0) break;
-        if (!result.exceededTransferLimit && result.features.length < pageSize) break;
-        start += result.features.length;
-      } catch {
-        break;
-      }
+    try {
+      const attributes = await queryLayerFeatureAttributes(
+        layerId,
+        layerById,
+        where,
+        REPORTING_ISO_FIELD
+      );
+      addReportingIsoCounts(totals, attributes);
+    } catch {
+      /* layer not ready */
     }
   }
 
@@ -216,40 +266,21 @@ async function aggregatePlatformCountryCounts(
   visibleLayerIds: ReadonlySet<string>
 ): Promise<PlatformCountryCount[]> {
   const rows: PlatformCountryCount[] = [];
-  const pageSize = 2000;
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     if (!visibleLayerIds.has(layerId)) continue;
-    const layer = layerById.get(layerId);
-    if (!layer || typeof layer.queryFeatures !== "function") continue;
 
     const totals = new Map<string, number>();
-    let start = 0;
-
-    while (true) {
-      try {
-        const result = await layer.queryFeatures({
-          where,
-          outFields: ["country_iso_reporting"],
-          returnGeometry: false,
-          start,
-          num: pageSize,
-        });
-
-        for (const feature of result.features) {
-          const raw = feature.attributes?.country_iso_reporting;
-          if (typeof raw !== "string" || !raw.trim()) continue;
-          const key = canonicalCountryFromReportingIso(raw);
-          if (!key) continue;
-          totals.set(key, (totals.get(key) ?? 0) + 1);
-        }
-
-        if (result.features.length === 0) break;
-        if (!result.exceededTransferLimit && result.features.length < pageSize) break;
-        start += result.features.length;
-      } catch {
-        break;
-      }
+    try {
+      const attributes = await queryLayerFeatureAttributes(
+        layerId,
+        layerById,
+        where,
+        REPORTING_ISO_FIELD
+      );
+      addReportingIsoCounts(totals, attributes);
+    } catch {
+      continue;
     }
 
     for (const [geoCountry, count] of totals.entries()) {
