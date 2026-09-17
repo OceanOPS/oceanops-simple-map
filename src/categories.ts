@@ -14,11 +14,15 @@ export const MOORING_NESTED_STACK_SIZES = {
   soconet_moorings: MAP_SQUARE_MARKER_SIZE - 2,
 } as const;
 
-/** Wider OceanSITES middle ring in stack-mb-on-oceansites-on-soconet.png. */
+/** Two-network stack sprites — outer n=7, inner n−2=5 (all 2-layer composites). */
+export const MOORING_TWO_STACK_SIZE = MAP_SQUARE_MARKER_SIZE + 2;
+export const MOORING_TWO_STACK_INNER_SIZE = MAP_SQUARE_MARKER_SIZE;
+
+/** Wider OceanSITES middle ring in stack-mb-on-oceansites-on-soconet.png (triple stack only). */
 export const MOORING_TRIPLE_STACK_OCEANSITES_SIZE = MAP_SQUARE_MARKER_SIZE + 2;
 
-/** Larger SOCONET inner square when stacked with moored buoys only (stack-mb-on-soconet.png). */
-export const MOORING_MB_SOCNET_STACK_SOCNET_SIZE = MAP_SQUARE_MARKER_SIZE + 1;
+/** Stack PNG outline width — matches SimpleMarkerSymbol outline (0.5) in renderers.ts. */
+export const MOORING_STACK_BORDER_WIDTH = 0.5;
 
 /** Map draw order for nested mooring squares (bottom → top). */
 export const MAP_LAYER_STACK: Partial<Record<string, number>> = {

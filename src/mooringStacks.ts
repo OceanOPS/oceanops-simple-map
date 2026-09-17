@@ -8,6 +8,8 @@ import {
   categories,
   MAP_SQUARE_MARKER_SIZE,
   MOORING_NESTED_STACK_SIZES,
+  MOORING_STACK_BORDER_WIDTH,
+  MOORING_TWO_STACK_SIZE,
   type Shape,
 } from "./categories";
 import { is3dProjection, type ProjectionId } from "./projections";
@@ -42,10 +44,10 @@ export const STACK_PNG_BY_MASK: Record<number, string> = {
 };
 
 const PNG_DISPLAY_SIZE: Record<number, number> = {
-  3: MOORING_NESTED_STACK_SIZES.moored_buoys,
-  5: MOORING_NESTED_STACK_SIZES.moored_buoys,
-  6: MOORING_NESTED_STACK_SIZES.oceansites,
-  7: MOORING_NESTED_STACK_SIZES.moored_buoys,
+  3: MOORING_TWO_STACK_SIZE + 2 * MOORING_STACK_BORDER_WIDTH,
+  5: MOORING_TWO_STACK_SIZE + 2 * MOORING_STACK_BORDER_WIDTH,
+  6: MOORING_TWO_STACK_SIZE + 2 * MOORING_STACK_BORDER_WIDTH,
+  7: MOORING_NESTED_STACK_SIZES.moored_buoys + 2 * MOORING_STACK_BORDER_WIDTH,
 };
 
 export type MooringStackVisibility = {
