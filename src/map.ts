@@ -7,20 +7,29 @@ import MapView from "@arcgis/core/views/MapView.js";
 import Basemap from "@arcgis/core/Basemap.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import {
-  is3dProjection,
-  isPlateCarreeProjection,
-  PROJECTION_3D_GLOBE,
-  PROJECTION_WEB_MERCATOR,
-  projectionLabel,
-  toggleProjection,
-  type ProjectionId,
-} from "./projections";
+  createEqualEarthBasemapGroup,
+  EQUAL_EARTH_BASEMAP_GROUP_ID,
+  EQUAL_EARTH_SPATIAL_REFERENCE,
+  EQUAL_EARTH_WORLD_EXTENT,
+} from "./equalEarthBasemap";
 import {
   createOceanTileLayer,
   createPlateCarreeBasemapGroup,
   PLATE_CARREE_BASEMAP_GROUP_ID,
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
+import {
+  is3dProjection,
+  isCustomFlatBasemapProjection,
+  isEqualEarthProjection,
+  isPlateCarreeProjection,
+  PROJECTION_3D_GLOBE,
+  PROJECTION_PLATE_CARREE_PACIFIC,
+  PROJECTION_WEB_MERCATOR,
+  projectionLabel,
+  toggleProjection,
+  type ProjectionId,
+} from "./projections";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
 
@@ -126,7 +135,7 @@ export function createSatelliteBasemap() {
 }
 
 export function basemapForKind(kind: BasemapKind, projection: ProjectionId) {
-  if (isPlateCarreeProjection(projection)) return null;
+  if (isCustomFlatBasemapProjection(projection)) return null;
   return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemapMercator();
 }
 
@@ -136,6 +145,12 @@ export function applyBasemapKind(
   kind: BasemapKind,
   projection: ProjectionId
 ) {
+  if (isEqualEarthProjection(projection)) {
+    const existing = map.findLayerById(EQUAL_EARTH_BASEMAP_GROUP_ID);
+    if (existing) map.remove(existing);
+    map.add(createEqualEarthBasemapGroup(kind), 0);
+    return;
+  }
   if (!isPlateCarreeProjection(projection)) {
     map.basemap = basemapForKind(kind, projection);
     return;
@@ -170,6 +185,21 @@ function createFlatMapView(
       extent: PLATE_CARREE_WORLD_EXTENT.clone(),
       constraints: {
         geometry: PLATE_CARREE_WORLD_EXTENT.clone(),
+        rotationEnabled: false,
+        snapToZoom: false,
+      },
+      highlightOptions: FLAT_HIGHLIGHT,
+    });
+  }
+
+  if (isEqualEarthProjection(projection)) {
+    return new MapView({
+      container,
+      map,
+      spatialReference: EQUAL_EARTH_SPATIAL_REFERENCE,
+      extent: EQUAL_EARTH_WORLD_EXTENT.clone(),
+      constraints: {
+        geometry: EQUAL_EARTH_WORLD_EXTENT.clone(),
         rotationEnabled: false,
         snapToZoom: false,
       },
@@ -225,6 +255,8 @@ export function createGlobeView(
   });
   if (isPlateCarreeProjection(projection)) {
     map.add(createPlateCarreeBasemapGroup(basemapKind), 0);
+  } else if (isEqualEarthProjection(projection)) {
+    map.add(createEqualEarthBasemapGroup(basemapKind), 0);
   }
 
   if (is3dProjection(projection)) {
@@ -488,7 +520,9 @@ export function mountBasemapProjectionControl(
         ? "globe.jpeg"
         : next === PROJECTION_WEB_MERCATOR
           ? "mercator.jpeg"
-          : "mercator.jpeg";
+          : next === PROJECTION_PLATE_CARREE_PACIFIC
+            ? "mercator.jpeg"
+            : "mercator.jpeg";
     projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/${preview}');"></div>`;
     projectionHint.textContent = projectionLabel(next);
     projectionPreviewBtn.title = `Switch to ${projectionLabel(next)}`;

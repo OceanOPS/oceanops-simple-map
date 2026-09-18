@@ -1,6 +1,7 @@
 import type Map from "@arcgis/core/Map.js";
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories, mapLayerStackRank } from "./categories";
+import { EQUAL_EARTH_BASEMAP_GROUP_ID } from "./equalEarthBasemap";
 import { PLATE_CARREE_BASEMAP_GROUP_ID } from "./plateCarreeBasemap";
 
 /** Operational GeoJSON layer ids in bottom → top draw order. */
@@ -15,9 +16,11 @@ export function sortedOperationalLayerIds(): string[] {
 }
 
 function operationalLayerBaseIndex(map: Map): number {
-  const basemapGroup = map.findLayerById(PLATE_CARREE_BASEMAP_GROUP_ID);
-  if (!basemapGroup) return 0;
-  return map.layers.indexOf(basemapGroup) + 1;
+  for (const groupId of [PLATE_CARREE_BASEMAP_GROUP_ID, EQUAL_EARTH_BASEMAP_GROUP_ID]) {
+    const basemapGroup = map.findLayerById(groupId);
+    if (basemapGroup) return map.layers.indexOf(basemapGroup) + 1;
+  }
+  return 0;
 }
 
 /** MapView layer order (co-located mooring stacks use a sprite overlay layer on top). */

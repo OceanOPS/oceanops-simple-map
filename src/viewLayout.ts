@@ -3,11 +3,17 @@ import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import {
+  EQUAL_EARTH_WORLD_EXTENT,
+  EQUAL_EARTH_WORLD_X_SPAN,
+  EQUAL_EARTH_WORLD_Y_SPAN,
+} from "./equalEarthBasemap";
+import {
   PLATE_CARREE_CENTER_LONGITUDE,
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
 import {
   is3dProjection,
+  isEqualEarthProjection,
   isPlateCarreeProjection,
   type ProjectionId,
 } from "./projections";
@@ -45,6 +51,43 @@ export function plateCarreeExtentForViewport(
   });
 }
 
+/** Extent that fills the viewport while keeping the full Equal Earth world in frame. */
+export function equalEarthExtentForViewport(width: number, height: number): Extent {
+  const aspect = width / height;
+  const worldAspect = EQUAL_EARTH_WORLD_X_SPAN / EQUAL_EARTH_WORLD_Y_SPAN;
+
+  const ySpan =
+    aspect > worldAspect
+      ? Math.min(EQUAL_EARTH_WORLD_Y_SPAN, EQUAL_EARTH_WORLD_X_SPAN / aspect)
+      : EQUAL_EARTH_WORLD_Y_SPAN;
+
+  const halfY = ySpan / 2;
+  const halfX = EQUAL_EARTH_WORLD_X_SPAN / 2;
+
+  return new Extent({
+    xmin: -halfX,
+    ymin: -halfY,
+    xmax: halfX,
+    ymax: halfY,
+    spatialReference: EQUAL_EARTH_WORLD_EXTENT.spatialReference,
+  });
+}
+
+/** Fit Equal Earth to the shell and lock zoom-out at that framing. */
+export async function fitEqualEarthView(view: MapView): Promise<void> {
+  await view.when();
+
+  const extent =
+    view.width && view.height
+      ? equalEarthExtentForViewport(view.width, view.height)
+      : EQUAL_EARTH_WORLD_EXTENT.clone();
+
+  await view.goTo(extent, { animate: false });
+
+  view.constraints.geometry = EQUAL_EARTH_WORLD_EXTENT.clone();
+  view.constraints.minScale = view.scale;
+}
+
 /** Fit Plate Carrée to the shell and lock zoom-out at that framing. */
 export async function fitPlateCarreeView(view: MapView): Promise<void> {
   await view.when();
@@ -64,23 +107,38 @@ export async function fitPlateCarreeView(view: MapView): Promise<void> {
   view.constraints.minScale = view.scale;
 }
 
-function isPlateCarreeWorldScale(mapView: MapView): boolean {
+function isFlatWorldScale(mapView: MapView): boolean {
   const minScale = mapView.constraints.minScale;
   if (minScale == null) return true;
   return mapView.scale >= minScale * 0.995;
 }
 
-/** Re-fit Plate Carrée when the map shell changes size (menu open/close, resize). */
+/** Re-fit a world-framed flat view when the map shell changes size (menu open/close, resize). */
+export async function reflowFlatWorldViewIfWorldScale(
+  view: GlobeView,
+  projection: ProjectionId
+): Promise<void> {
+  if (view.type !== "2d") return;
+
+  const mapView = view as MapView;
+  await refreshViewLayout(mapView);
+  if (!isFlatWorldScale(mapView)) return;
+
+  if (isPlateCarreeProjection(projection)) {
+    await fitPlateCarreeView(mapView);
+    return;
+  }
+  if (isEqualEarthProjection(projection)) {
+    await fitEqualEarthView(mapView);
+  }
+}
+
+/** @deprecated Use reflowFlatWorldViewIfWorldScale */
 export async function reflowPlateCarreeIfWorldScale(
   view: GlobeView,
   projection: ProjectionId
 ): Promise<void> {
-  if (!isPlateCarreeProjection(projection) || view.type !== "2d") return;
-
-  const mapView = view as MapView;
-  await refreshViewLayout(mapView);
-  if (!isPlateCarreeWorldScale(mapView)) return;
-  await fitPlateCarreeView(mapView);
+  await reflowFlatWorldViewIfWorldScale(view, projection);
 }
 
 /**
@@ -139,6 +197,13 @@ export async function fitViewInitialExtent(
   if (isPlateCarreeProjection(projection)) {
     if (view.type === "2d") {
       await fitPlateCarreeView(view as MapView);
+    }
+    return;
+  }
+
+  if (isEqualEarthProjection(projection)) {
+    if (view.type === "2d") {
+      await fitEqualEarthView(view as MapView);
     }
     return;
   }

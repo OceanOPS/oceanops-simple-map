@@ -1,13 +1,31 @@
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
+import { EQUAL_EARTH_BASEMAP_GROUP_ID } from "./equalEarthBasemap";
 import { PLATE_CARREE_BASEMAP_GROUP_ID } from "./plateCarreeBasemap";
-import { isPlateCarreeProjection, type ProjectionId } from "./projections";
+import {
+  isCustomFlatBasemapProjection,
+  type ProjectionId,
+} from "./projections";
 import type { GlobeView } from "./viewHolder";
 
 const SHOW_DELAY_MS = 200;
 const HIDE_DELAY_MS = 150;
 
-/** Shown while the Plate Carrée MapImageLayer waits on MapServer export. */
+const MAP_IMAGE_BASEMAP_GROUP_IDS = [
+  PLATE_CARREE_BASEMAP_GROUP_ID,
+  EQUAL_EARTH_BASEMAP_GROUP_ID,
+] as const;
+
+function findMapImageBasemapLayer(map: __esri.Map | null | undefined) {
+  for (const groupId of MAP_IMAGE_BASEMAP_GROUP_IDS) {
+    const group = map?.findLayerById(groupId) as GroupLayer | undefined;
+    const layer = group?.layers.getItemAt(0);
+    if (layer?.type === "map-image") return layer;
+  }
+  return undefined;
+}
+
+/** Shown while a flat MapImageLayer basemap waits on MapServer export. */
 export function mountMapServerLoader(
   shell: HTMLElement,
   view: GlobeView,
@@ -50,7 +68,7 @@ export function mountMapServerLoader(
   };
 
   const onUpdating = (updating: boolean) => {
-    if (!isPlateCarreeProjection(getProjection()) || !updating) {
+    if (!isCustomFlatBasemapProjection(getProjection()) || !updating) {
       cancelShow();
       if (!overlay.classList.contains("is-active")) return;
       cancelHide();
@@ -76,12 +94,9 @@ export function mountMapServerLoader(
     attachGeneration += 1;
     const generation = attachGeneration;
 
-    const group = view.map?.findLayerById(
-      PLATE_CARREE_BASEMAP_GROUP_ID
-    ) as GroupLayer | undefined;
-    const layer = group?.layers.getItemAt(0);
+    const layer = findMapImageBasemapLayer(view.map);
 
-    if (layer?.type !== "map-image" || view.type !== "2d") {
+    if (!layer || view.type !== "2d") {
       onUpdating(false);
       return;
     }
@@ -99,10 +114,8 @@ export function mountMapServerLoader(
 
   const mapWatch = reactiveUtils.watch(
     () => {
-      const group = view.map?.findLayerById(
-        PLATE_CARREE_BASEMAP_GROUP_ID
-      ) as GroupLayer | undefined;
-      return `${group?.layers.length ?? 0}:${group?.layers.getItemAt(0)?.id ?? ""}`;
+      const layer = findMapImageBasemapLayer(view.map);
+      return `${layer?.id ?? ""}:${layer?.type ?? ""}`;
     },
     attachToBasemap,
     { initial: true }
