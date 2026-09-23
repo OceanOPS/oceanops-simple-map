@@ -37,7 +37,9 @@ import {
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
+  bindFlatWorldLayoutSync,
   fitViewInitialExtent,
+  reflowFlatWorldViewIfWorldScale,
   refreshViewLayout,
 } from "./viewLayout";
 import {
@@ -331,6 +333,7 @@ function createRotationController(
   let unbindMapFullscreenEmbed: (() => void) | null = null;
   let unbindMapEmbedResize: (() => void) | null = null;
   let unbindGlobeLineWidthZoom: (() => void) | null = null;
+  let unbindFlatWorldLayout: (() => void) | null = null;
   let platformSearch: PlatformSearchController | null = null;
 
   if (window.self !== window.top) {
@@ -339,7 +342,10 @@ function createRotationController(
   }
 
   const onShellLayoutChange = () => {
-    void refreshViewLayout(viewHolder.view);
+    void (async () => {
+      await refreshViewLayout(viewHolder.view);
+      await reflowFlatWorldViewIfWorldScale(viewHolder.view, currentProjection);
+    })();
   };
 
   let syncPlatformSearchUi: (() => void) | undefined;
@@ -441,6 +447,11 @@ function createRotationController(
       ? bindGlobeLineWidthZoomSync(view, layerById, () => currentProjection)
       : null;
 
+    unbindFlatWorldLayout?.();
+    unbindFlatWorldLayout = is3dProjection(projection)
+      ? null
+      : bindFlatWorldLayoutSync(view, () => currentProjection);
+
     attachLegendToView();
     mountPlatformSearchUi();
   }
@@ -458,6 +469,8 @@ function createRotationController(
     unbindMapEmbedResize = null;
     unbindGlobeLineWidthZoom?.();
     unbindGlobeLineWidthZoom = null;
+    unbindFlatWorldLayout?.();
+    unbindFlatWorldLayout = null;
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;

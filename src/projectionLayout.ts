@@ -3,6 +3,7 @@ import {
   isCustomFlatBasemapProjection,
   type ProjectionId,
 } from "./projections";
+import { clearFlatViewDivWidthLimit } from "./viewLayout";
 
 /** Flat map uses a 2:1 shell; globe fills the viewport (sphere layout). */
 export function applyProjectionShellLayout(projection: ProjectionId): void {
@@ -12,6 +13,7 @@ export function applyProjectionShellLayout(projection: ProjectionId): void {
     "flat-mapserver-basemap"
   );
   if (is3dProjection(projection)) {
+    clearFlatViewDivWidthLimit();
     document.body.classList.add("globe-projection");
     return;
   }

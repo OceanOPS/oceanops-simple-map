@@ -1,5 +1,4 @@
 import esriConfig from "@arcgis/core/config.js";
-import Extent from "@arcgis/core/geometry/Extent.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
@@ -24,8 +23,8 @@ import {
   isEqualEarthProjection,
   isPlateCarreeProjection,
   PROJECTION_3D_GLOBE,
+  PROJECTION_EQUAL_EARTH,
   PROJECTION_PLATE_CARREE_PACIFIC,
-  PROJECTION_WEB_MERCATOR,
   projectionLabel,
   toggleProjection,
   type ProjectionId,
@@ -38,15 +37,6 @@ esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 export type BasemapKind = "map" | "satellite";
 
 const BASE = import.meta.env.BASE_URL;
-
-/** Web Mercator valid world (matches ~±85° latitude). */
-export const WEB_MERCATOR_NAV_BOUNDS = new Extent({
-  xmin: -20037508.342787,
-  ymin: -19971868.88040863,
-  xmax: 20037508.342787,
-  ymax: 19971868.88040863,
-  spatialReference: SpatialReference.WebMercator,
-});
 
 export function createNavigationBasemapMercator() {
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
@@ -166,10 +156,6 @@ const FLAT_HIGHLIGHT = {
   fillOpacity: 0.2,
 };
 
-/** Default Web Mercator framing; users may zoom out one step further (see min zoom). */
-const WEB_MERCATOR_DEFAULT_ZOOM = 3;
-const WEB_MERCATOR_MIN_ZOOM = WEB_MERCATOR_DEFAULT_ZOOM - 1;
-
 /** Letterbox / chrome background for Plate Carrée and Equal Earth (matches 3D globe). */
 const OCEANOPS_VIEW_BACKGROUND = {
   color: [11, 30, 66, 1] as [number, number, number, number],
@@ -180,6 +166,10 @@ function createFlatMapView(
   map: Map,
   projection: ProjectionId
 ): MapView {
+  if (is3dProjection(projection)) {
+    throw new Error("createFlatMapView requires a flat projection");
+  }
+
   if (isPlateCarreeProjection(projection)) {
     // The extent (not center/zoom) drives the initial camera so the full 360x180 world
     // is framed from the first paint, poles included, whatever the container size.
@@ -214,19 +204,7 @@ function createFlatMapView(
     });
   }
 
-  return new MapView({
-    container,
-    map,
-    center: [0, 20],
-    zoom: WEB_MERCATOR_DEFAULT_ZOOM,
-    constraints: {
-      geometry: WEB_MERCATOR_NAV_BOUNDS,
-      rotationEnabled: false,
-      minZoom: WEB_MERCATOR_MIN_ZOOM,
-      snapToZoom: false,
-    },
-    highlightOptions: FLAT_HIGHLIGHT,
-  });
+  throw new Error(`Unsupported flat projection: ${projection}`);
 }
 
 export async function stripBasemapLabels(map: Map) {
@@ -520,16 +498,19 @@ export function mountBasemapProjectionControl(
 
   fullscreenSection.append(fullscreenBtn, fullscreenHint);
 
+  const projectionPreviewImage = (target: ProjectionId): string => {
+    switch (target) {
+      case PROJECTION_3D_GLOBE:
+        return "globe.jpeg";
+      case PROJECTION_PLATE_CARREE_PACIFIC:
+      case PROJECTION_EQUAL_EARTH:
+        return "mercator.jpeg";
+    }
+  };
+
   const syncProjectionUi = (projection: ProjectionId) => {
     const next = toggleProjection(projection);
-    const preview =
-      next === PROJECTION_3D_GLOBE
-        ? "globe.jpeg"
-        : next === PROJECTION_WEB_MERCATOR
-          ? "mercator.jpeg"
-          : next === PROJECTION_PLATE_CARREE_PACIFIC
-            ? "mercator.jpeg"
-            : "mercator.jpeg";
+    const preview = projectionPreviewImage(next);
     projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/${preview}');"></div>`;
     projectionHint.textContent = projectionLabel(next);
     projectionPreviewBtn.title = `Switch to ${projectionLabel(next)}`;

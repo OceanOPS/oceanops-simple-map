@@ -19,6 +19,18 @@ export const OCEAN_MAP_SERVER =
 export const SATELLITE_MAP_SERVER =
   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer";
 
+/** Avoid MapServer export cap (2048) misaligning basemap vs GeoJSON on large / hi-DPI views. */
+export const FLAT_MAP_IMAGE_MAX_SIZE = 4096;
+
+export function createFlatMapImageLayer(url: string): MapImageLayer {
+  return new MapImageLayer({
+    url,
+    sublayers: [{ id: 0, legendEnabled: false }],
+    imageMaxWidth: FLAT_MAP_IMAGE_MAX_SIZE,
+    imageMaxHeight: FLAT_MAP_IMAGE_MAX_SIZE,
+  });
+}
+
 export function createOceanTileLayer() {
   return new TileLayer({ url: OCEAN_MAP_SERVER });
 }
@@ -48,10 +60,9 @@ export function createPlateCarreeBasemapGroup(kind: "map" | "satellite") {
     listMode: "hide",
   });
   group.add(
-    new MapImageLayer({
-      url: kind === "satellite" ? SATELLITE_MAP_SERVER : OCEAN_MAP_SERVER,
-      sublayers: [{ id: 0, legendEnabled: false }],
-    })
+    createFlatMapImageLayer(
+      kind === "satellite" ? SATELLITE_MAP_SERVER : OCEAN_MAP_SERVER
+    )
   );
   return group;
 }

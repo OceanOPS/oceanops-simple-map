@@ -190,6 +190,11 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   background-color: #0b1e42;
 }
 
+body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* On desktop, push the globe right when the filter menu is open */
 @media (min-width: 640px) {
   body.menu-open #viewDiv {

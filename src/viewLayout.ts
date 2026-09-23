@@ -12,7 +12,6 @@ import {
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
 import {
-  is3dProjection,
   isEqualEarthProjection,
   isPlateCarreeProjection,
   type ProjectionId,
@@ -21,8 +20,33 @@ import type { GlobeView } from "./viewHolder";
 
 const WORLD_LON_SPAN = 360;
 const WORLD_LAT_SPAN = 180;
+const PLATE_CARREE_WORLD_ASPECT = WORLD_LON_SPAN / WORLD_LAT_SPAN;
 /** Matches `#viewDiv` width/margin transition in `style.css`. */
 const SHELL_TRANSITION_MS = 320;
+
+export function clearFlatViewDivWidthLimit(): void {
+  const viewDiv = document.getElementById("viewDiv");
+  if (!viewDiv) return;
+  viewDiv.style.removeProperty("max-width");
+  viewDiv.style.removeProperty("margin-right");
+}
+
+/** Keep flat map width ≤ height × world aspect so MapImage export matches vector layers. */
+function applyFlatViewDivWidthLimit(view: MapView, worldAspect: number): void {
+  const viewDiv = view.container as HTMLElement | null;
+  if (!viewDiv) return;
+
+  const height = view.height || viewDiv.clientHeight;
+  if (!height) return;
+
+  const maxWidth = Math.max(1, Math.round(height * worldAspect));
+  viewDiv.style.maxWidth = `${maxWidth}px`;
+  if (!document.body.classList.contains("menu-open")) {
+    viewDiv.style.marginRight = "auto";
+  } else {
+    viewDiv.style.removeProperty("margin-right");
+  }
+}
 
 /** Extent that fills the viewport width (no side gaps) while keeping a 360° longitude window. */
 export function plateCarreeExtentForViewport(
@@ -77,12 +101,14 @@ export function equalEarthExtentForViewport(width: number, height: number): Exte
 export async function fitEqualEarthView(view: MapView): Promise<void> {
   await view.when();
 
-  const extent =
+  applyFlatViewDivWidthLimit(view, EQUAL_EARTH_WORLD_X_SPAN / EQUAL_EARTH_WORLD_Y_SPAN);
+  await refreshViewLayout(view);
+
+  const fittedExtent =
     view.width && view.height
       ? equalEarthExtentForViewport(view.width, view.height)
       : EQUAL_EARTH_WORLD_EXTENT.clone();
-
-  await view.goTo(extent, { animate: false });
+  await view.goTo(fittedExtent, { animate: false });
 
   view.constraints.geometry = EQUAL_EARTH_WORLD_EXTENT.clone();
   view.constraints.minScale = view.scale;
@@ -101,7 +127,17 @@ export async function fitPlateCarreeView(view: MapView): Promise<void> {
         )
       : PLATE_CARREE_WORLD_EXTENT.clone();
 
-  await view.goTo(extent, { animate: false });
+  applyFlatViewDivWidthLimit(view, PLATE_CARREE_WORLD_ASPECT);
+  await refreshViewLayout(view);
+  const fittedExtent =
+    view.width && view.height
+      ? plateCarreeExtentForViewport(
+          view.width,
+          view.height,
+          PLATE_CARREE_CENTER_LONGITUDE
+        )
+      : extent;
+  await view.goTo(fittedExtent, { animate: false });
 
   view.constraints.geometry = PLATE_CARREE_WORLD_EXTENT.clone();
   view.constraints.minScale = view.scale;
@@ -141,11 +177,18 @@ export async function reflowPlateCarreeIfWorldScale(
   await reflowFlatWorldViewIfWorldScale(view, projection);
 }
 
-/**
- * Keep Plate Carrée aligned with the sidebar: refit when `#viewDiv` resizes while at
- * world scale. Web Mercator uses a fixed zoom so it does not need this.
- */
+/** @deprecated Use bindFlatWorldLayoutSync */
 export function bindPlateCarreeLayoutSync(
+  view: GlobeView,
+  getProjection: () => ProjectionId
+): () => void {
+  return bindFlatWorldLayoutSync(view, getProjection);
+}
+
+/**
+ * Refit Plate Carrée / Equal Earth when `#viewDiv` resizes while at world scale.
+ */
+export function bindFlatWorldLayoutSync(
   view: GlobeView,
   getProjection: () => ProjectionId
 ): () => void {
@@ -205,11 +248,6 @@ export async function fitViewInitialExtent(
     if (view.type === "2d") {
       await fitEqualEarthView(view as MapView);
     }
-    return;
-  }
-
-  if (!is3dProjection(projection)) {
-    await view.goTo({ center: [0, 20], zoom: 3 }, { animate: false });
     return;
   }
 
