@@ -1,6 +1,7 @@
 // legend.ts
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { is3dProjection, type ProjectionId } from "./projections";
+import type { PlatformSearchController } from "./platformSearch";
 import type { ViewHolder } from "./viewHolder";
 import {
   applyMooringStackSymbology,
@@ -280,8 +281,9 @@ export function attachLegend(
   setRotationStateChangeCallback: (callback: () => void) => void,
   stopRotation: () => void,
   getProjection: () => ProjectionId,
-  onShellLayoutChange?: () => void
-) {
+  onShellLayoutChange?: () => void,
+  getPlatformSearch?: () => PlatformSearchController | null
+): (() => void) | undefined {
   const view = viewHolder.view;
   // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
@@ -302,12 +304,52 @@ export function attachLegend(
     <span class="o-legend-toggle__hint">${MENU_TOGGLE_HINT.closed}</span>
   `;
   setMenuToggleState(toggleButton, false);
-  view.ui.add(toggleButton, { position: "top-left", index: 0 });
 
-  // Move zoom and compass after the menu button
-  // Order: menu (0), zoom (1), compass (2), play/pause (3), satellite (4)
-  view.ui.move("zoom", { position: "top-left", index: 1 });
-  view.ui.move("compass", { position: "top-left", index: 2 });
+  const searchButton = document.createElement("button");
+  searchButton.id = "platform-search-toggle";
+  searchButton.type = "button";
+  searchButton.className = "o-platform-search-toggle";
+  searchButton.title = "Search platform or line";
+  searchButton.setAttribute("aria-label", "Search platform or line");
+  searchButton.setAttribute("aria-expanded", "false");
+  searchButton.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5" stroke="#f8f8f8" stroke-width="2"/>
+      <path d="M16.5 16.5L21 21" stroke="#f8f8f8" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+
+  const searchAnchor = document.createElement("div");
+  searchAnchor.id = "platform-search-anchor";
+  searchAnchor.className = "o-platform-search-anchor";
+
+  const searchBar = document.createElement("div");
+  searchBar.id = "platform-search-bar";
+  searchBar.className = "o-platform-search-bar";
+  searchBar.append(searchButton, searchAnchor);
+
+  const syncSearchButton = () => {
+    const search = getPlatformSearch?.();
+    const open = search?.isOpen() ?? false;
+    searchButton.classList.toggle("is-active", open);
+    searchButton.setAttribute("aria-expanded", String(open));
+  };
+
+  searchButton.addEventListener("click", () => {
+    const search = getPlatformSearch?.();
+    if (!search) return;
+    search.toggle();
+    syncSearchButton();
+  });
+
+  getPlatformSearch?.()?.setOpenChangeListener(syncSearchButton);
+  syncSearchButton();
+  view.ui.add(searchBar, { position: "top-left", index: 0 });
+
+  view.ui.add(toggleButton, { position: "top-left", index: 1 });
+
+  // Order: search (0), menu (1), zoom (2), compass (3), play/pause (4)
+  view.ui.move("zoom", { position: "top-left", index: 2 });
+  view.ui.move("compass", { position: "top-left", index: 3 });
 
   // Create play/pause button for rotation control
   const playPauseButton = document.createElement("button");
@@ -344,7 +386,7 @@ export function attachLegend(
     updatePlayPauseIcon();
   });
 
-  view.ui.add(playPauseButton, { position: "top-left", index: 3 });
+  view.ui.add(playPauseButton, { position: "top-left", index: 4 });
 
   const syncRotationControlVisibility = () => {
     const show = is3dProjection(getProjection());
@@ -809,6 +851,7 @@ export function attachLegend(
       );
     });
 
+    cb.dataset.layerId = cat.id;
     layerCheckboxes.push(cb);
     layerCheckboxById.set(cat.id, cb);
     networksBody.appendChild(row);
@@ -962,4 +1005,6 @@ export function attachLegend(
   }
 
   syncRotationControlVisibility();
+
+  return syncSearchButton;
 }

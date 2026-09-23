@@ -1,5 +1,6 @@
 import type { Category } from "./categories";
 import { formatCountriesWithFlagsHtml } from "./goshipPopup";
+import { stackNetworkLabels } from "./mooringStacks";
 import { countryNamesMatch } from "./lineCrossCountryCruise";
 import {
   getContributingCountryLabel,
@@ -56,42 +57,81 @@ function formatCountryLabelHtml(country: string, reportingIso?: string): string 
   return formatCountriesWithFlagsHtml(country) || escapeHtml(label);
 }
 
+function platformCountryFieldsHtml(attrs: Record<string, unknown>): string {
+  const contributingCountry = String(attrs.country_name ?? "").trim();
+  const reportingIso = String(attrs.country_iso_reporting ?? "").trim();
+  const contributingCountryHtml = isDisplayableGeoCountry(contributingCountry)
+    ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingCountry, reportingIso)}</p>`
+    : "";
+  const shipCountry = String(attrs.country_ship ?? "").trim();
+  const shipCountryHtml =
+    hasCountryValue(shipCountry) &&
+    !countryNamesMatch(contributingCountry, shipCountry)
+      ? `<p><b>Ship country:</b> ${formatCountryLabelHtml(shipCountry)}</p>`
+      : "";
+  const sensorCountries = crossProgramSensorCountries(
+    String(attrs.country_sensor_provider ?? ""),
+    contributingCountry
+  );
+  const sensorCountryHtml =
+    sensorCountries.length > 0
+      ? `<p>In addition to sensors from the contributing country, at least one cross-program sensor from ${formatCountriesWithFlagsHtml(sensorCountries.join(", "))}</p>`
+      : "";
+  return contributingCountryHtml + shipCountryHtml + sensorCountryHtml;
+}
+
+function inspectAtOceanOpsLinksHtml(ptfRef: string): string {
+  const refs = ptfRef
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const unique = [...new Set(refs)];
+  if (unique.length === 0) return "";
+
+  const links = unique.map((ref) => {
+    const url = `https://www.ocean-ops.org/board/wa/Platform?ref=${encodeURIComponent(ref)}`;
+    const label = unique.length === 1 ? "Inspect at OceanOPS" : `Inspect ${escapeHtml(ref)} at OceanOPS`;
+    return `<a target="_blank" rel="noopener noreferrer" href="${url}">${label}</a>`;
+  });
+
+  return `<p>${links.join("<br>")}</p>`;
+}
+
+/** Popup for co-located mooring stacks (multiple networks at one site). */
+export function mooringStackPopupContent() {
+  return ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
+    const attrs = graphic.attributes;
+    const stackMask = Number(attrs.stack_mask ?? 0);
+    const typeLabels = stackNetworkLabels(stackMask);
+    const typeHtml =
+      typeLabels.length > 0
+        ? typeLabels.map((label) => escapeHtml(label)).join("; ")
+        : escapeHtml("Co-located mooring stack");
+
+    const ptfRef = String(attrs.ptf_ref ?? "").trim();
+    const inspectHtml = inspectAtOceanOpsLinksHtml(ptfRef);
+
+    return `<div class="o-map-popup">
+          <p><b>Type:</b> ${typeHtml}</p>
+          ${ptfRef ? `<p><b>Reference:</b> ${escapeHtml(ptfRef)}</p>` : ""}
+          <p><b>Model:</b> ${escapeHtml(String(attrs.ptf_model ?? ""))}</p>
+          ${platformCountryFieldsHtml(attrs)}
+          ${inspectHtml}
+          </div>`;
+  };
+}
+
 export function platformPopupContent(cat: Category) {
   return ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
     const attrs = graphic.attributes;
     const ptfRef = String(attrs.ptf_ref ?? "").trim();
-    const contributingCountry = String(attrs.country_name ?? "").trim();
-    const reportingIso = String(attrs.country_iso_reporting ?? "").trim();
-    const contributingCountryHtml = isDisplayableGeoCountry(contributingCountry)
-      ? `<p><b>Contributing country:</b> ${formatCountryLabelHtml(contributingCountry, reportingIso)}</p>`
-      : "";
-    const shipCountry = String(attrs.country_ship ?? "").trim();
-    const shipCountryHtml =
-      hasCountryValue(shipCountry) &&
-      !countryNamesMatch(contributingCountry, shipCountry)
-        ? `<p><b>Ship country:</b> ${formatCountryLabelHtml(shipCountry)}</p>`
-        : "";
-    const sensorCountries = crossProgramSensorCountries(
-      String(attrs.country_sensor_provider ?? ""),
-      contributingCountry
-    );
-    const sensorCountryHtml =
-      sensorCountries.length > 0
-        ? `<p>In addition to sensors from the contributing country, at least one cross-program sensor from ${formatCountriesWithFlagsHtml(sensorCountries.join(", "))}</p>`
-        : "";
-
-    const inspectUrl = ptfRef
-      ? `https://www.ocean-ops.org/board/wa/Platform?ref=${encodeURIComponent(ptfRef)}`
-      : "";
 
     return `<div class="o-map-popup">
           <p><b>Type:</b> ${escapeHtml(cat.label)}</p>
-          <p><b>Reference:</b> ${escapeHtml(ptfRef)}</p>
+          ${ptfRef ? `<p><b>Reference:</b> ${escapeHtml(ptfRef)}</p>` : ""}
           <p><b>Model:</b> ${escapeHtml(String(attrs.ptf_model ?? ""))}</p>
-          ${contributingCountryHtml}
-          ${shipCountryHtml}
-          ${sensorCountryHtml}
-          ${inspectUrl ? `<p><a target="_blank" rel="noopener noreferrer" href="${inspectUrl}">Inspect at OceanOPS</a></p>` : ""}
+          ${platformCountryFieldsHtml(attrs)}
+          ${inspectAtOceanOpsLinksHtml(ptfRef)}
           </div>`;
   };
 }

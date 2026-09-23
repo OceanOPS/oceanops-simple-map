@@ -21,6 +21,9 @@ const BASE = import.meta.env.BASE_URL;
 
 export const MOORING_STACK_LAYER_ID = "mooring_stacks";
 
+/** Stack pins: how many SOCONET mooring platforms share this coordinate. */
+export const SOCONET_MOORING_COUNT_FIELD = "soconet_mooring_count";
+
 export const MOORING_STACK_BITS = {
   moored_buoys: 1,
   oceansites: 2,
@@ -28,6 +31,40 @@ export const MOORING_STACK_BITS = {
 } as const;
 
 export type MooringStackLayerId = keyof typeof MOORING_STACK_BITS;
+
+const STACK_LABEL_LAYER_ORDER: MooringStackLayerId[] = [
+  "moored_buoys",
+  "oceansites",
+  "soconet_moorings",
+];
+
+/** Legend labels for each network present in a co-located stack (e.g. MB + OceanSITES). */
+export function stackNetworkLabels(stackMask: number): string[] {
+  const labels: string[] = [];
+  for (const layerId of STACK_LABEL_LAYER_ORDER) {
+    if ((stackMask & MOORING_STACK_BITS[layerId]) === 0) continue;
+    const cat = categories.find((entry) => entry.id === layerId);
+    if (cat) labels.push(cat.label);
+  }
+  return labels;
+}
+
+function uniqueNonEmptyStrings(...values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    ordered.push(trimmed);
+  }
+  return ordered;
+}
+
+function joinUniqueStrings(...values: unknown[]): string {
+  return uniqueNonEmptyStrings(...values).join(" / ");
+}
 
 const SOLO_BIT_TO_LAYER: Record<number, MooringStackLayerId> = {
   1: "moored_buoys",
@@ -202,6 +239,14 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
     }
   };
 
+  const soconetCountAtKey = new Map<string, number>();
+  for (const feature of soconetMoorings.features) {
+    if (feature.geometry?.type !== "Point") continue;
+    const [lon, lat] = feature.geometry.coordinates;
+    const key = mooringCoordKey(lon, lat);
+    soconetCountAtKey.set(key, (soconetCountAtKey.get(key) ?? 0) + 1);
+  }
+
   indexLayer("moored_buoys", mooredBuoys);
   indexLayer("oceansites", oceansites);
   indexLayer("soconet_moorings", soconetMoorings);
@@ -224,22 +269,34 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
       entry.oceansites ??
       entry.soconet_moorings!;
 
-    const ptfRefs = [
+    const ptfRef = joinUniqueStrings(
       entry.moored_buoys?.properties?.ptf_ref,
       entry.oceansites?.properties?.ptf_ref,
       entry.soconet_moorings?.properties?.ptf_ref,
-    ]
-      .filter((value): value is string => typeof value === "string" && value.length > 0)
-      .join(" / ");
+      anchor.properties?.ptf_ref
+    );
+
+    const ptfModel = joinUniqueStrings(
+      entry.moored_buoys?.properties?.ptf_model,
+      entry.oceansites?.properties?.ptf_model,
+      entry.soconet_moorings?.properties?.ptf_model,
+      anchor.properties?.ptf_model
+    );
+
+    const stackProps: Record<string, unknown> = {
+      ...anchor.properties,
+      stack_mask: stackMask,
+      ptf_ref: ptfRef,
+      ptf_model: ptfModel || anchor.properties?.ptf_model,
+    };
+    if ((stackMask & MOORING_STACK_BITS.soconet_moorings) !== 0) {
+      stackProps[SOCONET_MOORING_COUNT_FIELD] = soconetCountAtKey.get(key) ?? 1;
+    }
 
     stackFeatures.push({
       type: "Feature",
       geometry: anchor.geometry,
-      properties: {
-        ...anchor.properties,
-        stack_mask: stackMask,
-        ptf_ref: ptfRefs || anchor.properties?.ptf_ref,
-      },
+      properties: stackProps,
     });
   }
 
@@ -443,11 +500,42 @@ async function queryLayerFeaturesPaginated(
   return attrs;
 }
 
+/** Every SOCONET mooring platform (solo + all platforms at co-located stack pins). */
+export async function querySoconetMooringPlatformCount(
+  layerById: ReadonlyMap<string, GeoJSONLayer>,
+  where: string
+): Promise<number> {
+  const soloLayer = layerById.get("soconet_moorings");
+  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
+
+  let total = 0;
+
+  if (soloLayer && typeof soloLayer.queryFeatureCount === "function") {
+    total += await soloLayer.queryFeatureCount({ where });
+  }
+
+  if (stackLayer && typeof stackLayer.queryFeatures === "function") {
+    const stackWhere = buildMooringStackLayerWhere("soconet_moorings", where);
+    const attrs = await queryLayerFeaturesPaginated(stackLayer, stackWhere, [
+      SOCONET_MOORING_COUNT_FIELD,
+    ]);
+    for (const row of attrs) {
+      const n = Number(row[SOCONET_MOORING_COUNT_FIELD]);
+      total += Number.isFinite(n) && n > 0 ? n : 1;
+    }
+  }
+
+  return total;
+}
+
 export async function queryMooringLayerCount(
   layerId: MooringStackLayerId,
   layerById: ReadonlyMap<string, GeoJSONLayer>,
   where: string
 ): Promise<number> {
+  if (layerId === "soconet_moorings") {
+    return querySoconetMooringPlatformCount(layerById, where);
+  }
   const soloLayer = layerById.get(layerId);
   const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
 

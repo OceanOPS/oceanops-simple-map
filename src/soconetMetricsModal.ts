@@ -1,9 +1,10 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { getLayerDisplayLabel } from "./categories";
 import { makeSoconetBreakdownPicto } from "./categorySwatch";
-import { makeNetworkIconImg } from "./networkIcons";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
+import { queryMooringLayerCount } from "./mooringStacks";
+import { makeNetworkIconImg } from "./networkIcons";
 
 const MODAL_ID = "soconet-metrics-modal";
 
@@ -33,7 +34,7 @@ async function loadSoconetBreakdown(
 
   const [shipCount, mooringCount] = await Promise.all([
     shipLayer.queryFeatureCount({ where }),
-    moorLayer.queryFeatureCount({ where }),
+    queryMooringLayerCount("soconet_moorings", layerById, where),
   ]);
 
   return { shipCount, mooringCount };

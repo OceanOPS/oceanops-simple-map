@@ -170,6 +170,11 @@ const FLAT_HIGHLIGHT = {
 const WEB_MERCATOR_DEFAULT_ZOOM = 3;
 const WEB_MERCATOR_MIN_ZOOM = WEB_MERCATOR_DEFAULT_ZOOM - 1;
 
+/** Letterbox / chrome background for Plate Carrée and Equal Earth (matches 3D globe). */
+const OCEANOPS_VIEW_BACKGROUND = {
+  color: [11, 30, 66, 1] as [number, number, number, number],
+};
+
 function createFlatMapView(
   container: HTMLDivElement | string,
   map: Map,
@@ -183,6 +188,7 @@ function createFlatMapView(
       map,
       spatialReference: SpatialReference.WGS84,
       extent: PLATE_CARREE_WORLD_EXTENT.clone(),
+      background: OCEANOPS_VIEW_BACKGROUND,
       constraints: {
         geometry: PLATE_CARREE_WORLD_EXTENT.clone(),
         rotationEnabled: false,
@@ -198,6 +204,7 @@ function createFlatMapView(
       map,
       spatialReference: EQUAL_EARTH_SPATIAL_REFERENCE,
       extent: EQUAL_EARTH_WORLD_EXTENT.clone(),
+      background: OCEANOPS_VIEW_BACKGROUND,
       constraints: {
         geometry: EQUAL_EARTH_WORLD_EXTENT.clone(),
         rotationEnabled: false,
@@ -272,7 +279,7 @@ export function createGlobeView(
           type: "virtual",
           directShadowsEnabled: false,
         },
-        background: { type: "color", color: [11, 30, 66, 1] },
+        background: { type: "color", color: OCEANOPS_VIEW_BACKGROUND.color },
       },
       highlightOptions: {
         color: [244, 139, 37, 1],

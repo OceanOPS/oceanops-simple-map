@@ -21,7 +21,7 @@ import {
   type ProjectionId,
 } from "./projections";
 import { goshipPopupContent } from "./goshipPopup";
-import { platformPopupContent } from "./platformPopup";
+import { mooringStackPopupContent, platformPopupContent } from "./platformPopup";
 import {
   applyMooringStackSymbology,
   loadMooringStackData,
@@ -40,6 +40,10 @@ import {
   fitViewInitialExtent,
   refreshViewLayout,
 } from "./viewLayout";
+import {
+  mountPlatformSearch,
+  type PlatformSearchController,
+} from "./platformSearch";
 import { applyProjectionShellLayout } from "./projectionLayout";
 import { mountMapServerLoader } from "./mapServerLoader";
 import { bindMapEmbedResizeSync, bindMapFullscreenEmbedSync, bindMapFullscreenSync } from "./mapFullscreen";
@@ -148,8 +152,6 @@ function createMooringStackLayer(
   projection: ProjectionId,
   stackLayerUrl: string
 ): GeoJSONLayer {
-  const popupCat = categories.find((c) => c.id === "moored_buoys") as Category;
-
   const layer = new GeoJSONLayer({
     url: stackLayerUrl,
     title: "Co-located mooring stacks",
@@ -160,8 +162,9 @@ function createMooringStackLayer(
       soconetMoorings: true,
     }),
     popupTemplate: {
-      title: "{ptf_ref}",
-      content: platformPopupContent(popupCat),
+      title: ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) =>
+        String(graphic.attributes?.ptf_ref ?? "").trim(),
+      content: mooringStackPopupContent(),
     },
   });
 
@@ -328,6 +331,7 @@ function createRotationController(
   let unbindMapFullscreenEmbed: (() => void) | null = null;
   let unbindMapEmbedResize: (() => void) | null = null;
   let unbindGlobeLineWidthZoom: (() => void) | null = null;
+  let platformSearch: PlatformSearchController | null = null;
 
   if (window.self !== window.top) {
     document.documentElement.classList.add("map-embedded");
@@ -338,8 +342,10 @@ function createRotationController(
     void refreshViewLayout(viewHolder.view);
   };
 
+  let syncPlatformSearchUi: (() => void) | undefined;
+
   const attachLegendToView = () => {
-    attachLegend(
+    syncPlatformSearchUi = attachLegend(
       viewHolder,
       layerById,
       () => rotationApi.toggleRotation(),
@@ -347,8 +353,30 @@ function createRotationController(
       (cb) => rotationApi.setRotationStateChangeCallback(cb),
       () => rotationApi.stopRotation(),
       () => currentProjection,
-      onShellLayoutChange
+      onShellLayoutChange,
+      () => platformSearch
     );
+  };
+
+  const mountPlatformSearchUi = () => {
+    const anchor = document.getElementById("platform-search-anchor");
+    if (!anchor) return;
+
+    if (!platformSearch) {
+      platformSearch = mountPlatformSearch({
+        shell: anchor,
+        getView: () => viewHolder.view,
+        getLayers: () => layerById,
+        stopRotation: () => rotationApi.stopRotation(),
+      });
+    } else {
+      const root = document.getElementById("platform-search");
+      if (root && root.parentElement !== anchor) anchor.appendChild(root);
+      platformSearch.rebuild();
+    }
+
+    platformSearch.setOpenChangeListener(() => syncPlatformSearchUi?.());
+    syncPlatformSearchUi?.();
   };
 
   async function initView(projection: ProjectionId, basemapKind: BasemapKind) {
@@ -414,6 +442,7 @@ function createRotationController(
       : null;
 
     attachLegendToView();
+    mountPlatformSearchUi();
   }
 
   async function swapProjection(projection: ProjectionId) {
@@ -423,6 +452,7 @@ function createRotationController(
     unbindMapFullscreen?.();
     unbindMapFullscreen = null;
     unbindMapFullscreenEmbed?.();
+    platformSearch?.rebuild();
     unbindMapFullscreenEmbed = null;
     unbindMapEmbedResize?.();
     unbindMapEmbedResize = null;
