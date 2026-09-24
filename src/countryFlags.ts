@@ -16,6 +16,13 @@ export function getIsoCodeForGeoCountry(geoName: string): string | undefined {
   const iso = data.byGeoCountryName[key];
   if (iso && iso.length === 2) return iso;
 
+  if (key.length === 2) {
+    const byCode = data.countries.find(
+      (country) => country.countryCode.toUpperCase() === key
+    );
+    if (byCode) return byCode.countryCode;
+  }
+
   // OceanOPS DB names (e.g. "United States") vs GeoJSON keys ("USA").
   for (const country of data.countries) {
     if (country.name.toUpperCase() === key) return country.countryCode;

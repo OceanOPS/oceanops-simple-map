@@ -20,8 +20,11 @@ import {
   PROJECTION_3D_GLOBE,
   type ProjectionId,
 } from "./projections";
-import { goshipPopupContent } from "./goshipPopup";
-import { mooringStackPopupContent, platformPopupContent } from "./platformPopup";
+import { lineLayerPopupTemplate } from "./goshipPopup";
+import {
+  mooringStackPopupTemplate,
+  platformPointPopupTemplate,
+} from "./platformPopup";
 import {
   applyMooringStackSymbology,
   loadMooringStackData,
@@ -66,28 +69,6 @@ function geojsonLayerUrl(cat: Category, projection: ProjectionId): string {
   return `${BASE}geojson/${cat.id}.geojson`;
 }
 
-function linePopupContent(cat: Category): string {
-  return `<div class="o-map-popup">
-          <p><b>Type:</b> ${cat.label}</p>
-          <p><b>Name:</b> {line_name}</p>
-          <p><a target="_blank" rel="noopener noreferrer" href="https://www.ocean-ops.org/board/wa/InspectLine?name={line_name}">Inspect at OceanOPS</a></p>
-          </div>`;
-}
-
-function lineLayerPopupTemplate(cat: Category) {
-  if (cat.id === "goship" || cat.id === "oceantrax") {
-    return {
-      title: "{line_name}",
-      content: goshipPopupContent(cat),
-    };
-  }
-
-  return {
-    title: "{line_name}",
-    content: linePopupContent(cat),
-  };
-}
-
 function mooringLayerUrl(
   catId: string,
   mooringData: Awaited<ReturnType<typeof loadMooringStackData>>
@@ -130,10 +111,7 @@ function createGeoJsonLayer(
     popupTemplate:
       cat.type === "line"
         ? lineLayerPopupTemplate(cat)
-        : {
-            title: "{ptf_ref}",
-            content: platformPopupContent(cat),
-          },
+        : platformPointPopupTemplate(cat.id),
   });
 
   if (is3dProjection(projection)) {
@@ -163,11 +141,7 @@ function createMooringStackLayer(
       oceansites: true,
       soconetMoorings: true,
     }),
-    popupTemplate: {
-      title: ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) =>
-        String(graphic.attributes?.ptf_ref ?? "").trim(),
-      content: mooringStackPopupContent(),
-    },
+    popupTemplate: mooringStackPopupTemplate(),
   });
 
   if (is3dProjection(projection)) {
@@ -211,7 +185,12 @@ async function addOperationalLayers(
   layerById.set(MOORING_STACK_LAYER_ID, stackLayer);
   layerPromises.push(stackLayer.when());
 
-  await Promise.all(layerPromises);
+  const loadResults = await Promise.allSettled(layerPromises);
+  for (const result of loadResults) {
+    if (result.status === "rejected") {
+      console.error("Operational layer failed to load", result.reason);
+    }
+  }
   applyOperationalLayerStackOrder(map, layerById);
   applyMooringStackSymbology(layerById, projection);
 
@@ -398,25 +377,10 @@ function createRotationController(
     );
     viewHolder.view = view;
     applyViewNavigationDefaults(view);
-    applyPopupDefaults(view);
+    await view.when();
     await refreshViewLayout(view);
     await stripBasemapLabels(map);
     await addOperationalLayers(map, projection, layerById);
-    wirePointerCursor(view);
-    await refreshViewLayout(view);
-    const layerUnion = await computeLayerUnion(layerById);
-    await fitViewInitialExtent(view, projection, layerUnion);
-    await refreshViewLayout(view);
-
-    unbindMapServerLoader?.();
-    const mapShell = document.getElementById("mapShell");
-    if (mapShell) {
-      unbindMapServerLoader = mountMapServerLoader(
-        mapShell,
-        view,
-        () => currentProjection
-      );
-    }
 
     mountBasemapProjectionControl(view, {
       viewHolder,
@@ -454,6 +418,27 @@ function createRotationController(
 
     attachLegendToView();
     mountPlatformSearchUi();
+
+    try {
+      applyPopupDefaults(view);
+    } catch (err) {
+      console.warn("Popup setup failed", err);
+    }
+    wirePointerCursor(view);
+    await refreshViewLayout(view);
+    const layerUnion = await computeLayerUnion(layerById);
+    await fitViewInitialExtent(view, projection, layerUnion);
+    await refreshViewLayout(view);
+
+    unbindMapServerLoader?.();
+    const mapShell = document.getElementById("mapShell");
+    if (mapShell) {
+      unbindMapServerLoader = mountMapServerLoader(
+        mapShell,
+        view,
+        () => currentProjection
+      );
+    }
   }
 
   async function swapProjection(projection: ProjectionId) {

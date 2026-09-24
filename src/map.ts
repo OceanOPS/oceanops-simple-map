@@ -29,6 +29,7 @@ import {
   toggleProjection,
   type ProjectionId,
 } from "./projections";
+import { POPUP_ZOOM_ACTION_ID } from "./platformInspect";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
 
@@ -335,7 +336,35 @@ function patchPopupCalciteScrollbars(popupRoot: Element): void {
   });
 }
 
+function bindPopupZoomAction(view: GlobeView): void {
+  const root = view.container;
+  if (!root) return;
+
+  root.addEventListener("click", (event) => {
+    const target = event.target as Element | null;
+    if (!target?.closest(".o-map-popup-zoom-btn")) return;
+    event.preventDefault();
+    const feature = view.popup?.selectedFeature;
+    if (!feature?.geometry) return;
+    void view.goTo({ target: feature }, { duration: 400 });
+  });
+
+  const popup = view.popup;
+  if (!popup || typeof popup.on !== "function") return;
+  try {
+    popup.on("trigger-action", (event) => {
+      if (event.action.id !== POPUP_ZOOM_ACTION_ID) return;
+      const feature = view.popup?.selectedFeature;
+      if (!feature?.geometry) return;
+      void view.goTo({ target: feature }, { duration: 400 });
+    });
+  } catch (err) {
+    console.warn("Popup trigger-action binding failed", err);
+  }
+}
+
 export function applyPopupDefaults(view: GlobeView): void {
+  bindPopupZoomAction(view);
   if (!view.popup) return;
   view.popup.visibleElements = {
     closeButton: true,

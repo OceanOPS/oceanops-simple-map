@@ -283,11 +283,27 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
       anchor.properties?.ptf_model
     );
 
+    const ptfFamilyName = joinUniqueStrings(
+      entry.moored_buoys?.properties?.ptf_family_name,
+      entry.oceansites?.properties?.ptf_family_name,
+      entry.soconet_moorings?.properties?.ptf_family_name,
+      anchor.properties?.ptf_family_name
+    );
+
+    const goosNetworks = joinUniqueStrings(
+      entry.moored_buoys?.properties?.goos_networks,
+      entry.oceansites?.properties?.goos_networks,
+      entry.soconet_moorings?.properties?.goos_networks,
+      anchor.properties?.goos_networks
+    );
+
     const stackProps: Record<string, unknown> = {
       ...anchor.properties,
       stack_mask: stackMask,
       ptf_ref: ptfRef,
       ptf_model: ptfModel || anchor.properties?.ptf_model,
+      ...(ptfFamilyName ? { ptf_family_name: ptfFamilyName } : {}),
+      ...(goosNetworks ? { goos_networks: goosNetworks } : {}),
     };
     if ((stackMask & MOORING_STACK_BITS.soconet_moorings) !== 0) {
       stackProps[SOCONET_MOORING_COUNT_FIELD] = soconetCountAtKey.get(key) ?? 1;

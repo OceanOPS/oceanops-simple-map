@@ -2291,6 +2291,45 @@ body.o-country-modal-open {
   line-height: 1.45;
 }
 
+.esri-view .o-map-popup--inspect {
+  padding-top: 2px;
+}
+
+.esri-view .o-map-popup-meta {
+  margin: 0;
+  padding: 0;
+}
+
+.esri-view .o-map-popup-meta-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 8px 12px;
+  margin: 0 0 10px;
+  align-items: start;
+}
+
+.esri-view .o-map-popup-meta-row:last-child {
+  margin-bottom: 0;
+}
+
+.esri-view .o-map-popup-meta dt {
+  margin: 0;
+  font-weight: 600;
+  color: rgba(248, 248, 248, 0.88);
+}
+
+.esri-view .o-map-popup-meta dd {
+  margin: 0;
+  color: #f8f8f8;
+}
+
+.esri-view .o-map-popup-footer {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(248, 248, 248, 0.12);
+  text-align: center;
+}
+
 .esri-view .o-map-popup p {
   margin: 0 0 8px;
 }
@@ -2403,6 +2442,13 @@ body.o-country-modal-open {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.esri-view .o-map-popup-actions--top {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding-top: 0;
+  border-top: none;
 }
 
 .esri-view .o-map-popup-action {

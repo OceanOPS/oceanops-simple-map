@@ -1,8 +1,10 @@
+import PopupTemplate from "@arcgis/core/PopupTemplate.js";
 import type { Category } from "./categories";
+import { platformInspectPopupTitle } from "./platformInspect";
 import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
   getGeoCountryLabel,
-  isDisplayableGeoCountry,
+  isIgnoredGeoCountry,
 } from "./countryFilters";
 import {
   formatCruiseDate,
@@ -26,8 +28,9 @@ export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
 
   for (const raw of countriesCsv.split(",")) {
     const trimmed = raw.trim();
+    if (!trimmed || isIgnoredGeoCountry(trimmed)) continue;
     const upper = trimmed.toUpperCase();
-    if (!isDisplayableGeoCountry(trimmed) || seen.has(upper)) continue;
+    if (seen.has(upper)) continue;
     seen.add(upper);
     canonicalNames.push(trimmed);
   }
@@ -214,4 +217,23 @@ export function goshipPopupContent(cat: Category) {
         : await getEditionCruisesForLine(cat.id, lineName, attrs);
     return renderPopupHtml(cat, attrs, editionCruises);
   };
+}
+
+function linePopupTitle(
+  layerId: string,
+  graphic: { attributes: Record<string, unknown> }
+): string {
+  return platformInspectPopupTitle(
+    layerId,
+    String(graphic.attributes?.line_name ?? "")
+  );
+}
+
+/** GO-SHIP / OceanTraX and any other line layers: ref plus short platform type in header. */
+export function lineLayerPopupTemplate(cat: Category): PopupTemplate {
+  return new PopupTemplate({
+    title: ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) =>
+      linePopupTitle(cat.id, graphic),
+    content: goshipPopupContent(cat),
+  });
 }
