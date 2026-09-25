@@ -2515,7 +2515,7 @@ body.o-country-modal-open {
   margin: 12px 0 0;
   padding-top: 10px;
   border-top: 1px solid rgba(248, 248, 248, 0.12);
-  text-align: center;
+  text-align: left;
 }
 
 .esri-view .o-map-popup p {
