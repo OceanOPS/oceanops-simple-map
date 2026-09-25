@@ -53,8 +53,8 @@ export function mountPlatformSearch(options: {
   const input = document.createElement("input");
   input.type = "search";
   input.className = "o-platform-search-input";
-  input.placeholder = "Search platform or line";
-  input.setAttribute("aria-label", "Search platform or line");
+  input.placeholder = "Enter reference number or line name";
+  input.setAttribute("aria-label", "Enter reference number or line name");
   input.setAttribute("role", "combobox");
   input.setAttribute("aria-autocomplete", "list");
   input.setAttribute("aria-expanded", "false");

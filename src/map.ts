@@ -29,6 +29,7 @@ import {
   toggleProjection,
   type ProjectionId,
 } from "./projections";
+import { appendToolbarHint, syncLeftToolbarOrder } from "./mapToolbar";
 import { POPUP_ZOOM_ACTION_ID } from "./platformInspect";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
@@ -507,14 +508,12 @@ export function mountBasemapProjectionControl(
 
   const syncFullscreenUi = () => {
     const active = isMapFullscreen();
+    const actionLabel = active ? "Collapse map" : "Expand map";
     fullscreenBtn.classList.toggle("is-active", active);
     fullscreenBtn.innerHTML = active ? compressIcon : expandIcon;
     fullscreenHint.textContent = active ? "Collapse" : "Expand";
-    fullscreenBtn.title = active ? "Collapse map" : "Expand map";
-    fullscreenBtn.setAttribute(
-      "aria-label",
-      active ? "Collapse map" : "Expand map"
-    );
+    fullscreenBtn.setAttribute("aria-label", actionLabel);
+    appendToolbarHint(fullscreenBtn, actionLabel);
   };
 
   fullscreenBtn.addEventListener("click", () => {
@@ -540,14 +539,16 @@ export function mountBasemapProjectionControl(
   const syncProjectionUi = (projection: ProjectionId) => {
     const next = toggleProjection(projection);
     const preview = projectionPreviewImage(next);
+    const switchLabel = `Switch to ${projectionLabel(next)}`;
     projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/${preview}');"></div>`;
     projectionHint.textContent = projectionLabel(next);
-    projectionPreviewBtn.title = `Switch to ${projectionLabel(next)}`;
-    projectionPreviewBtn.setAttribute("aria-label", `Switch to ${projectionLabel(next)}`);
+    projectionPreviewBtn.setAttribute("aria-label", switchLabel);
+    appendToolbarHint(projectionPreviewBtn, switchLabel);
   };
 
   const updateBasemapUi = () => {
     const basemapKind = options.getBasemapKind();
+    const basemapHintText = "Switch ocean / satellite basemap";
 
     if (basemapKind === "map") {
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>`;
@@ -556,6 +557,7 @@ export function mountBasemapProjectionControl(
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>`;
       basemapHint.textContent = "Map layer";
     }
+    appendToolbarHint(previewBtn, basemapHintText);
   };
 
   const updateUi = () => {
@@ -590,6 +592,7 @@ export function mountBasemapProjectionControl(
 
   menu.append(basemapSection, divider, projectionSection, divider2, fullscreenSection);
   view.ui.add(menu, { position: "top-left", index: 4 });
+  syncLeftToolbarOrder(view);
 }
 
 export function mountBasemapControlOnView(
