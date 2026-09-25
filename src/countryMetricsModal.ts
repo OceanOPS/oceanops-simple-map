@@ -52,6 +52,46 @@ function splitPlatformAndReferenceCounts(rows: PlatformCountryCount[]): {
   return { platforms, referenceObservatories };
 }
 
+function splitLayerCounts(rows: CountryLayerCount[]): {
+  platforms: number;
+  referenceObservatories: number;
+} {
+  let platforms = 0;
+  let referenceObservatories = 0;
+  for (const row of rows) {
+    if (REFERENCE_OBSERVATORY_LAYER_IDS.has(row.layerId)) {
+      referenceObservatories += row.count;
+    } else {
+      platforms += row.count;
+    }
+  }
+  return { platforms, referenceObservatories };
+}
+
+/** Issue #107 — omit zero counts; reference observatories term has hover list. */
+function appendPlatformReferenceCountPhrase(
+  parent: HTMLElement,
+  platforms: number,
+  referenceObservatories: number
+): void {
+  if (platforms > 0) {
+    parent.append(
+      `${platforms.toLocaleString()} platform${platforms === 1 ? "" : "s"}`
+    );
+    if (referenceObservatories > 0) {
+      parent.append(" and ");
+    }
+  }
+
+  if (referenceObservatories > 0) {
+    appendReferenceObservatoriesTerm(parent, referenceObservatories);
+  }
+
+  if (platforms === 0 && referenceObservatories === 0) {
+    parent.append("0 platforms");
+  }
+}
+
 function mergePlatformCountryRows(
   ...groups: PlatformCountryCount[][]
 ): PlatformCountryCount[] {
@@ -94,6 +134,7 @@ function appendReferenceObservatoriesTerm(
 
   const hint = document.createElement("span");
   hint.className = "o-country-modal-ref-obs-hint";
+  hint.id = `o-country-modal-ref-obs-hint-${Math.random().toString(36).slice(2, 9)}`;
   hint.setAttribute("role", "tooltip");
   REFERENCE_OBSERVATORIES_POPUP.split(", ").forEach((name, index, names) => {
     const item = document.createElement("span");
@@ -105,8 +146,31 @@ function appendReferenceObservatoriesTerm(
     }
   });
 
+  wrap.setAttribute("aria-describedby", hint.id);
   wrap.append(label, hint);
   parent.appendChild(wrap);
+
+  const syncHintPlacement = () => {
+    updateReferenceObservatoriesHintPlacement(wrap);
+  };
+  wrap.addEventListener("mouseenter", syncHintPlacement);
+  wrap.addEventListener("focusin", syncHintPlacement);
+  requestAnimationFrame(syncHintPlacement);
+}
+
+function updateReferenceObservatoriesHintPlacement(wrap: HTMLElement): void {
+  const hint = wrap.querySelector(".o-country-modal-ref-obs-hint");
+  const body = wrap.closest(".o-country-modal-body");
+  if (!hint || !body) return;
+
+  const termRect = wrap.getBoundingClientRect();
+  const bodyRect = body.getBoundingClientRect();
+  const spaceAbove = termRect.top - bodyRect.top;
+  const hintHeight = 52;
+  hint.classList.toggle(
+    "o-country-modal-ref-obs-hint--below",
+    spaceAbove < hintHeight + 14
+  );
 }
 
 function removeExistingModal(): void {
@@ -196,12 +260,14 @@ function appendInlineCountryPhrase(
 
 function appendOperatedPlatformsSectionTitle(
   heading: HTMLHeadingElement,
-  count: number,
+  platformRows: CountryLayerCount[],
   countryLabel: string,
   isoCode: string | undefined
 ): void {
+  const { platforms, referenceObservatories } = splitLayerCounts(platformRows);
   heading.className = "o-country-modal-section-title o-country-modal-section-title--inline";
-  heading.append(`${count.toLocaleString()} platforms/sites/stations operated by `);
+  appendPlatformReferenceCountPhrase(heading, platforms, referenceObservatories);
+  heading.append(" operated by ");
   appendInlineCountryPhrase(heading, countryLabel, isoCode, ".");
 }
 
@@ -452,23 +518,7 @@ function appendInternationalCollaborationSectionTitle(
       : " equipped with sensors provided by ";
   const suffix = " and operated by other countries.";
 
-  if (platforms > 0) {
-    heading.append(
-      `${platforms.toLocaleString()} platform${platforms === 1 ? "" : "s"}`
-    );
-    if (referenceObservatories > 0) {
-      heading.append(" and ");
-    }
-  }
-
-  if (referenceObservatories > 0) {
-    appendReferenceObservatoriesTerm(heading, referenceObservatories);
-  }
-
-  if (platforms === 0 && referenceObservatories === 0) {
-    heading.append("0 platforms");
-  }
-
+  appendPlatformReferenceCountPhrase(heading, platforms, referenceObservatories);
   heading.append(middle);
   appendInlineCountryPhrase(heading, countryLabel, isoCode, suffix);
 }
@@ -683,10 +733,10 @@ export async function openCountryMetricsModal(
     body.replaceChildren();
     appendBreakdownSection(
       body,
-      (heading, count) =>
+      (heading) =>
         appendOperatedPlatformsSectionTitle(
           heading,
-          count,
+          platformRows,
           label,
           getCountryIsoCode(country)
         ),

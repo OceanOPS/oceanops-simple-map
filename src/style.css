@@ -2088,6 +2088,18 @@ body.o-country-modal-open {
   border-top-color: #0b1e42;
 }
 
+.o-country-modal-ref-obs-hint--below {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+.o-country-modal-ref-obs-hint--below::before {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: #0b1e42;
+}
+
 .o-country-modal-ref-obs-hint-item {
   display: inline;
   white-space: nowrap;
