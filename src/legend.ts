@@ -5,6 +5,8 @@ import type { PlatformSearchController } from "./platformSearch";
 import type { ViewHolder } from "./viewHolder";
 import {
   appendToolbarHint,
+  ensureNavigationControlHints,
+  MAP_ROTATION_HINT,
   SEARCH_TOGGLE_HINT,
   syncLeftToolbarOrder,
 } from "./mapToolbar";
@@ -353,29 +355,38 @@ export function attachLegend(
   view.ui.move("zoom", { position: "top-left", index: 1 });
   view.ui.move("compass", { position: "top-left", index: 2 });
 
-  // Create play/pause button for rotation control
+  const rotationSection = document.createElement("div");
+  rotationSection.className =
+    "o-map-toolbar-section o-map-toolbar-section--rotation";
+
   const playPauseButton = document.createElement("button");
-  playPauseButton.className = "o-rotation-toggle";
-  playPauseButton.setAttribute("aria-label", "Toggle auto-rotation");
-  appendToolbarHint(playPauseButton, "Toggle auto-rotation");
+  playPauseButton.type = "button";
+  playPauseButton.className = "o-rotation-toggle o-map-control-with-hint";
+  playPauseButton.setAttribute("aria-label", MAP_ROTATION_HINT);
+
+  const rotationIcon = document.createElement("span");
+  rotationIcon.className = "o-rotation-toggle__icon";
+  rotationIcon.setAttribute("aria-hidden", "true");
+  playPauseButton.append(rotationIcon);
+  appendToolbarHint(playPauseButton, MAP_ROTATION_HINT);
+
+  const rotationLabel = document.createElement("span");
+  rotationLabel.className = "o-basemap-kind-label";
+  rotationLabel.textContent = "Map rotation";
+
+  const rotationPlayIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L13 8L5 13V3Z" fill="#f8f8f8"/></svg>`;
+  const rotationPauseIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/><rect x="9" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/></svg>`;
 
   const updatePlayPauseIcon = () => {
-    if (isRotating()) {
-      // Show pause icon
-      playPauseButton.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/>
-          <rect x="9" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/>
-        </svg>
-      `;
-    } else {
-      // Show play icon
-      playPauseButton.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 3L13 8L5 13V3Z" fill="#f8f8f8"/>
-        </svg>
-      `;
-    }
+    rotationIcon.innerHTML = isRotating() ? rotationPauseIcon : rotationPlayIcon;
+    playPauseButton.setAttribute(
+      "aria-label",
+      isRotating() ? "Pause map rotation" : MAP_ROTATION_HINT
+    );
+    appendToolbarHint(
+      playPauseButton,
+      isRotating() ? "Pause map rotation" : MAP_ROTATION_HINT
+    );
   };
 
   updatePlayPauseIcon();
@@ -388,14 +399,16 @@ export function attachLegend(
     updatePlayPauseIcon();
   });
 
-  view.ui.add(playPauseButton, { position: "top-left", index: 3 });
+  rotationSection.append(playPauseButton, rotationLabel);
+  view.ui.add(rotationSection, { position: "top-left", index: 3 });
 
   view.ui.add(searchBar, { position: "top-left", index: 5 });
+  ensureNavigationControlHints(view);
   syncLeftToolbarOrder(view);
 
   const syncRotationControlVisibility = () => {
     const show = is3dProjection(getProjection());
-    playPauseButton.style.display = show ? "" : "none";
+    rotationSection.style.display = show ? "" : "none";
     if (!show) stopRotation();
   };
   syncRotationControlVisibility();

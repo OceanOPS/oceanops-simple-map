@@ -361,6 +361,14 @@ body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
   position: relative;
 }
 
+.o-map-toolbar-hint-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .o-map-toolbar-hint,
 .o-legend-toggle__hint {
   position: absolute;
@@ -457,7 +465,14 @@ body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
   margin: 0;
 }
 
-.o-rotation-toggle svg {
+.o-rotation-toggle__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.o-rotation-toggle__icon svg {
   width: 16px;
   height: 16px;
 }
@@ -514,7 +529,7 @@ body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
     height: 40px;
   }
 
-  .o-rotation-toggle svg {
+  .o-rotation-toggle__icon svg {
     width: 14px;
     height: 14px;
   }
@@ -555,6 +570,25 @@ body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
 }
 
 
+
+/* Globe-only rotation control (label matches basemap / expand stack) */
+.o-map-toolbar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 72px;
+}
+
+.o-map-toolbar-section--rotation {
+  margin-top: 0;
+}
+
+@media (max-height: 700px) {
+  .o-map-toolbar-section {
+    gap: 4px;
+  }
+}
 
 /* Map display menu: basemap preview + projection (bottom of tool stack) */
 .o-map-display-menu {
