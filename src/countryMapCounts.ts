@@ -631,6 +631,29 @@ export async function getCountryBreakdownFromMap(
   return queryCountryBreakdown(countryWhere(country), layerById, visibleLayerIds);
 }
 
+/** Platforms from GeoJSON plus GO-SHIP / OceanTraX lines (not on `country_name`). */
+export async function getCountryOperatedBreakdownFromMap(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>,
+  visibleLayerIds: ReadonlySet<string>
+): Promise<CountryLayerCount[]> {
+  const [platformRows, lineDetails] = await Promise.all([
+    getCountryBreakdownFromMap(country, layerById, visibleLayerIds),
+    getCountryLineDetailsFromMap(country, layerById, visibleLayerIds),
+  ]);
+  const lineRows: CountryLayerCount[] = lineDetails.map(
+    ({ layerId, label, count, displayCount }) => ({
+      layerId,
+      label,
+      count,
+      displayCount,
+    })
+  );
+  return [...platformRows, ...lineRows].sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+  );
+}
+
 export async function getCountryShipBreakdownFromMap(
   country: CountryName,
   layerById: Map<string, GeoJSONLayer>,

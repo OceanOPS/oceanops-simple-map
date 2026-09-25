@@ -5,7 +5,7 @@ import { makeNetworkPicto } from "./categorySwatch";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
 import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 import {
-  getCountryBreakdownFromMap,
+  getCountryOperatedBreakdownFromMap,
   getCountryLineCrossCruisePlatformCountryBreakdownFromMap,
   getCountrySensorPlatformCountryBreakdownFromMap,
   getCountrySensorTotalFromMap,
@@ -339,7 +339,7 @@ function appendCountryGroupedCollaborationList(
   list.className =
     "o-country-modal-list o-country-modal-list--expandable o-country-modal-list--by-country";
 
-  groups.forEach((group, index) => {
+  for (const group of groups) {
     const block = document.createElement("li");
     block.className = "o-country-modal-country-block";
 
@@ -349,14 +349,12 @@ function appendCountryGroupedCollaborationList(
     const expandBtn = document.createElement("button");
     expandBtn.type = "button";
     expandBtn.className = "o-country-modal-expand-btn";
-    expandBtn.setAttribute("aria-expanded", index === 0 ? "true" : "false");
+    expandBtn.setAttribute("aria-expanded", "false");
     expandBtn.setAttribute(
       "aria-label",
-      index === 0
-        ? `Hide networks for ${group.countryLabel}`
-        : `Show networks for ${group.countryLabel}`
+      `Show networks for ${group.countryLabel}`
     );
-    expandBtn.textContent = index === 0 ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
+    expandBtn.textContent = EXPAND_CLOSED_LABEL;
 
     const flag = document.createElement("span");
     flag.className = "o-country-modal-contributor-flag";
@@ -376,7 +374,7 @@ function appendCountryGroupedCollaborationList(
 
     const networks = document.createElement("ul");
     networks.className = "o-country-modal-country-networks";
-    networks.hidden = index !== 0;
+    networks.hidden = true;
 
     for (const row of group.networks) {
       const item = document.createElement("li");
@@ -417,11 +415,9 @@ function appendCountryGroupedCollaborationList(
     });
     header.addEventListener("click", toggle);
 
-    if (index === 0) block.classList.add("open");
-
     block.append(header, networks);
     list.appendChild(block);
-  });
+  }
 
   parent.appendChild(list);
 }
@@ -704,14 +700,14 @@ export async function openCountryMetricsModal(
     const [
       platformTotal,
       sensorTotal,
-      platformRows,
+      operatedRows,
       shipPlatformCountryRows,
       lineCrossCruisePlatformCountryRows,
       sensorPlatformCountryRows,
     ] = await Promise.all([
       getCountryTotalFromMap(country, layerById, visible),
       getCountrySensorTotalFromMap(country, layerById, visible),
-      getCountryBreakdownFromMap(country, layerById, visible),
+      getCountryOperatedBreakdownFromMap(country, layerById, visible),
       getCountryShipPlatformCountryBreakdownFromMap(country, layerById, visible),
       getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
         country,
@@ -736,13 +732,13 @@ export async function openCountryMetricsModal(
       (heading) =>
         appendOperatedPlatformsSectionTitle(
           heading,
-          platformRows,
+          operatedRows,
           label,
           getCountryIsoCode(country)
         ),
       platformTotal,
       undefined,
-      platformRows,
+      operatedRows,
       "None on the selected networks.",
     );
 

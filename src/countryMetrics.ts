@@ -11,6 +11,7 @@ export {
 } from "./partnerCountriesData";
 export {
   getCountryBreakdownFromMap,
+  getCountryOperatedBreakdownFromMap,
   getCountryLineBreakdownFromPartner,
   getCountryLineCrossCruisePlatformCountryBreakdownFromMap,
   getCountryLineCrossCruiseTotalFromMap,
