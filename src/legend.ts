@@ -846,7 +846,7 @@ export function attachLegend(
   const networkRefObsFilterBtn = document.createElement("button");
   networkRefObsFilterBtn.type = "button";
   networkRefObsFilterBtn.className = "o-legend-country-group-btn";
-  networkRefObsFilterBtn.textContent = "Ref. observatories";
+  networkRefObsFilterBtn.textContent = "Reference observatories";
   networkRefObsFilterBtn.setAttribute("aria-pressed", "false");
 
   const updateNetworkGroupFilterButtons = () => {

@@ -412,7 +412,8 @@ body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
 .o-map-control-with-hint:hover .o-map-toolbar-hint,
 .o-map-control-with-hint:focus-visible .o-map-toolbar-hint,
 .o-map-toolbar-hint-wrap:hover .o-map-toolbar-hint,
-.o-map-toolbar-hint-wrap:focus-within .o-map-toolbar-hint,
+/* Keyboard only — mouse click focus must not leave the hint open (issue #99). */
+.o-map-toolbar-hint-wrap:has(:focus-visible) .o-map-toolbar-hint,
 .o-legend-toggle:hover .o-legend-toggle__hint,
 .o-legend-toggle:focus-visible .o-legend-toggle__hint {
   opacity: 1;
@@ -1204,11 +1205,12 @@ body.map-fullscreen:fullscreen #mapShell {
 .o-legend-country-group-btns,
 .o-legend-network-group-btns {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
   gap: 6px;
-  width: 100%;
   box-sizing: border-box;
-  padding: 2px var(--legend-padding) 8px var(--legend-padding);
+  padding: 2px var(--legend-padding) 8px calc(var(--legend-padding) + 12px);
 }
 
 .o-legend-network-group-btns {
@@ -1216,13 +1218,13 @@ body.map-fullscreen:fullscreen #mapShell {
 }
 
 .o-legend-country-group-btn {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
   text-align: center;
+  white-space: nowrap;
   background: rgba(11, 30, 66, 0.85);
   border: 1px solid rgba(248, 248, 248, 0.35);
   border-radius: 4px;
-  padding: 4px 4px;
+  padding: 3px 10px;
   cursor: pointer;
   color: #f8f8f8;
   font-size: 11px;

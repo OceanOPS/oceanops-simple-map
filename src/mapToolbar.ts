@@ -23,6 +23,13 @@ export function appendToolbarHint(button: HTMLElement, text: string): void {
   button.appendChild(hint);
 }
 
+/** Visible label under the control is enough — no floating hover hint. */
+export function clearToolbarHint(button: HTMLElement): void {
+  stripNativeTooltips(button);
+  button.classList.remove("o-map-control-with-hint");
+  button.querySelector(".o-map-toolbar-hint")?.remove();
+}
+
 /** Esri/Calcite set `title` → native tooltip; we use custom hover hints only. */
 function stripNativeTooltips(root: HTMLElement): void {
   root.removeAttribute("title");
@@ -75,6 +82,13 @@ function wrapNavigationControlWithHint(control: HTMLElement, hint: string): void
   stripNativeTooltips(control);
   control.setAttribute("aria-label", hint);
   appendToolbarHint(wrap, hint);
+
+  if (!control.dataset.oMapHintClickBlur) {
+    control.dataset.oMapHintClickBlur = "1";
+    control.addEventListener("click", () => {
+      control.blur();
+    });
+  }
 
   const widgetRoot = control.closest<HTMLElement>(".esri-compass, .esri-zoom");
   if (widgetRoot) ensureNativeTooltipsStripped(widgetRoot);

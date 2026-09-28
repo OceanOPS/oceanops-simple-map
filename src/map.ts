@@ -29,7 +29,11 @@ import {
   toggleProjection,
   type ProjectionId,
 } from "./projections";
-import { appendToolbarHint, syncLeftToolbarOrder } from "./mapToolbar";
+import {
+  appendToolbarHint,
+  clearToolbarHint,
+  syncLeftToolbarOrder,
+} from "./mapToolbar";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
 
@@ -509,21 +513,22 @@ export function mountBasemapProjectionControl(
     projectionPreviewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/${preview}');"></div>`;
     projectionHint.textContent = projectionLabel(next);
     projectionPreviewBtn.setAttribute("aria-label", switchLabel);
-    appendToolbarHint(projectionPreviewBtn, switchLabel);
+    clearToolbarHint(projectionPreviewBtn);
   };
 
   const updateBasemapUi = () => {
     const basemapKind = options.getBasemapKind();
-    const basemapHintText = "Switch ocean / satellite basemap";
 
     if (basemapKind === "map") {
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>`;
       basemapHint.textContent = "Satellite layer";
+      previewBtn.setAttribute("aria-label", "Switch to satellite layer");
     } else {
       previewBtn.innerHTML = `<div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>`;
       basemapHint.textContent = "Map layer";
+      previewBtn.setAttribute("aria-label", "Switch to map layer");
     }
-    appendToolbarHint(previewBtn, basemapHintText);
+    clearToolbarHint(previewBtn);
   };
 
   const updateUi = () => {

@@ -93,7 +93,7 @@ export const categories = [
   { id: 'fvon',                      label: 'Fishing vessels – FVON',         color: '#9d39e0ff', type: 'image', imagePath: '/img/ship_violet.png' },
   { id: 'gloss',                      label: 'Sea level gauges – GLOSS',         color: '#faa62d', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
-  { id: 'moored_buoys',                 label: 'Moored buoys – MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
+  { id: 'moored_buoys',                 label: 'Moored buoys – MBN',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
   { id: 'hf_radars',                      label: 'High Frequency radars - HF Radar',         color: '#ffffff', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'drifting_buoys',               label: 'Drifting buoys – GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
