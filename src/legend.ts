@@ -16,7 +16,13 @@ import {
   queryMooringLayerCount,
 } from "./mooringStacks";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
-import { categories, type Category, isLegendRowCategory, legendLayerIdsForCategory } from "./categories";
+import {
+  categories,
+  type Category,
+  isLegendRowCategory,
+  isReferenceObservatoryCategory,
+  legendLayerIdsForCategory,
+} from "./categories";
 import { makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
@@ -479,58 +485,6 @@ export function attachLegend(
   const closeButton = header.querySelector(".o-legend-close") as HTMLButtonElement;
   closeButton.addEventListener("click", togglePanel);
 
-  // Function to update select all checkbox state (defined early)
-  const updateSelectAllState = () => {
-    const checkedCount = layerCheckboxes.filter(cb => cb.checked).length;
-    const totalCount = layerCheckboxes.length;
-
-    if (checkedCount === 0) {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = false;
-    } else if (checkedCount === totalCount) {
-      selectAllCheckbox.checked = true;
-      selectAllCheckbox.indeterminate = false;
-    } else {
-      selectAllCheckbox.checked = false;
-      selectAllCheckbox.indeterminate = true;
-    }
-  };
-
-  // Add "Select All" checkbox
-  const selectAllRow = document.createElement("label");
-  selectAllRow.className = "o-legend-select-all";
-  selectAllRow.style.display = "flex";
-  selectAllRow.style.alignItems = "center";
-  selectAllRow.style.gap = "8px";
-  selectAllRow.style.cursor = "pointer";
-  selectAllRow.style.fontWeight = "600";
-
-  const selectAllCheckbox = document.createElement("input");
-  selectAllCheckbox.type = "checkbox";
-  selectAllCheckbox.checked = true;
-  selectAllCheckbox.id = "select-all-checkbox";
-
-  const selectAllText = document.createElement("span");
-  selectAllText.textContent = "Show/Hide All Networks";
-  selectAllText.style.flex = "1";
-
-  selectAllRow.append(selectAllCheckbox, selectAllText);
-
-  // Select all checkbox click handler
-  selectAllCheckbox.addEventListener("change", () => {
-    const shouldCheck = selectAllCheckbox.checked || selectAllCheckbox.indeterminate;
-
-    layerCheckboxes.forEach(cb => {
-      if (cb.checked !== shouldCheck) {
-        cb.checked = shouldCheck;
-        // Trigger change event to update layer visibility
-        cb.dispatchEvent(new Event("change"));
-      }
-    });
-
-    updateSelectAllState();
-  });
-
   const filterableCountries = getFilterableCountryNames(getPartnerDataSnapshot());
   const filterableCountrySet = new Set<string>(filterableCountries);
   const selectedCountries = new Set<string>(filterableCountries);
@@ -785,15 +739,189 @@ export function attachLegend(
     }
   };
 
-  // Network layers (flat list under Networks — no Ship / Fixed / Mobile sub-headers)
-  selectAllRow.classList.add("o-legend-networks-select-all");
+  type NetworkListFilter = "all" | "platforms" | "refObs";
+  let networkListFilter: NetworkListFilter = "all";
+  const networkRowWrappers = new Map<string, HTMLElement>();
+
+  const networkSelectAllCheckbox = document.createElement("input");
+  networkSelectAllCheckbox.type = "checkbox";
+  networkSelectAllCheckbox.checked = true;
+  networkSelectAllCheckbox.hidden = true;
+  networkSelectAllCheckbox.tabIndex = -1;
+  networkSelectAllCheckbox.setAttribute("aria-hidden", "true");
+
+  const legendRowCategories = (): Category[] =>
+    categories.filter(isLegendRowCategory) as Category[];
+
+  const getVisibleNetworkCategoryIds = (): string[] => {
+    const rows = legendRowCategories();
+    if (networkListFilter === "platforms") {
+      return rows
+        .filter((cat) => !isReferenceObservatoryCategory(cat.id))
+        .map((cat) => cat.id);
+    }
+    if (networkListFilter === "refObs") {
+      return rows
+        .filter((cat) => isReferenceObservatoryCategory(cat.id))
+        .map((cat) => cat.id);
+    }
+    return rows.map((cat) => cat.id);
+  };
+
+  const syncNetworkRowVisibility = () => {
+    const visible = new Set(getVisibleNetworkCategoryIds());
+    for (const cat of legendRowCategories()) {
+      const row = networkRowWrappers.get(cat.id);
+      if (row) row.hidden = !visible.has(cat.id);
+    }
+  };
+
+  const applyCategoryVisibilityFromCheckbox = (cat: Category) => {
+    const cb = layerCheckboxById.get(cat.id);
+    if (!cb) return;
+    for (const layerId of legendLayerIdsForCategory(cat)) {
+      const layer = layerById.get(layerId);
+      if (layer) (layer as GeoJSONLayer).visible = cb.checked;
+    }
+  };
+
+  const syncAllNetworkLayersFromCheckboxes = () => {
+    for (const cat of legendRowCategories()) {
+      applyCategoryVisibilityFromCheckbox(cat);
+    }
+    applyMooringStackSymbology(
+      layerById,
+      getProjection(),
+      getPointLayerCountryExpression(selectedCountries, filterableCountries) ||
+        undefined
+    );
+  };
+
+  const updateSelectAllState = () => {
+    const visibleCheckboxes = getVisibleNetworkCategoryIds()
+      .map((id) => layerCheckboxById.get(id))
+      .filter((cb): cb is HTMLInputElement => Boolean(cb));
+    const checkedCount = visibleCheckboxes.filter((cb) => cb.checked).length;
+    const totalCount = visibleCheckboxes.length;
+
+    if (checkedCount === 0) {
+      networkSelectAllCheckbox.checked = false;
+      networkSelectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === totalCount) {
+      networkSelectAllCheckbox.checked = true;
+      networkSelectAllCheckbox.indeterminate = false;
+    } else {
+      networkSelectAllCheckbox.checked = false;
+      networkSelectAllCheckbox.indeterminate = true;
+    }
+  };
 
   const { groupBody: networksBody } = createCollapsibleGroup(content, {
     key: "networks",
     title: "Networks",
     startOpen: true,
   });
-  networksBody.prepend(selectAllRow);
+
+  const networkGroupBtnRow = document.createElement("div");
+  networkGroupBtnRow.className = "o-legend-country-group-btns o-legend-network-group-btns";
+  networkGroupBtnRow.setAttribute("role", "group");
+  networkGroupBtnRow.setAttribute("aria-label", "Network type filters");
+
+  const networkAllFilterBtn = document.createElement("button");
+  networkAllFilterBtn.type = "button";
+  networkAllFilterBtn.className = "o-legend-country-group-btn active";
+  networkAllFilterBtn.textContent = "All";
+  networkAllFilterBtn.setAttribute("aria-pressed", "true");
+  networkAllFilterBtn.setAttribute(
+    "aria-label",
+    "Show all networks; click again to show or hide all"
+  );
+
+  const networkPlatformsFilterBtn = document.createElement("button");
+  networkPlatformsFilterBtn.type = "button";
+  networkPlatformsFilterBtn.className = "o-legend-country-group-btn";
+  networkPlatformsFilterBtn.textContent = "Platforms";
+  networkPlatformsFilterBtn.setAttribute("aria-pressed", "false");
+
+  const networkRefObsFilterBtn = document.createElement("button");
+  networkRefObsFilterBtn.type = "button";
+  networkRefObsFilterBtn.className = "o-legend-country-group-btn";
+  networkRefObsFilterBtn.textContent = "Ref. observatories";
+  networkRefObsFilterBtn.setAttribute("aria-pressed", "false");
+
+  const updateNetworkGroupFilterButtons = () => {
+    networkAllFilterBtn.classList.toggle("active", networkListFilter === "all");
+    networkAllFilterBtn.setAttribute(
+      "aria-pressed",
+      String(networkListFilter === "all")
+    );
+    networkPlatformsFilterBtn.classList.toggle(
+      "active",
+      networkListFilter === "platforms"
+    );
+    networkPlatformsFilterBtn.setAttribute(
+      "aria-pressed",
+      String(networkListFilter === "platforms")
+    );
+    networkRefObsFilterBtn.classList.toggle("active", networkListFilter === "refObs");
+    networkRefObsFilterBtn.setAttribute(
+      "aria-pressed",
+      String(networkListFilter === "refObs")
+    );
+  };
+
+  const applyNetworkListFilter = (filter: NetworkListFilter) => {
+    networkListFilter = filter;
+    syncNetworkRowVisibility();
+    updateNetworkGroupFilterButtons();
+
+    const visible = new Set(getVisibleNetworkCategoryIds());
+    for (const cat of legendRowCategories()) {
+      const cb = layerCheckboxById.get(cat.id);
+      if (!cb) continue;
+      cb.checked = visible.has(cat.id);
+    }
+    syncAllNetworkLayersFromCheckboxes();
+    updateSelectAllState();
+    updateLayerCounts();
+    void updateCountryRowCounts();
+  };
+
+  networkAllFilterBtn.addEventListener("click", () => {
+    if (networkListFilter === "all") {
+      const allSelected = legendRowCategories().every(
+        (cat) => layerCheckboxById.get(cat.id)?.checked
+      );
+      for (const cat of legendRowCategories()) {
+        const cb = layerCheckboxById.get(cat.id);
+        if (!cb) continue;
+        cb.checked = !allSelected;
+      }
+      syncAllNetworkLayersFromCheckboxes();
+      updateSelectAllState();
+      updateLayerCounts();
+      void updateCountryRowCounts();
+      return;
+    }
+    applyNetworkListFilter("all");
+  });
+  networkPlatformsFilterBtn.addEventListener("click", () =>
+    applyNetworkListFilter("platforms")
+  );
+  networkRefObsFilterBtn.addEventListener("click", () =>
+    applyNetworkListFilter("refObs")
+  );
+
+  networkGroupBtnRow.append(
+    networkAllFilterBtn,
+    networkPlatformsFilterBtn,
+    networkRefObsFilterBtn
+  );
+  networksBody.appendChild(networkGroupBtnRow);
+
+  const networkList = document.createElement("div");
+  networkList.className = "o-legend-network-list";
+  networksBody.appendChild(networkList);
 
   for (const cat of categories) {
     if (!isLegendRowCategory(cat)) continue;
@@ -848,10 +976,7 @@ export function attachLegend(
     countNodes.set(cat.id, countEl);
 
     cb.addEventListener("change", () => {
-      for (const layerId of legendLayerIdsForCategory(cat as Category)) {
-        const layer = layerById.get(layerId);
-        if (layer) (layer as GeoJSONLayer).visible = cb.checked;
-      }
+      applyCategoryVisibilityFromCheckbox(cat as Category);
       updateSelectAllState();
       updateLayerCounts();
       void updateCountryRowCounts();
@@ -866,8 +991,12 @@ export function attachLegend(
     cb.dataset.layerId = cat.id;
     layerCheckboxes.push(cb);
     layerCheckboxById.set(cat.id, cb);
-    networksBody.appendChild(row);
+    networkRowWrappers.set(cat.id, row);
+    networkList.appendChild(row);
   }
+
+  syncNetworkRowVisibility();
+  updateSelectAllState();
 
   const { groupBody: countryBody } = createCollapsibleGroup(content, {
     key: "country",
@@ -875,38 +1004,13 @@ export function attachLegend(
     startOpen: true,
   });
 
-  const countrySelectAllRow = document.createElement("label");
-  countrySelectAllRow.className = "o-legend-select-all o-legend-country-select-all";
-  countrySelectAllRow.style.display = "flex";
-  countrySelectAllRow.style.alignItems = "center";
-  countrySelectAllRow.style.gap = "8px";
-  countrySelectAllRow.style.cursor = "pointer";
-  countrySelectAllRow.style.fontWeight = "600";
-
+  /** Off-screen state for select-all logic; **All** button replaces the old row. */
   const countrySelectAllCheckbox = document.createElement("input");
   countrySelectAllCheckbox.type = "checkbox";
   countrySelectAllCheckbox.checked = true;
-
-  const countrySelectAllText = document.createElement("span");
-  countrySelectAllText.textContent = "Select all countries";
-  countrySelectAllText.style.flex = "1";
-
-  countrySelectAllRow.append(countrySelectAllCheckbox, countrySelectAllText);
-  countrySelectAllCheckbox.addEventListener("change", () => {
-    const shouldCheck =
-      countrySelectAllCheckbox.checked || countrySelectAllCheckbox.indeterminate;
-    const visibleCountries = new Set(getVisibleListCountries());
-
-    for (const country of filterableCountries) {
-      if (!visibleCountries.has(country)) continue;
-      if (shouldCheck) selectedCountries.add(country);
-      else selectedCountries.delete(country);
-      syncCountryCheckboxUI(country);
-    }
-
-    applyCountrySelection(countrySelectAllCheckbox);
-  });
-  countryBody.appendChild(countrySelectAllRow);
+  countrySelectAllCheckbox.hidden = true;
+  countrySelectAllCheckbox.tabIndex = -1;
+  countrySelectAllCheckbox.setAttribute("aria-hidden", "true");
 
   const countryGroupBtnRow = document.createElement("div");
   countryGroupBtnRow.className = "o-legend-country-group-btns";

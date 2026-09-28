@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24",
+  "generatedAt": "2026-09-28",
   "edition": "isival-prod",
   "source": "OceanOPS PostgreSQL partner export (sql/*.sql criteria)",
   "contributingCountries": 67,
@@ -36,9 +36,9 @@
         "AUSTRALIA"
       ],
       "networks": {
-        "driftingBuoys": 48,
+        "driftingBuoys": 49,
         "argo": 281,
-        "oceanGliders": 29,
+        "oceanGliders": 27,
         "aniBOS": 37,
         "fvon": 201,
         "sotVos": 28,
@@ -46,7 +46,7 @@
         "soconet": 10,
         "soconetMoorings": 6,
         "oceantrax": 7,
-        "goShip": 0,
+        "goShip": 1,
         "gloss": 15,
         "oceanSites": 16,
         "mooredBuoys": 29,
@@ -213,7 +213,7 @@
       "networks": {
         "driftingBuoys": 36,
         "argo": 194,
-        "oceanGliders": 40,
+        "oceanGliders": 39,
         "aniBOS": 0,
         "fvon": 0,
         "sotVos": 36,
@@ -267,7 +267,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 65,
+        "sotVos": 64,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -460,7 +460,7 @@
         "EUROPE"
       ],
       "networks": {
-        "driftingBuoys": 142,
+        "driftingBuoys": 149,
         "argo": 23,
         "oceanGliders": 0,
         "aniBOS": 0,
@@ -573,7 +573,7 @@
         "goShip": 1,
         "gloss": 15,
         "oceanSites": 11,
-        "mooredBuoys": 32,
+        "mooredBuoys": 33,
         "tsunamiBuoys": 0,
         "hfRadars": 9
       }
@@ -586,7 +586,7 @@
       ],
       "networks": {
         "driftingBuoys": 10,
-        "argo": 281,
+        "argo": 280,
         "oceanGliders": 3,
         "aniBOS": 0,
         "fvon": 0,
@@ -686,7 +686,7 @@
       ],
       "networks": {
         "driftingBuoys": 15,
-        "argo": 124,
+        "argo": 123,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -698,7 +698,7 @@
         "goShip": 0,
         "gloss": 5,
         "oceanSites": 28,
-        "mooredBuoys": 11,
+        "mooredBuoys": 12,
         "tsunamiBuoys": 2,
         "hfRadars": 10
       }
@@ -786,7 +786,7 @@
       ],
       "networks": {
         "driftingBuoys": 29,
-        "argo": 95,
+        "argo": 96,
         "oceanGliders": 1,
         "aniBOS": 0,
         "fvon": 0,
@@ -810,13 +810,13 @@
         "JAPAN"
       ],
       "networks": {
-        "driftingBuoys": 19,
+        "driftingBuoys": 17,
         "argo": 152,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 140,
-        "sotAsap": 0,
+        "sotVos": 143,
+        "sotAsap": 1,
         "soconet": 37,
         "soconetMoorings": 0,
         "oceantrax": 0,
@@ -909,7 +909,7 @@
       ],
       "networks": {
         "driftingBuoys": 17,
-        "argo": 22,
+        "argo": 24,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -1502,7 +1502,7 @@
       "networks": {
         "driftingBuoys": 0,
         "argo": 36,
-        "oceanGliders": 11,
+        "oceanGliders": 9,
         "aniBOS": 0,
         "fvon": 0,
         "sotVos": 2,
@@ -1527,7 +1527,7 @@
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
-        "oceanGliders": 33,
+        "oceanGliders": 30,
         "aniBOS": 0,
         "fvon": 0,
         "sotVos": 3,
@@ -1702,10 +1702,10 @@
       "networks": {
         "driftingBuoys": 0,
         "argo": 146,
-        "oceanGliders": 17,
+        "oceanGliders": 16,
         "aniBOS": 15,
         "fvon": 10,
-        "sotVos": 174,
+        "sotVos": 175,
         "sotAsap": 0,
         "soconet": 1,
         "soconetMoorings": 0,
@@ -1725,12 +1725,12 @@
         "USA"
       ],
       "networks": {
-        "driftingBuoys": 1063,
-        "argo": 2507,
-        "oceanGliders": 147,
+        "driftingBuoys": 1061,
+        "argo": 2511,
+        "oceanGliders": 146,
         "aniBOS": 0,
-        "fvon": 272,
-        "sotVos": 572,
+        "fvon": 271,
+        "sotVos": 576,
         "sotAsap": 0,
         "soconet": 100,
         "soconetMoorings": 39,
@@ -1738,7 +1738,7 @@
         "goShip": 2,
         "gloss": 26,
         "oceanSites": 141,
-        "mooredBuoys": 205,
+        "mooredBuoys": 206,
         "tsunamiBuoys": 30,
         "hfRadars": 172
       }

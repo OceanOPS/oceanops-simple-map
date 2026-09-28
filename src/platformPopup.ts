@@ -44,9 +44,13 @@ function formatOperatedByHtml(attrs: Record<string, unknown>): string {
 }
 
 function goosPassportId(attrs: Record<string, unknown>): string {
-  const id = attrs.ptf_id;
-  if (id == null || id === "") return "—";
-  return escapeHtml(String(id));
+  const wigos = attrs.wigos_ref ?? attrs.wigos_id ?? attrs.wigosId;
+  const wigosText = wigos == null ? "" : String(wigos).trim();
+  if (wigosText) return escapeHtml(wigosText);
+
+  const fallback = attrs.ptf_id;
+  if (fallback == null || fallback === "") return "—";
+  return escapeHtml(String(fallback));
 }
 
 function moreAtOceanOpsHtml(ptfRef: string): string {
