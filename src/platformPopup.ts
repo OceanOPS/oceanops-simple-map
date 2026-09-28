@@ -65,9 +65,6 @@ function inspectPopupBodyHtml(
   ptfRef: string
 ): string {
   return `<div class="o-map-popup o-map-popup--inspect">
-          <p class="o-map-popup-actions o-map-popup-actions--top">
-            <button type="button" class="o-map-popup-action o-map-popup-zoom-btn">Zoom to</button>
-          </p>
           <dl class="o-map-popup-meta">
             <div class="o-map-popup-meta-row">
               <dt>GOOS Passport ID</dt>

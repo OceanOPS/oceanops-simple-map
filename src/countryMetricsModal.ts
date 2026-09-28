@@ -11,17 +11,24 @@ import {
   getCountrySensorTotalFromMap,
   getCountryShipPlatformCountryBreakdownFromMap,
   getCountryTotalFromMap,
-  // groupPlatformCountryRows, // Platform › country view (toggle hidden)
+  groupPlatformCountryRows,
   loadPartnerCountriesData,
   type PlatformCountryCount,
-  // type PlatformWithCountries,
 } from "./countryMetrics";
-import type { CountryLayerCount } from "./partnerCountriesData";
+import {
+  formatCountryModalMetric,
+  type CountryLayerCount,
+} from "./partnerCountriesData";
 
 const MODAL_ID = "country-metrics-modal";
 
-const EXPAND_OPEN_LABEL = "−";
-const EXPAND_CLOSED_LABEL = "+";
+const COLLAB_EXPAND_ICON_PLUS = `<svg class="o-country-modal-collab-expand-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2.75v8.5M2.75 7h8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+const COLLAB_EXPAND_ICON_MINUS = `<svg class="o-country-modal-collab-expand-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.75 7h8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+function setCollabExpandButtonVisual(button: HTMLButtonElement, isOpen: boolean): void {
+  button.innerHTML = isOpen ? COLLAB_EXPAND_ICON_MINUS : COLLAB_EXPAND_ICON_PLUS;
+}
 
 /** Reference observatories (issue #107 popup list). */
 const REFERENCE_OBSERVATORY_LAYER_IDS = new Set([
@@ -32,9 +39,6 @@ const REFERENCE_OBSERVATORY_LAYER_IDS = new Set([
   "soconet_moorings",
   "oceantrax",
 ]);
-
-const REFERENCE_OBSERVATORIES_POPUP =
-  "OceanSITES, GLOSS, GO-SHIP, SOCONET, OceanTraX";
 
 function splitPlatformAndReferenceCounts(rows: PlatformCountryCount[]): {
   platforms: number;
@@ -103,7 +107,7 @@ function mergePlatformCountryRows(
       const existing = merged.get(key);
       if (existing) {
         existing.count += row.count;
-        existing.displayCount = ` (${existing.count.toLocaleString()})`;
+        existing.displayCount = formatCountryModalMetric(existing.count);
       } else {
         merged.set(key, { ...row });
       }
@@ -122,54 +126,10 @@ function appendReferenceObservatoriesTerm(
   parent: HTMLElement,
   count: number
 ): void {
-  parent.append(`${count.toLocaleString()} `);
-  const wrap = document.createElement("span");
-  wrap.className = "o-country-modal-ref-obs-term";
-  wrap.tabIndex = 0;
-
-  const label = document.createElement("span");
-  label.className = "o-country-modal-ref-obs-label";
-  label.textContent =
-    count === 1 ? "reference observatory" : "reference observatories";
-
-  const hint = document.createElement("span");
-  hint.className = "o-country-modal-ref-obs-hint";
-  hint.id = `o-country-modal-ref-obs-hint-${Math.random().toString(36).slice(2, 9)}`;
-  hint.setAttribute("role", "tooltip");
-  REFERENCE_OBSERVATORIES_POPUP.split(", ").forEach((name, index, names) => {
-    const item = document.createElement("span");
-    item.className = "o-country-modal-ref-obs-hint-item";
-    item.textContent = name;
-    hint.appendChild(item);
-    if (index < names.length - 1) {
-      hint.appendChild(document.createTextNode(", "));
-    }
-  });
-
-  wrap.setAttribute("aria-describedby", hint.id);
-  wrap.append(label, hint);
-  parent.appendChild(wrap);
-
-  const syncHintPlacement = () => {
-    updateReferenceObservatoriesHintPlacement(wrap);
-  };
-  wrap.addEventListener("mouseenter", syncHintPlacement);
-  wrap.addEventListener("focusin", syncHintPlacement);
-  requestAnimationFrame(syncHintPlacement);
-}
-
-function updateReferenceObservatoriesHintPlacement(wrap: HTMLElement): void {
-  const hint = wrap.querySelector(".o-country-modal-ref-obs-hint");
-  const body = wrap.closest(".o-country-modal-body");
-  if (!hint || !body) return;
-
-  const termRect = wrap.getBoundingClientRect();
-  const bodyRect = body.getBoundingClientRect();
-  const spaceAbove = termRect.top - bodyRect.top;
-  const hintHeight = 52;
-  hint.classList.toggle(
-    "o-country-modal-ref-obs-hint--below",
-    spaceAbove < hintHeight + 14
+  parent.append(
+    `${count.toLocaleString()} ${
+      count === 1 ? "reference observatory" : "reference observatories"
+    }`
   );
 }
 
@@ -184,18 +144,22 @@ export function closeCountryMetricsModal(): void {
 
 function appendBreakdownList(parent: HTMLElement, rows: CountryLayerCount[]): void {
   const list = document.createElement("ul");
-  list.className = "o-country-modal-list";
+  list.className = "o-country-modal-list o-country-modal-list--metric-rows";
 
   for (const row of rows) {
     const item = document.createElement("li");
-    const picto = makeNetworkPicto(row.layerId, "country-modal");
+
+    const pictoSlot = document.createElement("span");
+    pictoSlot.className = "o-country-modal-metric-picto-slot";
+    pictoSlot.appendChild(makeNetworkPicto(row.layerId, "country-modal"));
+
     const nameSpan = document.createElement("span");
     nameSpan.className = "o-country-modal-network";
     nameSpan.textContent = row.label;
     const countSpan = document.createElement("span");
-    countSpan.className = "o-legend-count";
-    countSpan.textContent = row.displayCount;
-    item.append(picto, nameSpan, countSpan);
+    countSpan.className = "o-legend-count o-country-modal-metric-count";
+    countSpan.textContent = formatCountryModalMetric(row.count);
+    item.append(pictoSlot, nameSpan, countSpan);
     list.appendChild(item);
   }
 
@@ -289,171 +253,54 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
   return group;
 }
 
-type OperatingCountryGroup = {
-  geoCountry: string;
-  countryLabel: string;
-  isoCode?: string;
-  total: number;
-  networks: PlatformCountryCount[];
-};
-
-function groupRowsByOperatingCountry(
-  rows: PlatformCountryCount[]
-): OperatingCountryGroup[] {
-  const byCountry = new Map<string, OperatingCountryGroup>();
-
-  for (const row of rows) {
-    let group = byCountry.get(row.geoCountry);
-    if (!group) {
-      group = {
-        geoCountry: row.geoCountry,
-        countryLabel: row.countryLabel,
-        isoCode: row.isoCode,
-        total: 0,
-        networks: [],
-      };
-      byCountry.set(row.geoCountry, group);
-    }
-    group.total += row.count;
-    group.networks.push(row);
-  }
-
-  for (const group of byCountry.values()) {
-    group.networks.sort(
-      (a, b) => b.count - a.count || a.label.localeCompare(b.label)
-    );
-  }
-
-  return [...byCountry.values()].sort(
-    (a, b) =>
-      b.total - a.total || a.countryLabel.localeCompare(b.countryLabel)
-  );
-}
-
-function appendCountryGroupedCollaborationList(
+function appendNetworkGroupedCollaborationList(
   parent: HTMLElement,
   rows: PlatformCountryCount[]
 ): void {
-  const groups = groupRowsByOperatingCountry(rows);
-  const list = document.createElement("ul");
-  list.className =
-    "o-country-modal-list o-country-modal-list--expandable o-country-modal-list--by-country";
-
-  for (const group of groups) {
-    const block = document.createElement("li");
-    block.className = "o-country-modal-country-block";
-
-    const header = document.createElement("div");
-    header.className = "o-country-modal-country-header";
-
-    const expandBtn = document.createElement("button");
-    expandBtn.type = "button";
-    expandBtn.className = "o-country-modal-expand-btn";
-    expandBtn.setAttribute("aria-expanded", "false");
-    expandBtn.setAttribute(
-      "aria-label",
-      `Show networks for ${group.countryLabel}`
-    );
-    expandBtn.textContent = EXPAND_CLOSED_LABEL;
-
-    const flag = document.createElement("span");
-    flag.className = "o-country-modal-contributor-flag";
-    flag.setAttribute("title", group.countryLabel);
-    flag.setAttribute("aria-label", group.countryLabel);
-    appendCountryFlag(flag, group.isoCode, group.countryLabel);
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "o-country-modal-country-name";
-    nameSpan.textContent = group.countryLabel;
-
-    const totalSpan = document.createElement("span");
-    totalSpan.className = "o-legend-count o-country-modal-country-total";
-    totalSpan.textContent = group.total.toLocaleString();
-
-    header.append(expandBtn, flag, nameSpan, totalSpan);
-
-    const networks = document.createElement("ul");
-    networks.className = "o-country-modal-country-networks";
-    networks.hidden = true;
-
-    for (const row of group.networks) {
-      const item = document.createElement("li");
-      item.className = "o-country-modal-country-network-row";
-
-      const pictoSlot = document.createElement("span");
-      pictoSlot.className = "o-country-modal-emanuela-picto-slot";
-      pictoSlot.appendChild(makeNetworkPicto(row.layerId, "country-modal"));
-
-      const label = document.createElement("span");
-      label.className = "o-country-modal-emanuela-network-label";
-      label.textContent = row.label;
-
-      const count = document.createElement("span");
-      count.className = "o-legend-count o-country-modal-country-network-count";
-      count.textContent = row.count.toLocaleString();
-
-      item.append(pictoSlot, label, count);
-      networks.appendChild(item);
-    }
-
-    const toggle = () => {
-      const isOpen = block.classList.toggle("open");
-      networks.hidden = !isOpen;
-      expandBtn.textContent = isOpen ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
-      expandBtn.setAttribute("aria-expanded", String(isOpen));
-      expandBtn.setAttribute(
-        "aria-label",
-        isOpen
-          ? `Hide networks for ${group.countryLabel}`
-          : `Show networks for ${group.countryLabel}`
-      );
-    };
-
-    expandBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      toggle();
-    });
-    header.addEventListener("click", toggle);
-
-    block.append(header, networks);
-    list.appendChild(block);
-  }
-
-  parent.appendChild(list);
+  appendExpandablePlatformList(parent, groupPlatformCountryRows(rows));
 }
 
-/** Kept while Platform › country toggle is hidden. */
 export function appendExpandablePlatformList(
   parent: HTMLElement,
   platforms: import("./countryMetrics").PlatformWithCountries[]
 ): void {
   const list = document.createElement("ul");
-  list.className = "o-country-modal-list o-country-modal-list--expandable";
+  list.className =
+    "o-country-modal-list o-country-modal-list--expandable o-country-modal-list--collab";
 
   for (const platform of platforms) {
     const block = document.createElement("li");
     block.className = "o-country-modal-platform-block";
 
     const header = document.createElement("div");
-    header.className = "o-country-modal-platform-header";
+    header.className =
+      "o-country-modal-platform-header o-country-modal-country-header o-country-modal-collab-row-header";
 
     const expandBtn = document.createElement("button");
     expandBtn.type = "button";
-    expandBtn.className = "o-country-modal-expand-btn";
+    expandBtn.className =
+      "o-country-modal-expand-btn o-country-modal-expand-btn--round";
     expandBtn.setAttribute("aria-expanded", "false");
     expandBtn.setAttribute("aria-label", `Show countries for ${platform.label}`);
-    expandBtn.textContent = EXPAND_CLOSED_LABEL;
+    setCollabExpandButtonVisual(expandBtn, false);
 
-    const picto = makeNetworkPicto(platform.layerId, "country-modal");
+    const pictoSlot = document.createElement("span");
+    pictoSlot.className = "o-country-modal-metric-picto-slot";
+    pictoSlot.appendChild(makeNetworkPicto(platform.layerId, "country-modal"));
+
+    const leading = document.createElement("div");
+    leading.className = "o-country-modal-collab-leading";
+    leading.append(expandBtn, pictoSlot);
+
     const nameSpan = document.createElement("span");
-    nameSpan.className = "o-country-modal-network";
+    nameSpan.className = "o-country-modal-network o-country-modal-country-name";
     nameSpan.textContent = platform.label;
 
     const countSpan = document.createElement("span");
-    countSpan.className = "o-legend-count";
-    countSpan.textContent = platform.displayCount;
+    countSpan.className = "o-legend-count o-country-modal-country-total";
+    countSpan.textContent = platform.count.toLocaleString();
 
-    header.append(picto, nameSpan, countSpan, expandBtn);
+    header.append(leading, nameSpan, countSpan);
 
     const children = document.createElement("ul");
     children.className = "o-country-modal-platform-countries";
@@ -471,23 +318,29 @@ export function appendExpandablePlatformList(
       countryName.textContent = country.label;
 
       const childCount = document.createElement("span");
-      childCount.className = "o-legend-count";
-      childCount.textContent = country.displayCount;
+      childCount.className = "o-legend-count o-country-modal-country-network-count";
+      childCount.textContent = country.count.toLocaleString();
 
       child.append(flag, countryName, childCount);
       children.appendChild(child);
     }
 
-    expandBtn.addEventListener("click", () => {
+    const toggle = () => {
       const isOpen = block.classList.toggle("open");
       children.hidden = !isOpen;
-      expandBtn.textContent = isOpen ? EXPAND_OPEN_LABEL : EXPAND_CLOSED_LABEL;
+      setCollabExpandButtonVisual(expandBtn, isOpen);
       expandBtn.setAttribute("aria-expanded", String(isOpen));
       expandBtn.setAttribute(
         "aria-label",
         isOpen ? `Hide countries for ${platform.label}` : `Show countries for ${platform.label}`
       );
+    };
+
+    expandBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggle();
     });
+    header.addEventListener("click", toggle);
 
     block.append(header, children);
     list.appendChild(block);
@@ -593,7 +446,7 @@ function appendToggleBreakdownSection(
       return;
     }
 
-    appendCountryGroupedCollaborationList(panel, platformCountryRows);
+    appendNetworkGroupedCollaborationList(panel, platformCountryRows);
   };
 
   /*

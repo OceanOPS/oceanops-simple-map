@@ -104,10 +104,3 @@ export function stackInspectPopupTitle(
   return `${ref} - ${typeLabel}`;
 }
 
-export const POPUP_ZOOM_ACTION_ID = "oceanops-zoom-to";
-
-export const POPUP_ZOOM_ACTION = {
-  title: "Zoom to",
-  id: POPUP_ZOOM_ACTION_ID,
-  type: "button" as const,
-};

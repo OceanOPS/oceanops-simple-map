@@ -112,6 +112,11 @@ export type CountryLayerCount = {
   displayCount: string;
 };
 
+/** Plain count for country metrics modal (no parentheses). */
+export function formatCountryModalMetric(count: number): string {
+  return count === -1 ? "X" : count.toLocaleString();
+}
+
 export function getCountryBreakdownFromPartner(
   geoCountry: CountryName,
   data: PartnerCountriesFile,
@@ -130,8 +135,7 @@ export function getCountryBreakdownFromPartner(
     if (count === 0) continue;
 
     const label = getLayerDisplayLabel(layerId, "modal");
-    const displayCount =
-      count === -1 ? " (X)" : ` (${count.toLocaleString()})`;
+    const displayCount = formatCountryModalMetric(count);
 
     rows.push({
       layerId,

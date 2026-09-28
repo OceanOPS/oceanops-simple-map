@@ -74,7 +74,7 @@ export const categories = [
   { id: 'asap',                        label: 'Ship based aerological – ASAP',                 color: '#d38724ff', type: 'image', imagePath: '/img/ship_orange.png' },
   {
     id: 'soconet',
-    label: 'Surface ocean CO2 cruises & sites - SOCONET',
+    label: 'Surface ocean CO₂ - SOCONET',
     color: SOCONET_COLOR,
     type: 'image',
     imagePath: '/img/ship_pink.png',
@@ -82,7 +82,7 @@ export const categories = [
   },
   {
     id: 'soconet_moorings',
-    label: 'Surface ocean CO2 cruises & sites - SOCONET',
+    label: 'Surface ocean CO₂ - SOCONET',
     color: SOCONET_COLOR,
     type: 'point',
     shape: 'square',

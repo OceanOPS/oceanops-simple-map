@@ -370,10 +370,6 @@ export function attachLegend(
   playPauseButton.append(rotationIcon);
   appendToolbarHint(playPauseButton, MAP_ROTATION_HINT);
 
-  const rotationLabel = document.createElement("span");
-  rotationLabel.className = "o-basemap-kind-label";
-  rotationLabel.textContent = "Map rotation";
-
   const rotationPlayIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L13 8L5 13V3Z" fill="#f8f8f8"/></svg>`;
   const rotationPauseIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/><rect x="9" y="3" width="3" height="10" fill="#f8f8f8" rx="1"/></svg>`;
 
@@ -399,12 +395,12 @@ export function attachLegend(
     updatePlayPauseIcon();
   });
 
-  rotationSection.append(playPauseButton, rotationLabel);
+  rotationSection.append(playPauseButton);
   view.ui.add(rotationSection, { position: "top-left", index: 3 });
 
   view.ui.add(searchBar, { position: "top-left", index: 5 });
-  ensureNavigationControlHints(view);
   syncLeftToolbarOrder(view);
+  ensureNavigationControlHints(view);
 
   const syncRotationControlVisibility = () => {
     const show = is3dProjection(getProjection());
@@ -413,13 +409,11 @@ export function attachLegend(
   };
   syncRotationControlVisibility();
 
-  // Stop rotation when compass is clicked
-  const compass = document.querySelector(".esri-compass") as HTMLElement;
-  if (compass) {
-    compass.addEventListener("click", () => {
-      stopRotation();
-    });
-  }
+  // Stop rotation when compass is clicked (widget may re-mount — delegate)
+  view.container?.addEventListener("click", (event) => {
+    const target = event.target as Element | null;
+    if (target?.closest(".esri-compass")) stopRotation();
+  });
 
   // Create backdrop for mobile
   const backdrop = document.createElement("div");

@@ -30,7 +30,6 @@ import {
   type ProjectionId,
 } from "./projections";
 import { appendToolbarHint, syncLeftToolbarOrder } from "./mapToolbar";
-import { POPUP_ZOOM_ACTION_ID } from "./platformInspect";
 import type { GlobeView, ViewHolder } from "./viewHolder";
 import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
 
@@ -337,35 +336,7 @@ function patchPopupCalciteScrollbars(popupRoot: Element): void {
   });
 }
 
-function bindPopupZoomAction(view: GlobeView): void {
-  const root = view.container;
-  if (!root) return;
-
-  root.addEventListener("click", (event) => {
-    const target = event.target as Element | null;
-    if (!target?.closest(".o-map-popup-zoom-btn")) return;
-    event.preventDefault();
-    const feature = view.popup?.selectedFeature;
-    if (!feature?.geometry) return;
-    void view.goTo({ target: feature }, { duration: 400 });
-  });
-
-  const popup = view.popup;
-  if (!popup || typeof popup.on !== "function") return;
-  try {
-    popup.on("trigger-action", (event) => {
-      if (event.action.id !== POPUP_ZOOM_ACTION_ID) return;
-      const feature = view.popup?.selectedFeature;
-      if (!feature?.geometry) return;
-      void view.goTo({ target: feature }, { duration: 400 });
-    });
-  } catch (err) {
-    console.warn("Popup trigger-action binding failed", err);
-  }
-}
-
 export function applyPopupDefaults(view: GlobeView): void {
-  bindPopupZoomAction(view);
   if (!view.popup) return;
   view.popup.visibleElements = {
     closeButton: true,
@@ -457,7 +428,6 @@ export function mountBasemapProjectionControl(
   const previewBtn = document.createElement("button");
   previewBtn.type = "button";
   previewBtn.className = "o-basemap-preview-btn";
-  previewBtn.title = "Switch ocean / satellite basemap";
   previewBtn.setAttribute("aria-label", "Switch basemap");
 
   const basemapHint = document.createElement("span");
@@ -494,9 +464,6 @@ export function mountBasemapProjectionControl(
   fullscreenBtn.className = "o-map-fullscreen-toggle";
   fullscreenBtn.setAttribute("aria-label", "Expand map");
 
-  const fullscreenHint = document.createElement("span");
-  fullscreenHint.className = "o-basemap-kind-label";
-
   const expandIcon = `
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -511,7 +478,6 @@ export function mountBasemapProjectionControl(
     const actionLabel = active ? "Collapse map" : "Expand map";
     fullscreenBtn.classList.toggle("is-active", active);
     fullscreenBtn.innerHTML = active ? compressIcon : expandIcon;
-    fullscreenHint.textContent = active ? "Collapse" : "Expand";
     fullscreenBtn.setAttribute("aria-label", actionLabel);
     appendToolbarHint(fullscreenBtn, actionLabel);
   };
@@ -524,7 +490,7 @@ export function mountBasemapProjectionControl(
   document.addEventListener("map-fullscreen-change", syncFullscreenUi);
   syncFullscreenUi();
 
-  fullscreenSection.append(fullscreenBtn, fullscreenHint);
+  fullscreenSection.append(fullscreenBtn);
 
   const projectionPreviewImage = (target: ProjectionId): string => {
     switch (target) {

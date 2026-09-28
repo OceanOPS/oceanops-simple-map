@@ -21,6 +21,7 @@ import {
   queryMooringLayerFeatures,
 } from "./mooringStacks";
 import {
+  formatCountryModalMetric,
   getCountryBreakdownFromPartner,
   getPartnerDataSnapshot,
   type CountryLayerCount,
@@ -212,7 +213,7 @@ async function queryCountryBreakdown(
       layerId,
       label,
       count,
-      displayCount: ` (${count.toLocaleString()})`,
+      displayCount: formatCountryModalMetric(count),
     });
   }
 
@@ -254,7 +255,7 @@ function contributorRowsFromTotals(
       label: getGeoCountryLabel(geoCountry),
       isoCode: getIsoCodeForGeoCountry(geoCountry),
       count,
-      displayCount: ` (${count.toLocaleString()})`,
+      displayCount: formatCountryModalMetric(count),
     }))
     .filter((row) => row.count > 0)
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
@@ -293,7 +294,7 @@ async function aggregatePlatformCountryCounts(
         countryLabel: getGeoCountryLabel(geoCountry),
         isoCode: getIsoCodeForGeoCountry(geoCountry),
         count,
-        displayCount: ` (${count.toLocaleString()})`,
+        displayCount: formatCountryModalMetric(count),
       });
     }
   }
@@ -335,7 +336,7 @@ export function groupPlatformCountryRows(rows: PlatformCountryCount[]): Platform
   return [...byLayer.values()]
     .map((platform) => ({
       ...platform,
-      displayCount: ` (${platform.count.toLocaleString()})`,
+      displayCount: formatCountryModalMetric(platform.count),
       countries: platform.countries.sort(
         (a, b) => b.count - a.count || a.label.localeCompare(b.label)
       ),
@@ -422,7 +423,7 @@ export async function getCountryLineDetailsFromMap(
         layerId,
         label,
         count: lineNames.length,
-        displayCount: ` (${lineNames.length.toLocaleString()})`,
+        displayCount: formatCountryModalMetric(lineNames.length),
         lineNames,
       });
     }
@@ -571,7 +572,7 @@ export async function getCountryLineCrossCruisePlatformCountryBreakdownFromMap(
         countryLabel: getGeoCountryLabel(geoCountry),
         isoCode: getIsoCodeForGeoCountry(geoCountry),
         count,
-        displayCount: ` (${count.toLocaleString()})`,
+        displayCount: formatCountryModalMetric(count),
       });
     }
   }
