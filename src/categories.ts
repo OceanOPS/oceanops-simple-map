@@ -95,7 +95,7 @@ export const categories = [
   { id: 'oceansites',                      label: 'Time series sites – OceanSITES',         color: '#40a62e', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'moored_buoys',                 label: 'Moored buoys – MB',          color: '#ec2324', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'tsunami_buoys',                      label: 'Tsunami buoys – TSU',         color: '#ffff00', type: 'point', shape: 'triangle'  },
-  { id: 'hf_radars',                      label: 'High Frequency radars - HF radars',         color: '#ffffff', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
+  { id: 'hf_radars',                      label: 'High Frequency radars - HF Radar',         color: '#ffffff', type: 'point', shape: 'square', markerSize: MAP_SQUARE_MARKER_SIZE },
   { id: 'drifting_buoys',               label: 'Drifting buoys – GDA',        color: '#28c3f3', type: 'point', shape: 'circle' },
   { id: 'argo',                        label: 'Profiling floats – Argo',      color: '#2357a7', type: 'point', shape: 'circle' },
   { id: 'oceangliders',                      label: 'Gliders – OceanGliders',         color: '#71bf44', type: 'point', shape: 'circle'  },
@@ -112,6 +112,19 @@ export function legendLayerIdsForCategory(cat: Category): string[] {
 
 export function isLegendRowCategory(cat: Category): boolean {
   return !("legendHidden" in cat && cat.legendHidden);
+}
+
+/** Legend / map split aligned with country modal & report card (#107). */
+export const REFERENCE_OBSERVATORY_CATEGORY_IDS = new Set<string>([
+  "oceansites",
+  "gloss",
+  "goship",
+  "soconet",
+  "oceantrax",
+]);
+
+export function isReferenceObservatoryCategory(categoryId: string): boolean {
+  return REFERENCE_OBSERVATORY_CATEGORY_IDS.has(categoryId);
 }
 
 /** Labels in country modal / breakdown lists (distinct sub-layers). */
