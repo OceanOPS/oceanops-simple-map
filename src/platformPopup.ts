@@ -81,7 +81,7 @@ function inspectPopupBodyHtml(
               <dd>${formatOperatedByHtml(attrs)}</dd>
             </div>
             <div class="o-map-popup-meta-row">
-              <dt>GOOS Observing Network</dt>
+              <dt>GOOS Observing Network(s)</dt>
               <dd>${escapeHtml(goosNetwork || "—")}</dd>
             </div>
           </dl>

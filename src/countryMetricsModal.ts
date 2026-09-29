@@ -244,7 +244,7 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
 
   const title = document.createElement("h2");
   title.className = "o-country-modal-group-title";
-  title.textContent = "International collaboration";
+  title.textContent = "International Cooperation";
 
   header.append(title);
   group.appendChild(header);
