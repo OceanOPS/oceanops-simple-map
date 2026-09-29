@@ -42,6 +42,7 @@ import type { GlobeView, ViewHolder } from "./viewHolder";
 import {
   bindFlatWorldLayoutSync,
   fitViewInitialExtent,
+  isFlatWorldLayoutRefitting,
   reflowFlatWorldViewIfWorldScale,
   refreshViewLayout,
 } from "./viewLayout";
@@ -320,11 +321,17 @@ function createRotationController(
     document.body.classList.add("map-embedded");
   }
 
+  let shellLayoutTimer: ReturnType<typeof setTimeout> | null = null;
   const onShellLayoutChange = () => {
-    void (async () => {
-      await refreshViewLayout(viewHolder.view);
-      await reflowFlatWorldViewIfWorldScale(viewHolder.view, currentProjection);
-    })();
+    if (shellLayoutTimer) clearTimeout(shellLayoutTimer);
+    shellLayoutTimer = setTimeout(() => {
+      shellLayoutTimer = null;
+      void (async () => {
+        if (isFlatWorldLayoutRefitting()) return;
+        await refreshViewLayout(viewHolder.view);
+        await reflowFlatWorldViewIfWorldScale(viewHolder.view, currentProjection);
+      })();
+    }, 320);
   };
 
   let syncPlatformSearchUi: (() => void) | undefined;
@@ -411,11 +418,6 @@ function createRotationController(
       ? bindGlobeLineWidthZoomSync(view, layerById, () => currentProjection)
       : null;
 
-    unbindFlatWorldLayout?.();
-    unbindFlatWorldLayout = is3dProjection(projection)
-      ? null
-      : bindFlatWorldLayoutSync(view, () => currentProjection);
-
     attachLegendToView();
     mountPlatformSearchUi();
 
@@ -429,6 +431,11 @@ function createRotationController(
     const layerUnion = await computeLayerUnion(layerById);
     await fitViewInitialExtent(view, projection, layerUnion);
     await refreshViewLayout(view);
+
+    unbindFlatWorldLayout?.();
+    unbindFlatWorldLayout = is3dProjection(projection)
+      ? null
+      : bindFlatWorldLayoutSync(view, () => currentProjection);
 
     unbindMapServerLoader?.();
     const mapShell = document.getElementById("mapShell");

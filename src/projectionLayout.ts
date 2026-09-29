@@ -5,7 +5,7 @@ import {
 } from "./projections";
 import { clearFlatViewDivWidthLimit } from "./viewLayout";
 
-/** Flat map uses a 2:1 shell; globe fills the viewport (sphere layout). */
+/** Projection-specific body classes; map shell stays edge-to-edge for all modes. */
 export function applyProjectionShellLayout(projection: ProjectionId): void {
   document.body.classList.remove(
     "flat-projection",
@@ -17,6 +17,7 @@ export function applyProjectionShellLayout(projection: ProjectionId): void {
     document.body.classList.add("globe-projection");
     return;
   }
+  clearFlatViewDivWidthLimit();
   document.body.classList.add("flat-projection");
   if (isCustomFlatBasemapProjection(projection)) {
     document.body.classList.add("flat-mapserver-basemap");

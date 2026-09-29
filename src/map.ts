@@ -161,10 +161,13 @@ const FLAT_HIGHLIGHT = {
   fillOpacity: 0.2,
 };
 
-/** Letterbox / chrome background for Plate Carrée and Equal Earth (matches 3D globe). */
+/** Shell / view background (3D globe, Plate Carrée, Equal Earth). */
 const OCEANOPS_VIEW_BACKGROUND = {
   color: [11, 30, 66, 1] as [number, number, number, number],
 };
+
+/** Map uses full `#viewDiv` — no Esri inset padding. */
+const EDGE_TO_EDGE_VIEW_PADDING = { left: 0, top: 0, right: 0, bottom: 0 };
 
 function createFlatMapView(
   container: HTMLDivElement | string,
@@ -184,6 +187,7 @@ function createFlatMapView(
       spatialReference: SpatialReference.WGS84,
       extent: PLATE_CARREE_WORLD_EXTENT.clone(),
       background: OCEANOPS_VIEW_BACKGROUND,
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
       constraints: {
         geometry: PLATE_CARREE_WORLD_EXTENT.clone(),
         rotationEnabled: false,
@@ -200,6 +204,7 @@ function createFlatMapView(
       spatialReference: EQUAL_EARTH_SPATIAL_REFERENCE,
       extent: EQUAL_EARTH_WORLD_EXTENT.clone(),
       background: OCEANOPS_VIEW_BACKGROUND,
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
       constraints: {
         geometry: EQUAL_EARTH_WORLD_EXTENT.clone(),
         rotationEnabled: false,
@@ -254,6 +259,7 @@ export function createGlobeView(
       container,
       map,
       camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
       qualityProfile: "low",
       environment: {
         atmosphereEnabled: false,

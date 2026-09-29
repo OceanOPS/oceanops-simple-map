@@ -190,16 +190,11 @@ body.map-embedded #mapShell {
   height: 100%;
 }
 
-/* Plate Carrée / Equal Earth letterbox (matches 3D globe #0b1e42). */
+/* Plate Carrée / Equal Earth view surface (matches 3D globe #0b1e42). */
 body.flat-mapserver-basemap #viewDiv,
 body.flat-mapserver-basemap #viewDiv .esri-view-root,
 body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   background-color: #0b1e42;
-}
-
-body.flat-mapserver-basemap:not(.menu-open) #viewDiv {
-  margin-left: auto;
-  margin-right: auto;
 }
 
 /* On desktop, push the globe right when the filter menu is open */

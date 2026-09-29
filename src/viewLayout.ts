@@ -20,32 +20,29 @@ import type { GlobeView } from "./viewHolder";
 
 const WORLD_LON_SPAN = 360;
 const WORLD_LAT_SPAN = 180;
-const PLATE_CARREE_WORLD_ASPECT = WORLD_LON_SPAN / WORLD_LAT_SPAN;
 /** Matches `#viewDiv` width/margin transition in `style.css`. */
 const SHELL_TRANSITION_MS = 320;
+
+let flatWorldLayoutRefitting = false;
+
+export function isFlatWorldLayoutRefitting(): boolean {
+  return flatWorldLayoutRefitting;
+}
+
+async function withFlatWorldLayoutRefitting<T>(fn: () => Promise<T>): Promise<T> {
+  flatWorldLayoutRefitting = true;
+  try {
+    return await fn();
+  } finally {
+    flatWorldLayoutRefitting = false;
+  }
+}
 
 export function clearFlatViewDivWidthLimit(): void {
   const viewDiv = document.getElementById("viewDiv");
   if (!viewDiv) return;
   viewDiv.style.removeProperty("max-width");
   viewDiv.style.removeProperty("margin-right");
-}
-
-/** Keep flat map width ≤ height × world aspect so MapImage export matches vector layers. */
-function applyFlatViewDivWidthLimit(view: MapView, worldAspect: number): void {
-  const viewDiv = view.container as HTMLElement | null;
-  if (!viewDiv) return;
-
-  const height = view.height || viewDiv.clientHeight;
-  if (!height) return;
-
-  const maxWidth = Math.max(1, Math.round(height * worldAspect));
-  viewDiv.style.maxWidth = `${maxWidth}px`;
-  if (!document.body.classList.contains("menu-open")) {
-    viewDiv.style.marginRight = "auto";
-  } else {
-    viewDiv.style.removeProperty("margin-right");
-  }
 }
 
 /** Extent that fills the viewport width (no side gaps) while keeping a 360° longitude window. */
@@ -65,6 +62,17 @@ export function plateCarreeExtentForViewport(
 
   const halfLat = latSpan / 2;
   const halfLon = WORLD_LON_SPAN / 2;
+
+  // Full-world longitude span: keep xmin/xmax in [-180, 180] (MapView goTo hangs on e.g. -330..30).
+  if (halfLon >= WORLD_LON_SPAN / 2 - 1e-9) {
+    return new Extent({
+      xmin: -180,
+      ymin: -halfLat,
+      xmax: 180,
+      ymax: halfLat,
+      spatialReference: SpatialReference.WGS84,
+    });
+  }
 
   return new Extent({
     xmin: centerLongitude - halfLon,
@@ -99,48 +107,53 @@ export function equalEarthExtentForViewport(width: number, height: number): Exte
 
 /** Fit Equal Earth to the shell and lock zoom-out at that framing. */
 export async function fitEqualEarthView(view: MapView): Promise<void> {
-  await view.when();
+  await withFlatWorldLayoutRefitting(async () => {
+    await view.when();
 
-  applyFlatViewDivWidthLimit(view, EQUAL_EARTH_WORLD_X_SPAN / EQUAL_EARTH_WORLD_Y_SPAN);
-  await refreshViewLayout(view);
+    clearFlatViewDivWidthLimit();
+    await refreshViewLayout(view);
 
-  const fittedExtent =
-    view.width && view.height
-      ? equalEarthExtentForViewport(view.width, view.height)
-      : EQUAL_EARTH_WORLD_EXTENT.clone();
-  await view.goTo(fittedExtent, { animate: false });
+    const fittedExtent =
+      view.width && view.height
+        ? equalEarthExtentForViewport(view.width, view.height)
+        : EQUAL_EARTH_WORLD_EXTENT.clone();
+    await view.goTo(fittedExtent, { animate: false });
 
-  view.constraints.geometry = EQUAL_EARTH_WORLD_EXTENT.clone();
-  view.constraints.minScale = view.scale;
+    view.constraints.geometry = EQUAL_EARTH_WORLD_EXTENT.clone();
+    view.constraints.minScale = view.scale;
+  });
 }
 
 /** Fit Plate Carrée to the shell and lock zoom-out at that framing. */
 export async function fitPlateCarreeView(view: MapView): Promise<void> {
-  await view.when();
+  await withFlatWorldLayoutRefitting(async () => {
+    await view.when();
 
-  const extent =
-    view.width && view.height
-      ? plateCarreeExtentForViewport(
-          view.width,
-          view.height,
-          PLATE_CARREE_CENTER_LONGITUDE
+    clearFlatViewDivWidthLimit();
+    await refreshViewLayout(view);
+
+    const fittedExtent =
+      view.width && view.height
+        ? plateCarreeExtentForViewport(
+            view.width,
+            view.height,
+            PLATE_CARREE_CENTER_LONGITUDE
+          )
+        : PLATE_CARREE_WORLD_EXTENT.clone();
+    await view.goTo(fittedExtent, { animate: false });
+
+    if (PLATE_CARREE_CENTER_LONGITUDE !== 0) {
+      await view
+        .goTo(
+          { center: [PLATE_CARREE_CENTER_LONGITUDE, 0], scale: view.scale },
+          { animate: false }
         )
-      : PLATE_CARREE_WORLD_EXTENT.clone();
+        .catch(() => {});
+    }
 
-  applyFlatViewDivWidthLimit(view, PLATE_CARREE_WORLD_ASPECT);
-  await refreshViewLayout(view);
-  const fittedExtent =
-    view.width && view.height
-      ? plateCarreeExtentForViewport(
-          view.width,
-          view.height,
-          PLATE_CARREE_CENTER_LONGITUDE
-        )
-      : extent;
-  await view.goTo(fittedExtent, { animate: false });
-
-  view.constraints.geometry = PLATE_CARREE_WORLD_EXTENT.clone();
-  view.constraints.minScale = view.scale;
+    view.constraints.geometry = PLATE_CARREE_WORLD_EXTENT.clone();
+    view.constraints.minScale = view.scale;
+  });
 }
 
 function isFlatWorldScale(mapView: MapView): boolean {
@@ -154,7 +167,7 @@ export async function reflowFlatWorldViewIfWorldScale(
   view: GlobeView,
   projection: ProjectionId
 ): Promise<void> {
-  if (view.type !== "2d") return;
+  if (view.type !== "2d" || flatWorldLayoutRefitting) return;
 
   const mapView = view as MapView;
   await refreshViewLayout(mapView);
@@ -198,7 +211,8 @@ export function bindFlatWorldLayoutSync(
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
-      void reflowPlateCarreeIfWorldScale(view, getProjection());
+      if (flatWorldLayoutRefitting) return;
+      void reflowFlatWorldViewIfWorldScale(view, getProjection());
     }, SHELL_TRANSITION_MS);
   };
 
@@ -228,8 +242,6 @@ export async function refreshViewLayout(view: GlobeView): Promise<void> {
       resolve();
     });
   });
-
-  window.dispatchEvent(new Event("resize"));
 }
 
 export async function fitViewInitialExtent(
