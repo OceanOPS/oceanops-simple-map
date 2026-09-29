@@ -67,6 +67,47 @@ export function goosObservingNetworkFromAttrs(
   return goosObservingNetworkName(layerId);
 }
 
+function mooringStackBitForGoosNetworkToken(token: string): number | null {
+  const name = token.trim();
+  if (!name) return null;
+  if (/^MBN$/i.test(name)) return MOORING_STACK_BITS.moored_buoys;
+  if (/^OceanSITES$/i.test(name)) return MOORING_STACK_BITS.oceansites;
+  if (/^SOCONET$/i.test(name)) return MOORING_STACK_BITS.soconet_moorings;
+  return null;
+}
+
+/**
+ * Passport may list several GOOS networks at one site; the map only draws a subset
+ * (solo layer or stack mask). Networks not represented on the symbol are "(closed)".
+ */
+export function formatGoosObservingNetworksDisplay(
+  goosNetworks: string,
+  visibleMooringMask: number
+): string {
+  const raw = goosNetworks.trim();
+  if (!raw) return raw;
+
+  const parts = raw.split(/\s*[,;/]\s*/).filter(Boolean);
+  if (parts.length === 0) return raw;
+
+  const formatted = parts.map((part) => {
+    if (/\(closed\)\s*$/i.test(part)) return part;
+    const bit = mooringStackBitForGoosNetworkToken(part);
+    if (bit == null) return part;
+    if ((visibleMooringMask & bit) !== 0) return part;
+    return `${part} (closed)`;
+  });
+
+  return formatted.join(", ");
+}
+
+export function visibleMooringMaskForLayer(layerId: string): number {
+  if (layerId in MOORING_STACK_BITS) {
+    return MOORING_STACK_BITS[layerId as MooringStackLayerId];
+  }
+  return 0;
+}
+
 export function platformInspectPopupTitle(
   layerId: string,
   ptfRef: string,

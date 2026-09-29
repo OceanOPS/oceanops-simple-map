@@ -1,8 +1,10 @@
 import PopupTemplate from "@arcgis/core/PopupTemplate.js";
 import {
+  formatGoosObservingNetworksDisplay,
   goosObservingNetworkFromAttrs,
   platformInspectPopupTitle,
   stackInspectPopupTitle,
+  visibleMooringMaskForLayer,
 } from "./platformInspect";
 import { countryFlagUrl, getIsoCodeForGeoCountry } from "./countryFlags";
 import {
@@ -92,7 +94,9 @@ function goosNetworksFromStackAttrs(
   stackMask: number
 ): string {
   const fromDb = String(attrs.goos_networks ?? "").trim();
-  if (fromDb) return fromDb;
+  if (fromDb) {
+    return formatGoosObservingNetworksDisplay(fromDb, stackMask);
+  }
 
   const names: string[] = [];
   for (const layerId of STACK_LAYER_ORDER) {
@@ -101,6 +105,20 @@ function goosNetworksFromStackAttrs(
   }
   const unique = [...new Set(names)];
   return unique.length > 0 ? unique.join("; ") : stackNetworkLabels(stackMask).join("; ");
+}
+
+function goosNetworkForPlatformPopup(
+  attrs: Record<string, unknown>,
+  layerId: string
+): string {
+  const fromDb = String(attrs.goos_networks ?? "").trim();
+  if (fromDb) {
+    return formatGoosObservingNetworksDisplay(
+      fromDb,
+      visibleMooringMaskForLayer(layerId)
+    );
+  }
+  return goosObservingNetworkFromAttrs(attrs, layerId);
 }
 
 export function platformPointPopupTemplate(layerId: string): PopupTemplate {
@@ -119,7 +137,7 @@ export function platformInspectPopupContent(layerId: string) {
   return ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
     const attrs = graphic.attributes;
     const ptfRef = String(attrs.ptf_ref ?? "").trim();
-    const network = goosObservingNetworkFromAttrs(attrs, layerId);
+    const network = goosNetworkForPlatformPopup(attrs, layerId);
     return inspectPopupBodyHtml(attrs, network, ptfRef);
   };
 }
