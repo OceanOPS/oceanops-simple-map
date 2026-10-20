@@ -1525,6 +1525,13 @@ body.o-country-modal-open {
   opacity: 0.72;
 }
 
+.o-country-modal-contribution-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.88;
+}
+
 .o-country-modal-group .o-country-modal-section:last-child {
   margin-bottom: 0;
 }

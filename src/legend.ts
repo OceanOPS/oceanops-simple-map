@@ -1070,7 +1070,18 @@ export function attachLegend(
     applyCountrySelection(countrySelectAllCheckbox);
   };
 
-  allFilterBtn.addEventListener("click", () => applyCountryListFilter("all"));
+  allFilterBtn.addEventListener("click", () => {
+    if (
+      countryListFilter === "all" &&
+      isAllCountriesSelected(selectedCountries, filterableCountries)
+    ) {
+      selectedCountries.clear();
+      for (const country of filterableCountries) syncCountryCheckboxUI(country);
+      applyCountrySelection(countrySelectAllCheckbox);
+      return;
+    }
+    applyCountryListFilter("all");
+  });
   g7FilterBtn.addEventListener("click", () => applyCountryListFilter("g7"));
   euFilterBtn.addEventListener("click", () => applyCountryListFilter("eu"));
   sidsFilterBtn.addEventListener("click", () => applyCountryListFilter("sids"));

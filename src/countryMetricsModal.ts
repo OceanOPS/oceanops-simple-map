@@ -19,6 +19,7 @@ import {
   formatCountryModalMetric,
   type CountryLayerCount,
 } from "./partnerCountriesData";
+import { getOceanOpsCountryContribution } from "./oceanOpsCountryContributions";
 
 const MODAL_ID = "country-metrics-modal";
 
@@ -251,6 +252,29 @@ function appendGoosContributionGroup(parent: HTMLElement): HTMLElement {
   parent.appendChild(group);
 
   return group;
+}
+
+function appendContributionToOceanOpsGroup(
+  parent: HTMLElement,
+  contributionText: string
+): void {
+  const group = document.createElement("div");
+  group.className = "o-country-modal-group o-country-modal-group--oceanops-contribution";
+
+  const header = document.createElement("div");
+  header.className = "o-country-modal-group-header";
+
+  const title = document.createElement("h2");
+  title.className = "o-country-modal-group-title";
+  title.textContent = "Contribution to OceanOPS, the GOOS monitoring center";
+
+  const body = document.createElement("p");
+  body.className = "o-country-modal-contribution-text";
+  body.textContent = contributionText;
+
+  header.append(title);
+  group.append(header, body);
+  parent.appendChild(group);
 }
 
 function appendNetworkGroupedCollaborationList(
@@ -635,6 +659,11 @@ export async function openCountryMetricsModal(
         "No cross-program sensors on the selected networks.",
         "Sensor provider breakdown view",
       );
+    }
+
+    const oceanOpsContribution = getOceanOpsCountryContribution(country);
+    if (oceanOpsContribution) {
+      appendContributionToOceanOpsGroup(body, oceanOpsContribution);
     }
   } catch {
     body.innerHTML = `<p class="o-country-modal-empty">Could not load partner country data.</p>`;
