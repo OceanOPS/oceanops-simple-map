@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28",
+  "generatedAt": "2026-10-26",
   "edition": "isival-prod",
   "source": "OceanOPS PostgreSQL partner export (sql/*.sql criteria)",
   "contributingCountries": 67,
@@ -36,12 +36,12 @@
         "AUSTRALIA"
       ],
       "networks": {
-        "driftingBuoys": 49,
-        "argo": 281,
-        "oceanGliders": 27,
+        "driftingBuoys": 48,
+        "argo": 293,
+        "oceanGliders": 25,
         "aniBOS": 37,
-        "fvon": 201,
-        "sotVos": 28,
+        "fvon": 193,
+        "sotVos": 31,
         "sotAsap": 0,
         "soconet": 10,
         "soconetMoorings": 6,
@@ -49,7 +49,7 @@
         "goShip": 1,
         "gloss": 15,
         "oceanSites": 16,
-        "mooredBuoys": 29,
+        "mooredBuoys": 48,
         "tsunamiBuoys": 4,
         "hfRadars": 12
       }
@@ -187,7 +187,7 @@
       ],
       "networks": {
         "driftingBuoys": 0,
-        "argo": 9,
+        "argo": 7,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -211,8 +211,8 @@
         "CANADA"
       ],
       "networks": {
-        "driftingBuoys": 36,
-        "argo": 194,
+        "driftingBuoys": 40,
+        "argo": 200,
         "oceanGliders": 39,
         "aniBOS": 0,
         "fvon": 0,
@@ -221,7 +221,7 @@
         "soconet": 0,
         "soconetMoorings": 0,
         "oceantrax": 1,
-        "goShip": 1,
+        "goShip": 2,
         "gloss": 5,
         "oceanSites": 0,
         "mooredBuoys": 34,
@@ -262,12 +262,12 @@
         "HONG KONG"
       ],
       "networks": {
-        "driftingBuoys": 4,
-        "argo": 75,
+        "driftingBuoys": 3,
+        "argo": 76,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 64,
+        "sotVos": 65,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -460,7 +460,7 @@
         "EUROPE"
       ],
       "networks": {
-        "driftingBuoys": 149,
+        "driftingBuoys": 146,
         "argo": 23,
         "oceanGliders": 0,
         "aniBOS": 0,
@@ -514,7 +514,7 @@
         "argo": 0,
         "oceanGliders": 0,
         "aniBOS": 0,
-        "fvon": 26,
+        "fvon": 34,
         "sotVos": 0,
         "sotAsap": 0,
         "soconet": 0,
@@ -561,11 +561,11 @@
       ],
       "networks": {
         "driftingBuoys": 1,
-        "argo": 309,
-        "oceanGliders": 27,
+        "argo": 308,
+        "oceanGliders": 24,
         "aniBOS": 1,
         "fvon": 0,
-        "sotVos": 52,
+        "sotVos": 49,
         "sotAsap": 0,
         "soconet": 4,
         "soconetMoorings": 0,
@@ -573,7 +573,7 @@
         "goShip": 1,
         "gloss": 15,
         "oceanSites": 11,
-        "mooredBuoys": 33,
+        "mooredBuoys": 34,
         "tsunamiBuoys": 0,
         "hfRadars": 9
       }
@@ -585,12 +585,12 @@
         "GERMANY"
       ],
       "networks": {
-        "driftingBuoys": 10,
-        "argo": 280,
+        "driftingBuoys": 11,
+        "argo": 275,
         "oceanGliders": 3,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 355,
+        "sotVos": 367,
         "sotAsap": 1,
         "soconet": 19,
         "soconetMoorings": 0,
@@ -598,7 +598,7 @@
         "goShip": 1,
         "gloss": 1,
         "oceanSites": 65,
-        "mooredBuoys": 7,
+        "mooredBuoys": 6,
         "tsunamiBuoys": 0,
         "hfRadars": 3
       }
@@ -685,8 +685,8 @@
         "INDIA"
       ],
       "networks": {
-        "driftingBuoys": 15,
-        "argo": 123,
+        "driftingBuoys": 21,
+        "argo": 137,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -698,7 +698,7 @@
         "goShip": 0,
         "gloss": 5,
         "oceanSites": 28,
-        "mooredBuoys": 12,
+        "mooredBuoys": 14,
         "tsunamiBuoys": 2,
         "hfRadars": 10
       }
@@ -715,7 +715,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 0,
+        "sotVos": 2,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -736,7 +736,7 @@
       ],
       "networks": {
         "driftingBuoys": 0,
-        "argo": 12,
+        "argo": 11,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
@@ -785,8 +785,8 @@
         "ITALY"
       ],
       "networks": {
-        "driftingBuoys": 29,
-        "argo": 96,
+        "driftingBuoys": 27,
+        "argo": 93,
         "oceanGliders": 1,
         "aniBOS": 0,
         "fvon": 0,
@@ -810,12 +810,12 @@
         "JAPAN"
       ],
       "networks": {
-        "driftingBuoys": 17,
-        "argo": 152,
+        "driftingBuoys": 23,
+        "argo": 150,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 143,
+        "sotVos": 139,
         "sotAsap": 1,
         "soconet": 37,
         "soconetMoorings": 0,
@@ -908,12 +908,12 @@
         "SOUTH KOREA"
       ],
       "networks": {
-        "driftingBuoys": 17,
+        "driftingBuoys": 12,
         "argo": 24,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 18,
+        "sotVos": 14,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -1010,9 +1010,9 @@
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
-        "oceanGliders": 3,
+        "oceanGliders": 5,
         "aniBOS": 0,
-        "fvon": 1,
+        "fvon": 0,
         "sotVos": 0,
         "sotAsap": 0,
         "soconet": 0,
@@ -1107,11 +1107,11 @@
       ],
       "networks": {
         "driftingBuoys": 0,
-        "argo": 25,
+        "argo": 28,
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 10,
+        "sotVos": 12,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -1135,7 +1135,7 @@
         "argo": 16,
         "oceanGliders": 0,
         "aniBOS": 0,
-        "fvon": 0,
+        "fvon": 86,
         "sotVos": 0,
         "sotAsap": 0,
         "soconet": 6,
@@ -1157,7 +1157,7 @@
       ],
       "networks": {
         "driftingBuoys": 0,
-        "argo": 37,
+        "argo": 36,
         "oceanGliders": 2,
         "aniBOS": 0,
         "fvon": 0,
@@ -1294,7 +1294,7 @@
         "goShip": 0,
         "gloss": 1,
         "oceanSites": 0,
-        "mooredBuoys": 3,
+        "mooredBuoys": 2,
         "tsunamiBuoys": 0,
         "hfRadars": 10
       }
@@ -1359,7 +1359,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 8,
+        "sotVos": 7,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -1527,7 +1527,7 @@
       "networks": {
         "driftingBuoys": 0,
         "argo": 0,
-        "oceanGliders": 30,
+        "oceanGliders": 28,
         "aniBOS": 0,
         "fvon": 0,
         "sotVos": 3,
@@ -1700,8 +1700,8 @@
         "UK"
       ],
       "networks": {
-        "driftingBuoys": 0,
-        "argo": 146,
+        "driftingBuoys": 8,
+        "argo": 145,
         "oceanGliders": 16,
         "aniBOS": 15,
         "fvon": 10,
@@ -1725,21 +1725,21 @@
         "USA"
       ],
       "networks": {
-        "driftingBuoys": 1061,
-        "argo": 2511,
-        "oceanGliders": 146,
+        "driftingBuoys": 1049,
+        "argo": 2534,
+        "oceanGliders": 141,
         "aniBOS": 0,
-        "fvon": 271,
-        "sotVos": 576,
+        "fvon": 212,
+        "sotVos": 584,
         "sotAsap": 0,
         "soconet": 100,
-        "soconetMoorings": 39,
+        "soconetMoorings": 40,
         "oceantrax": 19,
         "goShip": 2,
         "gloss": 26,
         "oceanSites": 141,
-        "mooredBuoys": 206,
-        "tsunamiBuoys": 30,
+        "mooredBuoys": 207,
+        "tsunamiBuoys": 29,
         "hfRadars": 172
       }
     },
@@ -1780,7 +1780,7 @@
         "oceanGliders": 0,
         "aniBOS": 0,
         "fvon": 0,
-        "sotVos": 1,
+        "sotVos": 0,
         "sotAsap": 0,
         "soconet": 0,
         "soconetMoorings": 0,
@@ -1853,6 +1853,7 @@
     "EUMETNET": "EU",
     "EUROPE": "EU",
     "FRANCE": "FR",
+    "UK": "GB",
     "INDIA": "IN",
     "ITALY": "IT",
     "JAPAN": "JP",
@@ -1865,7 +1866,6 @@
     "DENMARK": "DK",
     "SPAIN": "ES",
     "FINLAND": "FI",
-    "UK": "GB",
     "GREECE": "GR",
     "INDONESIA": "ID",
     "IRELAND": "IE",
@@ -1887,7 +1887,6 @@
     "ICELAND": "IS",
     "TANZANIA": "TZ",
     "RUSSIA": "RU",
-    "VANUATU": "VU",
     "ARGENTINA": "AR",
     "BELGIUM": "BE",
     "BANGLADESH": "BD",
@@ -1908,6 +1907,7 @@
     "TUVALU": "TV",
     "URUGUAY": "UY",
     "VIET NAM": "VN",
+    "VANUATU": "VU",
     "WALLIS/FUTUNA": "WF",
     "UAE": "AE",
     "CROATIA": "HR",
