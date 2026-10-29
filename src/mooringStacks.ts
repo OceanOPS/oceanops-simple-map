@@ -32,6 +32,19 @@ export const MOORING_STACK_BITS = {
 
 export type MooringStackLayerId = keyof typeof MOORING_STACK_BITS;
 
+/** JSON on stack-layer features: one entry per exported platform × map layer. */
+export type MooringStackMember = {
+  layer_id: MooringStackLayerId;
+  ptf_ref: string;
+  ptf_id?: number;
+  wigos_ref?: string;
+  goos_networks?: string;
+  country_name?: string;
+  country_iso_reporting?: string;
+};
+
+export const STACK_MEMBERS_JSON_FIELD = "stack_members_json";
+
 const STACK_LABEL_LAYER_ORDER: MooringStackLayerId[] = [
   "moored_buoys",
   "oceansites",
@@ -64,6 +77,74 @@ function uniqueNonEmptyStrings(...values: unknown[]): string[] {
 
 function joinUniqueStrings(...values: unknown[]): string {
   return uniqueNonEmptyStrings(...values).join(" / ");
+}
+
+function memberFromFeature(
+  layerId: MooringStackLayerId,
+  properties: Record<string, unknown>
+): MooringStackMember {
+  const ptfIdRaw = properties.ptf_id;
+  const ptfId =
+    typeof ptfIdRaw === "number"
+      ? ptfIdRaw
+      : ptfIdRaw != null && ptfIdRaw !== ""
+        ? Number(ptfIdRaw)
+        : undefined;
+
+  const member: MooringStackMember = {
+    layer_id: layerId,
+    ptf_ref: String(properties.ptf_ref ?? "").trim(),
+  };
+  if (ptfId != null && !Number.isNaN(ptfId)) member.ptf_id = ptfId;
+
+  const wigos = String(properties.wigos_ref ?? properties.wigos_id ?? "").trim();
+  if (wigos) member.wigos_ref = wigos;
+
+  const goos = String(properties.goos_networks ?? "").trim();
+  if (goos) member.goos_networks = goos;
+
+  const country = String(properties.country_name ?? "").trim();
+  if (country) member.country_name = country;
+
+  const iso = String(properties.country_iso_reporting ?? "").trim();
+  if (iso) member.country_iso_reporting = iso;
+
+  return member;
+}
+
+function buildStackMembers(
+  entry: Partial<Record<MooringStackLayerId, PointFeature[]>>,
+  stackMask: number
+): MooringStackMember[] {
+  const members: MooringStackMember[] = [];
+  for (const layerId of STACK_LABEL_LAYER_ORDER) {
+    if ((stackMask & MOORING_STACK_BITS[layerId]) === 0) continue;
+    for (const feature of entry[layerId] ?? []) {
+      members.push(memberFromFeature(layerId, feature.properties));
+    }
+  }
+  return members;
+}
+
+/** @param attrs stack-layer graphic attributes */
+export function parseStackMembersFromAttrs(
+  attrs: Record<string, unknown>
+): MooringStackMember[] {
+  const raw = attrs[STACK_MEMBERS_JSON_FIELD];
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is MooringStackMember =>
+        item != null &&
+        typeof item === "object" &&
+        typeof (item as MooringStackMember).layer_id === "string" &&
+        typeof (item as MooringStackMember).ptf_ref === "string"
+    );
+  } catch {
+    return [];
+  }
 }
 
 const SOLO_BIT_TO_LAYER: Record<number, MooringStackLayerId> = {
@@ -123,6 +204,25 @@ function popCount(mask: number): number {
     value >>= 1;
   }
   return count;
+}
+
+function totalPlatformsAtEntry(
+  entry: Partial<Record<MooringStackLayerId, PointFeature[]>>
+): number {
+  let count = 0;
+  for (const layerId of STACK_LABEL_LAYER_ORDER) {
+    count += entry[layerId]?.length ?? 0;
+  }
+  return count;
+}
+
+/** One stack pin + paginated popup vs several solo features + Esri “1 of N”. */
+function shouldBuildMooringStack(
+  stackMask: number,
+  entry: Partial<Record<MooringStackLayerId, PointFeature[]>>
+): boolean {
+  if (popCount(stackMask) >= 2) return true;
+  return totalPlatformsAtEntry(entry) >= 2;
 }
 
 function stackPngUrl(displayMask: number): string {
@@ -222,7 +322,7 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
 
   const byKey = new Map<
     string,
-    Partial<Record<MooringStackLayerId, PointFeature>>
+    Partial<Record<MooringStackLayerId, PointFeature[]>>
   >();
 
   const indexLayer = (
@@ -234,7 +334,9 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
       const [lon, lat] = feature.geometry.coordinates;
       const key = mooringCoordKey(lon, lat);
       const entry = byKey.get(key) ?? {};
-      entry[layerId] = feature;
+      const list = entry[layerId] ?? [];
+      list.push(feature);
+      entry[layerId] = list;
       byKey.set(key, entry);
     }
   };
@@ -256,45 +358,37 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
 
   for (const [key, entry] of byKey) {
     let stackMask = 0;
-    if (entry.moored_buoys) stackMask |= MOORING_STACK_BITS.moored_buoys;
-    if (entry.oceansites) stackMask |= MOORING_STACK_BITS.oceansites;
-    if (entry.soconet_moorings) stackMask |= MOORING_STACK_BITS.soconet_moorings;
+    if (entry.moored_buoys?.length) stackMask |= MOORING_STACK_BITS.moored_buoys;
+    if (entry.oceansites?.length) stackMask |= MOORING_STACK_BITS.oceansites;
+    if (entry.soconet_moorings?.length) {
+      stackMask |= MOORING_STACK_BITS.soconet_moorings;
+    }
 
-    if (popCount(stackMask) < 2) continue;
+    if (!shouldBuildMooringStack(stackMask, entry)) continue;
 
     stackedKeys.add(key);
 
     const anchor =
-      entry.moored_buoys ??
-      entry.oceansites ??
-      entry.soconet_moorings!;
+      entry.moored_buoys?.[0] ??
+      entry.oceansites?.[0] ??
+      entry.soconet_moorings?.[0]!;
 
-    const ptfRef = joinUniqueStrings(
-      entry.moored_buoys?.properties?.ptf_ref,
-      entry.oceansites?.properties?.ptf_ref,
-      entry.soconet_moorings?.properties?.ptf_ref,
-      anchor.properties?.ptf_ref
-    );
+    const stackMembers = buildStackMembers(entry, stackMask);
+
+    const ptfRef = joinUniqueStrings(...stackMembers.map((m) => m.ptf_ref));
 
     const ptfModel = joinUniqueStrings(
-      entry.moored_buoys?.properties?.ptf_model,
-      entry.oceansites?.properties?.ptf_model,
-      entry.soconet_moorings?.properties?.ptf_model,
+      ...STACK_LABEL_LAYER_ORDER.flatMap((layerId) =>
+        (entry[layerId] ?? []).map((f) => f.properties?.ptf_model)
+      ),
       anchor.properties?.ptf_model
     );
 
     const ptfFamilyName = joinUniqueStrings(
-      entry.moored_buoys?.properties?.ptf_family_name,
-      entry.oceansites?.properties?.ptf_family_name,
-      entry.soconet_moorings?.properties?.ptf_family_name,
+      ...STACK_LABEL_LAYER_ORDER.flatMap((layerId) =>
+        (entry[layerId] ?? []).map((f) => f.properties?.ptf_family_name)
+      ),
       anchor.properties?.ptf_family_name
-    );
-
-    const goosNetworks = joinUniqueStrings(
-      entry.moored_buoys?.properties?.goos_networks,
-      entry.oceansites?.properties?.goos_networks,
-      entry.soconet_moorings?.properties?.goos_networks,
-      anchor.properties?.goos_networks
     );
 
     const stackProps: Record<string, unknown> = {
@@ -303,7 +397,7 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
       ptf_ref: ptfRef,
       ptf_model: ptfModel || anchor.properties?.ptf_model,
       ...(ptfFamilyName ? { ptf_family_name: ptfFamilyName } : {}),
-      ...(goosNetworks ? { goos_networks: goosNetworks } : {}),
+      [STACK_MEMBERS_JSON_FIELD]: JSON.stringify(stackMembers),
     };
     if ((stackMask & MOORING_STACK_BITS.soconet_moorings) !== 0) {
       stackProps[SOCONET_MOORING_COUNT_FIELD] = soconetCountAtKey.get(key) ?? 1;

@@ -422,7 +422,7 @@ function createRotationController(
     mountPlatformSearchUi();
 
     try {
-      applyPopupDefaults(view);
+      applyPopupDefaults(view, () => layerById.get(MOORING_STACK_LAYER_ID));
     } catch (err) {
       console.warn("Popup setup failed", err);
     }

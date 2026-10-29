@@ -1,5 +1,6 @@
 import esriConfig from "@arcgis/core/config.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
+import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import MapView from "@arcgis/core/views/MapView.js";
@@ -17,6 +18,7 @@ import {
   PLATE_CARREE_BASEMAP_GROUP_ID,
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
+import { bindStackPopupView } from "./platformPopup";
 import {
   is3dProjection,
   isCustomFlatBasemapProjection,
@@ -346,8 +348,120 @@ function patchPopupCalciteScrollbars(popupRoot: Element): void {
   });
 }
 
-export function applyPopupDefaults(view: GlobeView): void {
+/** Stack inspect is one screen — drop Esri/C ALCITE max-height so nav + fields stay visible. */
+function patchStackPopupAutoHeight(popupRoot: Element): void {
+  if (!popupRoot.querySelector(".o-map-popup--stack-paged")) return;
+
+  const unlock = (el: HTMLElement) => {
+    el.style.maxHeight = "none";
+    el.style.overflow = "visible";
+  };
+
+  popupRoot.querySelectorAll(".esri-popup__content").forEach((el) => unlock(el as HTMLElement));
+  popupRoot
+    .querySelectorAll(".esri-features__content-container, .esri-feature-content")
+    .forEach((el) => unlock(el as HTMLElement));
+
+  traverseShadowTree(popupRoot, (el) => {
+    const htmlEl = el as HTMLElement;
+    if (
+      htmlEl.classList.contains("esri-popup__content") ||
+      htmlEl.classList.contains("esri-features__content-container")
+    ) {
+      unlock(htmlEl);
+    }
+    const wrapper = htmlEl.shadowRoot?.querySelector(".content-wrapper") as HTMLElement | null;
+    if (wrapper) unlock(wrapper);
+  });
+}
+
+function patchOpenPopup(popupRoot: Element | null): void {
+  if (!popupRoot) return;
+  patchPopupCalciteScrollbars(popupRoot);
+  patchStackPopupAutoHeight(popupRoot);
+}
+
+function popupFeaturesAreMooringStack(
+  features: __esri.Graphic[],
+  stackLayer: GeoJSONLayer | undefined
+): boolean {
+  if (!stackLayer) return false;
+  return features.some((feature) => feature.layer === stackLayer);
+}
+
+/** Esri “1 of N” for overlaps; stack locations use in-popup Prev/Next only. */
+export function syncPopupFeatureNavigation(
+  view: GlobeView,
+  getStackLayer: () => GeoJSONLayer | undefined
+): void {
   if (!view.popup) return;
+  const features = view.popup.viewModel?.features ?? [];
+  const stackOpen = popupFeaturesAreMooringStack(features, getStackLayer());
+  view.popup.visibleElements = {
+    ...view.popup.visibleElements,
+    featureNavigation: !stackOpen && features.length > 1,
+  };
+}
+
+/**
+ * One popup model for co-located moorings: stack graphic + paginated content.
+ * Other layer overlaps still use Esri feature navigation when needed.
+ */
+function graphicsFromHitTest(response: __esri.HitTestResult): __esri.Graphic[] {
+  const graphics: __esri.Graphic[] = [];
+  for (const result of response.results) {
+    if (result.type === "graphic") {
+      graphics.push(result.graphic);
+    }
+  }
+  return graphics;
+}
+
+export function wireUnifiedPopups(
+  view: GlobeView,
+  getStackLayer: () => GeoJSONLayer | undefined
+): void {
+  if (!view.popup) return;
+
+  view.popupEnabled = false;
+
+  reactiveUtils.watch(
+    () => view.popup?.visible,
+    (visible) => {
+      if (visible) syncPopupFeatureNavigation(view, getStackLayer);
+    }
+  );
+
+  view.on("click", async (event) => {
+    const response = await view.hitTest(event);
+    const graphics = graphicsFromHitTest(response);
+
+    if (graphics.length === 0) {
+      view.closePopup();
+      return;
+    }
+
+    const stackLayer = getStackLayer();
+    const stackHits = stackLayer
+      ? graphics.filter((graphic) => graphic.layer === stackLayer)
+      : [];
+
+    const features = stackHits.length > 0 ? [stackHits[0]!] : graphics;
+
+    await view.openPopup({
+      features,
+      location: event.mapPoint,
+    });
+    syncPopupFeatureNavigation(view, getStackLayer);
+  });
+}
+
+export function applyPopupDefaults(
+  view: GlobeView,
+  getStackLayer?: () => GeoJSONLayer | undefined
+): void {
+  if (!view.popup) return;
+  bindStackPopupView(view);
   view.popup.visibleElements = {
     closeButton: true,
     collapseButton: true,
@@ -357,6 +471,9 @@ export function applyPopupDefaults(view: GlobeView): void {
     actionBar: true,
   };
 
+  if (getStackLayer) {
+    wireUnifiedPopups(view, getStackLayer);
+  }
   let patchScheduled = false;
   const schedulePopupScrollbarPatch = () => {
     if (patchScheduled) return;
@@ -365,9 +482,16 @@ export function applyPopupDefaults(view: GlobeView): void {
       patchScheduled = false;
       const popupEl = view.container?.querySelector(".esri-popup");
       if (popupEl) patchPopupCalciteScrollbars(popupEl);
+      patchOpenPopup(popupEl ?? null);
     });
   };
 
+  if (view.container) {
+    view.container.addEventListener("o-stack-popup-layout", () => {
+      const popupEl = view.container?.querySelector(".esri-popup");
+      patchStackPopupAutoHeight(popupEl ?? view.container!);
+    });
+  }
   reactiveUtils.watch(
     () => view.popup?.visible,
     (visible) => {

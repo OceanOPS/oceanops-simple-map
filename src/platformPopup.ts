@@ -1,4 +1,8 @@
+import type Graphic from "@arcgis/core/Graphic.js";
 import PopupTemplate from "@arcgis/core/PopupTemplate.js";
+import CustomContent from "@arcgis/core/popup/content/CustomContent.js";
+import type MapView from "@arcgis/core/views/MapView.js";
+import type SceneView from "@arcgis/core/views/SceneView.js";
 import {
   formatGoosObservingNetworksDisplay,
   goosObservingNetworkFromAttrs,
@@ -13,9 +17,21 @@ import {
 } from "./countryFilters";
 import {
   MOORING_STACK_BITS,
+  parseStackMembersFromAttrs,
+  STACK_MEMBERS_JSON_FIELD,
   stackNetworkLabels,
   type MooringStackLayerId,
+  type MooringStackMember,
 } from "./mooringStacks";
+type StackPopupView = MapView | SceneView;
+
+let stackPopupView: StackPopupView | null = null;
+const stackPopupCleanups = new WeakMap<Graphic, () => void>();
+
+/** Lets stack pagination sync the Esri popup title with the active platform. */
+export function bindStackPopupView(view: StackPopupView): void {
+  stackPopupView = view;
+}
 
 const STACK_LAYER_ORDER: MooringStackLayerId[] = [
   "moored_buoys",
@@ -54,6 +70,250 @@ function goosPassportId(attrs: Record<string, unknown>): string {
   if (fallback == null || fallback === "") return "—";
   return escapeHtml(String(fallback));
 }
+
+function goosPassportIdFromMember(member: MooringStackMember): string {
+  const wigos = (member.wigos_ref ?? "").trim();
+  if (wigos) return escapeHtml(wigos);
+  if (member.ptf_id != null) return escapeHtml(String(member.ptf_id));
+  return "—";
+}
+
+function memberAttrsForOperatedBy(member: MooringStackMember): Record<string, unknown> {
+  return {
+    country_name: member.country_name,
+    country_iso_reporting: member.country_iso_reporting,
+  };
+}
+
+function stackMemberGroupKey(member: MooringStackMember): string {
+  const wigos = (member.wigos_ref ?? "").trim();
+  if (wigos) return `w:${wigos}`;
+  const ref = member.ptf_ref.trim();
+  if (ref) return `r:${ref}`;
+  if (member.ptf_id != null) return `id:${member.ptf_id}`;
+  return `layer:${member.layer_id}:${ref}`;
+}
+
+function dedupeGoosNetworkTokens(networkStrings: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const raw of networkStrings) {
+    for (const part of raw.split(/\s*[,;/]\s*/)) {
+      const token = part.replace(/\s*\((?:closed|not operational)\)\s*$/i, "").trim();
+      if (!token || seen.has(token)) continue;
+      seen.add(token);
+      ordered.push(token);
+    }
+  }
+  return ordered;
+}
+
+function groupStackMembers(members: MooringStackMember[]): MooringStackMember[][] {
+  const order: string[] = [];
+  const byKey = new Map<string, MooringStackMember[]>();
+  for (const member of members) {
+    const key = stackMemberGroupKey(member);
+    if (!byKey.has(key)) order.push(key);
+    const list = byKey.get(key) ?? [];
+    list.push(member);
+    byKey.set(key, list);
+  }
+  return order.map((key) => byKey.get(key)!);
+}
+
+/** Networks this platform is drawn on (map layer), not the whole stack pin. */
+function mooringMaskForMemberGroup(group: MooringStackMember[]): number {
+  let mask = 0;
+  for (const member of group) {
+    mask |= visibleMooringMaskForLayer(member.layer_id);
+  }
+  return mask;
+}
+
+function goosNetworksForMemberGroup(group: MooringStackMember[]): string {
+  const layerMask = mooringMaskForMemberGroup(group);
+  const tokens = dedupeGoosNetworkTokens(
+    group.map((m) => m.goos_networks ?? "").filter(Boolean)
+  );
+  if (tokens.length === 0) {
+    const names: string[] = [];
+    for (const member of group) {
+      names.push(goosObservingNetworkFromAttrs(undefined, member.layer_id));
+    }
+    return [...new Set(names)].join(", ");
+  }
+  return formatGoosObservingNetworksDisplay(tokens.join(", "), layerMask);
+}
+
+function stackGroupPageInnerHtml(group: MooringStackMember[]): string {
+  const platformRef = [
+    ...new Set(group.map((m) => m.ptf_ref.trim()).filter(Boolean)),
+  ].join(" / ");
+  const passport = goosPassportIdFromMember(group[0]!);
+  const operatedBy = formatOperatedByHtml(memberAttrsForOperatedBy(group[0]!));
+  const networks = goosNetworksForMemberGroup(group);
+  const primaryRef = group[0]?.ptf_ref.trim() ?? "";
+
+  return `<dl class="o-map-popup-meta">
+            ${
+              platformRef
+                ? `<div class="o-map-popup-meta-row">
+              <dt>Platform ref</dt>
+              <dd>${escapeHtml(platformRef)}</dd>
+            </div>`
+                : ""
+            }
+            <div class="o-map-popup-meta-row">
+              <dt>GOOS Passport ID</dt>
+              <dd>${passport}</dd>
+            </div>
+            <div class="o-map-popup-meta-row">
+              <dt>Operated by</dt>
+              <dd>${operatedBy}</dd>
+            </div>
+            <div class="o-map-popup-meta-row">
+              <dt>GOOS Observing Network(s)</dt>
+              <dd>${escapeHtml(networks || "—")}</dd>
+            </div>
+          </dl>
+          ${moreAtOceanOpsHtml(primaryRef)}`;
+}
+
+function mountMooringStackPaginatedPopup(
+  root: HTMLElement,
+  groups: MooringStackMember[][],
+  graphic: Graphic
+): () => void {
+  const pageCount = groups.length;
+  let pageIndex = 0;
+
+  root.className =
+    "o-map-popup o-map-popup--inspect o-map-popup--stack o-map-popup--stack-paged";
+  root.tabIndex = 0;
+
+  const pageEl = document.createElement("section");
+  pageEl.className = "o-map-popup-stack-page";
+  pageEl.setAttribute("role", "region");
+
+  const navEl = document.createElement("nav");
+  navEl.className = "o-map-popup-stack-nav";
+  navEl.setAttribute("aria-label", "Platforms at this location");
+  navEl.hidden = pageCount <= 1;
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "o-map-popup-stack-nav-btn";
+  prevBtn.textContent = "‹ Prev";
+  prevBtn.setAttribute("aria-label", "Previous platform");
+
+  const statusEl = document.createElement("span");
+  statusEl.className = "o-map-popup-stack-nav-status";
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "o-map-popup-stack-nav-btn";
+  nextBtn.textContent = "Next ›";
+  nextBtn.setAttribute("aria-label", "Next platform");
+
+  navEl.append(prevBtn, statusEl, nextBtn);
+  if (pageCount > 1) {
+    root.append(navEl, pageEl);
+  } else {
+    root.append(pageEl);
+  }
+
+  const renderPage = () => {
+    const group = groups[pageIndex]!;
+    const platformNumber = pageIndex + 1;
+    pageEl.setAttribute(
+      "aria-label",
+      pageCount > 1 ? `Platform ${platformNumber} of ${pageCount}` : "Platform"
+    );
+    pageEl.innerHTML = stackGroupPageInnerHtml(group);
+
+    if (pageCount > 1) {
+      statusEl.textContent = `Platform ${platformNumber} / ${pageCount}`;
+      prevBtn.disabled = pageIndex <= 0;
+      nextBtn.disabled = pageIndex >= pageCount - 1;
+    }
+
+    requestAnimationFrame(() => {
+      stackPopupView?.container
+        ?.querySelector(".esri-popup")
+        ?.dispatchEvent(new Event("o-stack-popup-layout"));
+    });
+  };
+
+  const goToPage = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= pageCount) return;
+    pageIndex = nextIndex;
+    renderPage();
+  };
+
+  const onPrev = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    goToPage(pageIndex - 1);
+  };
+
+  const onNext = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    goToPage(pageIndex + 1);
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (pageCount <= 1) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goToPage(pageIndex - 1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goToPage(pageIndex + 1);
+    }
+  };
+
+  prevBtn.addEventListener("click", onPrev);
+  nextBtn.addEventListener("click", onNext);
+  root.addEventListener("keydown", onKeyDown);
+
+  renderPage();
+
+  return () => {
+    prevBtn.removeEventListener("click", onPrev);
+    nextBtn.removeEventListener("click", onNext);
+    root.removeEventListener("keydown", onKeyDown);
+    stackPopupCleanups.delete(graphic);
+  };
+}
+
+const mooringStackCustomContent = new CustomContent({
+  outFields: ["*", STACK_MEMBERS_JSON_FIELD],
+  creator: (event) => {
+    const graphic = event?.graphic;
+    if (!graphic) return "";
+
+    const attrs = graphic.attributes as Record<string, unknown>;
+    const members = parseStackMembersFromAttrs(attrs);
+    if (members.length === 0) {
+      const stackMask = Number(attrs.stack_mask ?? 0);
+      const ptfRef = String(attrs.ptf_ref ?? "").trim();
+      const network = goosNetworksFromStackAttrs(attrs, stackMask);
+      return inspectPopupBodyHtml(attrs, network, ptfRef);
+    }
+
+    const groups = groupStackMembers(members);
+    const root = document.createElement("div");
+    const cleanup = mountMooringStackPaginatedPopup(root, groups, graphic);
+    stackPopupCleanups.set(graphic, cleanup);
+    return root;
+  },
+  destroyer: (event) => {
+    const graphic = event?.graphic;
+    if (!graphic) return;
+    stackPopupCleanups.get(graphic)?.();
+  },
+});
 
 function moreAtOceanOpsHtml(ptfRef: string): string {
   const ref = ptfRef
@@ -150,7 +410,7 @@ export function mooringStackPopupTemplate(): PopupTemplate {
         String(graphic.attributes?.ptf_ref ?? ""),
         graphic.attributes
       ),
-    content: mooringStackInspectPopupContent(),
+    content: [mooringStackCustomContent],
   });
 }
 
@@ -160,13 +420,7 @@ export function platformPopupContent(cat: { id: string }) {
 }
 
 export function mooringStackInspectPopupContent() {
-  return ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
-    const attrs = graphic.attributes;
-    const stackMask = Number(attrs.stack_mask ?? 0);
-    const ptfRef = String(attrs.ptf_ref ?? "").trim();
-    const network = goosNetworksFromStackAttrs(attrs, stackMask);
-    return inspectPopupBodyHtml(attrs, network, ptfRef);
-  };
+  return mooringStackCustomContent;
 }
 
 /** @deprecated Use mooringStackInspectPopupContent via mooringStackPopupTemplate */

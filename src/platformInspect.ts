@@ -3,6 +3,7 @@ import {
   MOORING_STACK_BITS,
   stackNetworkLabels,
   type MooringStackLayerId,
+  type MooringStackMember,
 } from "./mooringStacks";
 
 const STACK_LAYER_ORDER: MooringStackLayerId[] = [
