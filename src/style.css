@@ -2507,6 +2507,8 @@ body.o-country-modal-open {
 .esri-view .esri-feature__heading {
   color: #f8f8f8 !important;
   font-weight: 600 !important;
+  white-space: pre-line;
+  line-height: 1.35;
 }
 
 .esri-view .esri-popup__content,
@@ -2692,11 +2694,15 @@ body.o-country-modal-open {
 }
 
 .esri-view .o-map-popup-stack-nav-status {
-  flex: 0 0 auto;
-  font-size: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11px;
   font-weight: 600;
   color: #f38b25;
   letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .esri-view .o-map-popup-stack-nav-btn {

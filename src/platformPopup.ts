@@ -6,6 +6,7 @@ import type SceneView from "@arcgis/core/views/SceneView.js";
 import {
   formatGoosObservingNetworksDisplay,
   goosObservingNetworkFromAttrs,
+  colocatedClusterPopupTitle,
   platformInspectPopupTitle,
   stackInspectPopupTitle,
   visibleMooringMaskForLayer,
@@ -17,12 +18,14 @@ import {
 } from "./countryFilters";
 import {
   MOORING_STACK_BITS,
-  parseStackMembersFromAttrs,
   STACK_MEMBERS_JSON_FIELD,
   stackNetworkLabels,
   type MooringStackLayerId,
-  type MooringStackMember,
 } from "./mooringStacks";
+import {
+  parseColocatedMembersFromAttrs,
+  type ColocatedPlatformMember,
+} from "./colocatedPlatforms";
 type StackPopupView = MapView | SceneView;
 
 let stackPopupView: StackPopupView | null = null;
@@ -71,21 +74,21 @@ function goosPassportId(attrs: Record<string, unknown>): string {
   return escapeHtml(String(fallback));
 }
 
-function goosPassportIdFromMember(member: MooringStackMember): string {
+function goosPassportIdFromMember(member: ColocatedPlatformMember): string {
   const wigos = (member.wigos_ref ?? "").trim();
   if (wigos) return escapeHtml(wigos);
   if (member.ptf_id != null) return escapeHtml(String(member.ptf_id));
   return "—";
 }
 
-function memberAttrsForOperatedBy(member: MooringStackMember): Record<string, unknown> {
+function memberAttrsForOperatedBy(member: ColocatedPlatformMember): Record<string, unknown> {
   return {
     country_name: member.country_name,
     country_iso_reporting: member.country_iso_reporting,
   };
 }
 
-function stackMemberGroupKey(member: MooringStackMember): string {
+function stackMemberGroupKey(member: ColocatedPlatformMember): string {
   const wigos = (member.wigos_ref ?? "").trim();
   if (wigos) return `w:${wigos}`;
   const ref = member.ptf_ref.trim();
@@ -108,9 +111,9 @@ function dedupeGoosNetworkTokens(networkStrings: string[]): string[] {
   return ordered;
 }
 
-function groupStackMembers(members: MooringStackMember[]): MooringStackMember[][] {
+function groupStackMembers(members: ColocatedPlatformMember[]): ColocatedPlatformMember[][] {
   const order: string[] = [];
-  const byKey = new Map<string, MooringStackMember[]>();
+  const byKey = new Map<string, ColocatedPlatformMember[]>();
   for (const member of members) {
     const key = stackMemberGroupKey(member);
     if (!byKey.has(key)) order.push(key);
@@ -122,7 +125,7 @@ function groupStackMembers(members: MooringStackMember[]): MooringStackMember[][
 }
 
 /** Networks this platform is drawn on (map layer), not the whole stack pin. */
-function mooringMaskForMemberGroup(group: MooringStackMember[]): number {
+function mooringMaskForMemberGroup(group: ColocatedPlatformMember[]): number {
   let mask = 0;
   for (const member of group) {
     mask |= visibleMooringMaskForLayer(member.layer_id);
@@ -130,8 +133,12 @@ function mooringMaskForMemberGroup(group: MooringStackMember[]): number {
   return mask;
 }
 
-function goosNetworksForMemberGroup(group: MooringStackMember[]): string {
-  const layerMask = mooringMaskForMemberGroup(group);
+/** OceanSITES rows: passport networks only — no “(not operational)” (editorial). */
+function groupIsOceanSitesOnly(group: ColocatedPlatformMember[]): boolean {
+  return group.length > 0 && group.every((m) => m.layer_id === "oceansites");
+}
+
+function goosNetworksForMemberGroup(group: ColocatedPlatformMember[]): string {
   const tokens = dedupeGoosNetworkTokens(
     group.map((m) => m.goos_networks ?? "").filter(Boolean)
   );
@@ -142,27 +149,26 @@ function goosNetworksForMemberGroup(group: MooringStackMember[]): string {
     }
     return [...new Set(names)].join(", ");
   }
+  if (groupIsOceanSitesOnly(group)) {
+    return tokens.join(", ");
+  }
+  const layerMask = mooringMaskForMemberGroup(group);
   return formatGoosObservingNetworksDisplay(tokens.join(", "), layerMask);
 }
 
-function stackGroupPageInnerHtml(group: MooringStackMember[]): string {
-  const platformRef = [
+function platformRefForGroup(group: ColocatedPlatformMember[]): string {
+  return [
     ...new Set(group.map((m) => m.ptf_ref.trim()).filter(Boolean)),
   ].join(" / ");
+}
+
+function stackGroupPageInnerHtml(group: ColocatedPlatformMember[]): string {
   const passport = goosPassportIdFromMember(group[0]!);
   const operatedBy = formatOperatedByHtml(memberAttrsForOperatedBy(group[0]!));
   const networks = goosNetworksForMemberGroup(group);
   const primaryRef = group[0]?.ptf_ref.trim() ?? "";
 
   return `<dl class="o-map-popup-meta">
-            ${
-              platformRef
-                ? `<div class="o-map-popup-meta-row">
-              <dt>Platform ref</dt>
-              <dd>${escapeHtml(platformRef)}</dd>
-            </div>`
-                : ""
-            }
             <div class="o-map-popup-meta-row">
               <dt>GOOS Passport ID</dt>
               <dd>${passport}</dd>
@@ -181,7 +187,7 @@ function stackGroupPageInnerHtml(group: MooringStackMember[]): string {
 
 function mountMooringStackPaginatedPopup(
   root: HTMLElement,
-  groups: MooringStackMember[][],
+  groups: ColocatedPlatformMember[][],
   graphic: Graphic
 ): () => void {
   const pageCount = groups.length;
@@ -225,14 +231,18 @@ function mountMooringStackPaginatedPopup(
   const renderPage = () => {
     const group = groups[pageIndex]!;
     const platformNumber = pageIndex + 1;
+    const refLabel = platformRefForGroup(group);
     pageEl.setAttribute(
       "aria-label",
-      pageCount > 1 ? `Platform ${platformNumber} of ${pageCount}` : "Platform"
+      pageCount > 1
+        ? `${refLabel || "Platform"} (${platformNumber} of ${pageCount})`
+        : refLabel || "Platform"
     );
     pageEl.innerHTML = stackGroupPageInnerHtml(group);
 
     if (pageCount > 1) {
-      statusEl.textContent = `Platform ${platformNumber} / ${pageCount}`;
+      const refPart = refLabel || "Platform";
+      statusEl.textContent = `${refPart} · ${platformNumber} / ${pageCount}`;
       prevBtn.disabled = pageIndex <= 0;
       nextBtn.disabled = pageIndex >= pageCount - 1;
     }
@@ -294,7 +304,7 @@ const mooringStackCustomContent = new CustomContent({
     if (!graphic) return "";
 
     const attrs = graphic.attributes as Record<string, unknown>;
-    const members = parseStackMembersFromAttrs(attrs);
+    const members = parseColocatedMembersFromAttrs(attrs);
     if (members.length === 0) {
       const stackMask = Number(attrs.stack_mask ?? 0);
       const ptfRef = String(attrs.ptf_ref ?? "").trim();
@@ -404,15 +414,31 @@ export function platformInspectPopupContent(layerId: string) {
 
 export function mooringStackPopupTemplate(): PopupTemplate {
   return new PopupTemplate({
-    title: ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) =>
-      stackInspectPopupTitle(
+    title: ({ graphic }: { graphic: { attributes: Record<string, unknown> } }) => {
+      const members = parseColocatedMembersFromAttrs(graphic.attributes);
+      if (members.length >= 2) {
+        return colocatedClusterPopupTitle(members);
+      }
+      if (members.length === 1) {
+        const only = members[0]!;
+        return platformInspectPopupTitle(
+          only.layer_id,
+          only.ptf_ref,
+          graphic.attributes
+        );
+      }
+      return stackInspectPopupTitle(
         Number(graphic.attributes?.stack_mask ?? 0),
         String(graphic.attributes?.ptf_ref ?? ""),
         graphic.attributes
-      ),
+      );
+    },
     content: [mooringStackCustomContent],
   });
 }
+
+/** Paginated inspect popup for any co-located platform points (GLOSS, moorings, …). */
+export const colocatedPlatformsPopupTemplate = mooringStackPopupTemplate;
 
 /** @deprecated Use platformInspectPopupContent via platformPointPopupTemplate */
 export function platformPopupContent(cat: { id: string }) {

@@ -18,7 +18,18 @@ import {
   PLATE_CARREE_BASEMAP_GROUP_ID,
   PLATE_CARREE_WORLD_EXTENT,
 } from "./plateCarreeBasemap";
-import { bindStackPopupView } from "./platformPopup";
+import Graphic from "@arcgis/core/Graphic.js";
+import {
+  buildSyntheticColocatedAttributes,
+  colocatedMembersFromHits,
+  type ColocatedGraphicHit,
+  isColocatedPopupLayer,
+} from "./colocatedPlatforms";
+import { STACK_MEMBERS_JSON_FIELD } from "./mooringStacks";
+import {
+  bindStackPopupView,
+  colocatedPlatformsPopupTemplate,
+} from "./platformPopup";
 import {
   is3dProjection,
   isCustomFlatBasemapProjection,
@@ -278,10 +289,12 @@ export function createGlobeView(
         fillOpacity: 0.2,
       },
     });
+    view.popupEnabled = false;
     return { map, view };
   }
 
   const view = createFlatMapView(container, map, projection);
+  view.popupEnabled = false;
   return { map, view };
 }
 
@@ -381,25 +394,51 @@ function patchOpenPopup(popupRoot: Element | null): void {
   patchStackPopupAutoHeight(popupRoot);
 }
 
-function popupFeaturesAreMooringStack(
+function featureUsesColocatedPaginatedPopup(
+  feature: __esri.Graphic,
+  stackLayer: GeoJSONLayer | undefined
+): boolean {
+  if (stackLayer && feature.layer === stackLayer) return true;
+  const raw = feature.attributes?.[STACK_MEMBERS_JSON_FIELD];
+  return typeof raw === "string" && raw.trim().length > 0;
+}
+
+function popupFeaturesUseColocatedPager(
   features: __esri.Graphic[],
   stackLayer: GeoJSONLayer | undefined
 ): boolean {
-  if (!stackLayer) return false;
-  return features.some((feature) => feature.layer === stackLayer);
+  return features.some((feature) =>
+    featureUsesColocatedPaginatedPopup(feature, stackLayer)
+  );
 }
 
 /** Esri “1 of N” for overlaps; stack locations use in-popup Prev/Next only. */
+function allPopupFeaturesColocatedInspect(
+  features: __esri.Graphic[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): boolean {
+  if (features.length < 2) return false;
+  return features.every((feature) => {
+    const layer = feature.layer as __esri.Layer | undefined;
+    if (!layer) return false;
+    return isColocatedPopupLayer(resolveLayerId(layer));
+  });
+}
+
 export function syncPopupFeatureNavigation(
   view: GlobeView,
-  getStackLayer: () => GeoJSONLayer | undefined
+  getStackLayer: () => GeoJSONLayer | undefined,
+  resolveLayerId?: (layer: __esri.Layer) => string | undefined
 ): void {
   if (!view.popup) return;
   const features = view.popup.viewModel?.features ?? [];
-  const stackOpen = popupFeaturesAreMooringStack(features, getStackLayer());
+  const useCustomPager =
+    popupFeaturesUseColocatedPager(features, getStackLayer()) ||
+    (resolveLayerId != null &&
+      allPopupFeaturesColocatedInspect(features, resolveLayerId));
   view.popup.visibleElements = {
     ...view.popup.visibleElements,
-    featureNavigation: !stackOpen && features.length > 1,
+    featureNavigation: !useCustomPager && features.length > 1,
   };
 }
 
@@ -407,20 +446,82 @@ export function syncPopupFeatureNavigation(
  * One popup model for co-located moorings: stack graphic + paginated content.
  * Other layer overlaps still use Esri feature navigation when needed.
  */
-function graphicsFromHitTest(response: __esri.HitTestResult): __esri.Graphic[] {
-  const graphics: __esri.Graphic[] = [];
+function hitsFromHitTest(response: __esri.HitTestResult): ColocatedGraphicHit[] {
+  const hits: ColocatedGraphicHit[] = [];
   for (const result of response.results) {
-    if (result.type === "graphic") {
-      graphics.push(result.graphic);
-    }
+    if (result.type !== "graphic") continue;
+    const graphicHit = result as __esri.GraphicHit;
+    hits.push({
+      graphic: graphicHit.graphic,
+      layer: (graphicHit.layer ?? graphicHit.graphic.layer) as
+        | __esri.Layer
+        | null
+        | undefined,
+    });
   }
-  return graphics;
+  return hits;
 }
 
-export function wireUnifiedPopups(
-  view: GlobeView,
-  getStackLayer: () => GeoJSONLayer | undefined
-): void {
+function isColocatedInspectHit(
+  hit: ColocatedGraphicHit,
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): boolean {
+  const layer = (hit.layer ?? hit.graphic.layer) as __esri.Layer | undefined;
+  if (!layer) return false;
+  return isColocatedPopupLayer(resolveLayerId(layer));
+}
+
+function colocatedInspectHits(
+  hits: ColocatedGraphicHit[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): ColocatedGraphicHit[] {
+  return hits.filter((hit) => isColocatedInspectHit(hit, resolveLayerId));
+}
+
+function syntheticGraphicFromColocatedHits(
+  hits: ColocatedGraphicHit[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): __esri.Graphic | null {
+  const members = colocatedMembersFromHits(hits, resolveLayerId);
+  if (members.length < 2) return null;
+  const geometry = hits[0]?.graphic.geometry;
+  if (!geometry) return null;
+  return new Graphic({
+    geometry,
+    attributes: buildSyntheticColocatedAttributes(
+      members,
+      hits.map((hit) => hit.graphic)
+    ),
+    popupTemplate: colocatedPlatformsPopupTemplate(),
+  });
+}
+
+function colocatedPopupFeaturesFromHits(
+  hits: ColocatedGraphicHit[],
+  getStackLayer: () => GeoJSONLayer | undefined,
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): __esri.Graphic[] {
+  const stackLayer = getStackLayer();
+  const stackHit = hits.find(
+    (hit) => stackLayer && (hit.layer ?? hit.graphic.layer) === stackLayer
+  );
+  if (stackHit) return [stackHit.graphic];
+
+  const inspectable = colocatedInspectHits(hits, resolveLayerId);
+  if (inspectable.length >= 2) {
+    const synthetic = syntheticGraphicFromColocatedHits(inspectable, resolveLayerId);
+    if (synthetic) return [synthetic];
+  }
+
+  return hits.map((hit) => hit.graphic);
+}
+
+export type MapPopupWireOptions = {
+  getStackLayer: () => GeoJSONLayer | undefined;
+  resolveLayerId: (layer: __esri.Layer) => string | undefined;
+};
+
+export function wireUnifiedPopups(view: GlobeView, options: MapPopupWireOptions): void {
   if (!view.popup) return;
 
   view.popupEnabled = false;
@@ -428,37 +529,80 @@ export function wireUnifiedPopups(
   reactiveUtils.watch(
     () => view.popup?.visible,
     (visible) => {
-      if (visible) syncPopupFeatureNavigation(view, getStackLayer);
+      if (visible) {
+        syncPopupFeatureNavigation(
+          view,
+          options.getStackLayer,
+          options.resolveLayerId
+        );
+      }
     }
   );
 
-  view.on("click", async (event) => {
-    const response = await view.hitTest(event);
-    const graphics = graphicsFromHitTest(response);
-
-    if (graphics.length === 0) {
+  const openColocatedPopup = async (
+    hits: ColocatedGraphicHit[],
+    location: __esri.Point | nullish
+  ) => {
+    if (hits.length === 0) {
       view.closePopup();
       return;
     }
 
-    const stackLayer = getStackLayer();
-    const stackHits = stackLayer
-      ? graphics.filter((graphic) => graphic.layer === stackLayer)
-      : [];
-
-    const features = stackHits.length > 0 ? [stackHits[0]!] : graphics;
+    const features = colocatedPopupFeaturesFromHits(
+      hits,
+      options.getStackLayer,
+      options.resolveLayerId
+    );
 
     await view.openPopup({
       features,
-      location: event.mapPoint,
+      location: location ?? undefined,
     });
-    syncPopupFeatureNavigation(view, getStackLayer);
+    syncPopupFeatureNavigation(
+      view,
+      options.getStackLayer,
+      options.resolveLayerId
+    );
+  };
+
+  view.on("click", async (event) => {
+    if (event.button != null && event.button !== 0) return;
+    const response = await view.hitTest(event);
+    await openColocatedPopup(hitsFromHitTest(response), event.mapPoint);
   });
+
+  reactiveUtils.watch(
+    () => view.popup?.viewModel?.features?.length ?? 0,
+    (featureCount) => {
+      if (!featureCount || featureCount < 2 || !view.popup?.visible) return;
+      const popupFeatures = view.popup.viewModel?.features ?? [];
+      const hits: ColocatedGraphicHit[] = popupFeatures.map((graphic) => ({
+        graphic,
+        layer: graphic.layer as __esri.Layer | null | undefined,
+      }));
+      const merged = colocatedPopupFeaturesFromHits(
+        hits,
+        options.getStackLayer,
+        options.resolveLayerId
+      );
+      if (merged.length === 1 && merged.length < popupFeatures.length) {
+        void view.openPopup({
+          features: merged,
+          location: view.popup.location ?? undefined,
+        });
+      }
+      syncPopupFeatureNavigation(
+        view,
+        options.getStackLayer,
+        options.resolveLayerId
+      );
+    }
+  );
 }
 
 export function applyPopupDefaults(
   view: GlobeView,
-  getStackLayer?: () => GeoJSONLayer | undefined
+  popupWire?: MapPopupWireOptions
 ): void {
   if (!view.popup) return;
   bindStackPopupView(view);
@@ -471,8 +615,8 @@ export function applyPopupDefaults(
     actionBar: true,
   };
 
-  if (getStackLayer) {
-    wireUnifiedPopups(view, getStackLayer);
+  if (popupWire) {
+    wireUnifiedPopups(view, popupWire);
   }
   let patchScheduled = false;
   const schedulePopupScrollbarPatch = () => {

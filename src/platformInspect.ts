@@ -1,9 +1,12 @@
 import { categories, type Category } from "./categories";
 import {
+  parseColocatedMembersFromAttrs,
+  type ColocatedPlatformMember,
+} from "./colocatedPlatforms";
+import {
   MOORING_STACK_BITS,
   stackNetworkLabels,
   type MooringStackLayerId,
-  type MooringStackMember,
 } from "./mooringStacks";
 
 const STACK_LAYER_ORDER: MooringStackLayerId[] = [
@@ -124,11 +127,35 @@ export function platformInspectPopupTitle(
   return `${ref} - ${typeName}`;
 }
 
+/** Popup title when several platforms share one map pin (ref – type per platform). */
+export function colocatedClusterPopupTitle(
+  members: ColocatedPlatformMember[]
+): string {
+  const segments: string[] = [];
+  const seenRef = new Set<string>();
+  for (const member of members) {
+    const ref = member.ptf_ref.trim();
+    if (!ref || seenRef.has(ref)) continue;
+    seenRef.add(ref);
+    segments.push(platformInspectPopupTitle(member.layer_id, ref));
+  }
+  return segments.length > 0 ? segments.join("\n") : "Co-located platforms";
+}
+
 export function stackInspectPopupTitle(
   stackMask: number,
   ptfRef: string,
   attrs?: Record<string, unknown>
 ): string {
+  const members = parseColocatedMembersFromAttrs(attrs ?? {});
+  if (members.length >= 2) {
+    return colocatedClusterPopupTitle(members);
+  }
+  if (members.length === 1) {
+    const only = members[0]!;
+    return platformInspectPopupTitle(only.layer_id, only.ptf_ref);
+  }
+
   const ref = ptfRef.trim();
   const familyFromDb = String(attrs?.ptf_family_name ?? "").trim();
   if (familyFromDb) {

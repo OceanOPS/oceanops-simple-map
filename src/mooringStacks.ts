@@ -45,6 +45,12 @@ export type MooringStackMember = {
 
 export const STACK_MEMBERS_JSON_FIELD = "stack_members_json";
 
+export const MOORING_OPERATIONAL_LAYER_IDS: MooringStackLayerId[] = [
+  "moored_buoys",
+  "oceansites",
+  "soconet_moorings",
+];
+
 const STACK_LABEL_LAYER_ORDER: MooringStackLayerId[] = [
   "moored_buoys",
   "oceansites",
@@ -127,6 +133,52 @@ function buildStackMembers(
 }
 
 /** @param attrs stack-layer graphic attributes */
+export function isMooringOperationalLayerId(
+  layerId: string | undefined
+): layerId is MooringStackLayerId {
+  return layerId != null && layerId in MOORING_STACK_BITS;
+}
+
+export function stackMembersFromGraphics(
+  graphics: __esri.Graphic[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): MooringStackMember[] {
+  const members: MooringStackMember[] = [];
+  for (const graphic of graphics) {
+    const layer = graphic.layer as __esri.Layer | null | undefined;
+    if (!layer) continue;
+    const layerId = resolveLayerId(layer);
+    if (!isMooringOperationalLayerId(layerId)) continue;
+    members.push(
+      memberFromFeature(layerId, graphic.attributes as Record<string, unknown>)
+    );
+  }
+  return members;
+}
+
+/** Attributes for a client-side stack popup (solo layers not merged in GeoJSON). */
+export function buildSyntheticStackAttributes(
+  members: MooringStackMember[],
+  sourceGraphics: __esri.Graphic[]
+): Record<string, unknown> {
+  let stackMask = 0;
+  for (const member of members) {
+    stackMask |= MOORING_STACK_BITS[member.layer_id];
+  }
+  const anchorGraphic = sourceGraphics[0];
+  const anchorAttrs = (anchorGraphic?.attributes ?? {}) as Record<string, unknown>;
+
+  return {
+    ...anchorAttrs,
+    stack_mask: stackMask,
+    ptf_ref: joinUniqueStrings(...members.map((member) => member.ptf_ref)),
+    ptf_family_name: joinUniqueStrings(
+      ...sourceGraphics.map((graphic) => graphic.attributes?.ptf_family_name)
+    ),
+    [STACK_MEMBERS_JSON_FIELD]: JSON.stringify(members),
+  };
+}
+
 export function parseStackMembersFromAttrs(
   attrs: Record<string, unknown>
 ): MooringStackMember[] {
@@ -193,7 +245,10 @@ export type MooringStackData = {
 };
 
 const COORD_DECIMALS = 4;
+/** Bump when stack grouping rules change (forces rebuild of blob URLs). */
+const MOORING_STACK_DATA_VERSION = 2;
 let cachedData: MooringStackData | null = null;
+let cachedDataVersion = 0;
 const blobUrls: string[] = [];
 
 function popCount(mask: number): number {
@@ -312,7 +367,9 @@ function soloFeatures(
 
 /** Split mooring GeoJSON into solo layers + one stacked-location overlay. */
 export async function loadMooringStackData(baseUrl: string): Promise<MooringStackData> {
-  if (cachedData) return cachedData;
+  if (cachedData && cachedDataVersion === MOORING_STACK_DATA_VERSION) {
+    return cachedData;
+  }
 
   const [oceansites, soconetMoorings, mooredBuoys] = await Promise.all([
     fetchGeoJson(`${baseUrl}geojson/oceansites.geojson`),
@@ -430,6 +487,7 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
     data.stackLayer
   );
   cachedData = data;
+  cachedDataVersion = MOORING_STACK_DATA_VERSION;
   return data;
 }
 

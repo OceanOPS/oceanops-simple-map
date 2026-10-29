@@ -103,6 +103,7 @@ function createGeoJsonLayer(
           );
 
   const layer = new GeoJSONLayer({
+    id: cat.id,
     url: layerUrl ?? geojsonLayerUrl(cat, projection),
     title: cat.label,
     outFields: ["*"],
@@ -134,6 +135,7 @@ function createMooringStackLayer(
   stackLayerUrl: string
 ): GeoJSONLayer {
   const layer = new GeoJSONLayer({
+    id: MOORING_STACK_LAYER_ID,
     url: stackLayerUrl,
     title: "Co-located mooring stacks",
     outFields: ["*"],
@@ -422,7 +424,19 @@ function createRotationController(
     mountPlatformSearchUi();
 
     try {
-      applyPopupDefaults(view, () => layerById.get(MOORING_STACK_LAYER_ID));
+      applyPopupDefaults(view, {
+        getStackLayer: () => layerById.get(MOORING_STACK_LAYER_ID),
+        resolveLayerId: (layer) => {
+          const explicitId = layer.id?.trim();
+          if (explicitId) return explicitId;
+          for (const [id, mappedLayer] of layerById) {
+            if (mappedLayer === layer) return id;
+          }
+          const url = "url" in layer ? String((layer as GeoJSONLayer).url ?? "") : "";
+          const fromUrl = url.match(/\/geojson\/([^/?#]+)\.geojson/i)?.[1];
+          return fromUrl || undefined;
+        },
+      });
     } catch (err) {
       console.warn("Popup setup failed", err);
     }
