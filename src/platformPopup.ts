@@ -64,21 +64,20 @@ function formatOperatedByHtml(attrs: Record<string, unknown>): string {
   return escapeHtml(label);
 }
 
+/** GOOS Passport ID is the WIGOS identifier; no fallback to internal ptf_id. */
+const GOOS_PASSPORT_NOT_ASSIGNED = "Not assigned";
+
 function goosPassportId(attrs: Record<string, unknown>): string {
   const wigos = attrs.wigos_ref ?? attrs.wigos_id ?? attrs.wigosId;
   const wigosText = wigos == null ? "" : String(wigos).trim();
   if (wigosText) return escapeHtml(wigosText);
-
-  const fallback = attrs.ptf_id;
-  if (fallback == null || fallback === "") return "—";
-  return escapeHtml(String(fallback));
+  return escapeHtml(GOOS_PASSPORT_NOT_ASSIGNED);
 }
 
 function goosPassportIdFromMember(member: ColocatedPlatformMember): string {
   const wigos = (member.wigos_ref ?? "").trim();
   if (wigos) return escapeHtml(wigos);
-  if (member.ptf_id != null) return escapeHtml(String(member.ptf_id));
-  return "—";
+  return escapeHtml(GOOS_PASSPORT_NOT_ASSIGNED);
 }
 
 function memberAttrsForOperatedBy(member: ColocatedPlatformMember): Record<string, unknown> {
