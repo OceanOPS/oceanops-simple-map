@@ -82,7 +82,8 @@ function mooringStackBitForGoosNetworkToken(token: string): number | null {
 
 /**
  * Passport may list several GOOS networks at one site; the map only draws a subset
- * (solo layer or stack mask). Networks not represented on the symbol are "(not operational)".
+ * (solo layer or stack mask). Networks not represented on the symbol are "(not operational)",
+ * except OceanSITES (editorial: never show that suffix on OceanSITES).
  */
 export function formatGoosObservingNetworksDisplay(
   goosNetworks: string,
@@ -98,10 +99,13 @@ export function formatGoosObservingNetworksDisplay(
 
   const formatted = parts.map((part) => {
     if (/\((?:closed|not operational)\)\s*$/i.test(part)) {
+      const base = part.replace(/\s*\((?:closed|not operational)\)\s*$/i, "").trim();
+      if (/^OceanSITES$/i.test(base)) return base;
       return part.replace(/\(closed\)\s*$/i, notOperationalSuffix);
     }
     const bit = mooringStackBitForGoosNetworkToken(part);
     if (bit == null) return part;
+    if (/^OceanSITES$/i.test(part.trim())) return part.trim();
     if ((visibleMooringMask & bit) !== 0) return part;
     return `${part} ${notOperationalSuffix}`;
   });

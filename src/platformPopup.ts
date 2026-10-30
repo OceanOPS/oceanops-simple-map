@@ -132,7 +132,7 @@ function mooringMaskForMemberGroup(group: ColocatedPlatformMember[]): number {
   return mask;
 }
 
-/** OceanSITES rows: passport networks only — no “(not operational)” (editorial). */
+/** OceanSITES-only stack pages: passport list without mask suffixes (see also platformInspect). */
 function groupIsOceanSitesOnly(group: ColocatedPlatformMember[]): boolean {
   return group.length > 0 && group.every((m) => m.layer_id === "oceansites");
 }
