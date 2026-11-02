@@ -161,11 +161,31 @@ function platformRefForGroup(group: ColocatedPlatformMember[]): string {
   ].join(" / ");
 }
 
+function referenceObservatoriesMetaRowHtml(siteNames: string): string {
+  const sites = siteNames.trim();
+  if (!sites) return "";
+  return `<div class="o-map-popup-meta-row">
+              <dt>Reference observatory(ies)</dt>
+              <dd>${escapeHtml(sites)}</dd>
+            </div>`;
+}
+
+function referenceObservatoriesFromAttrs(
+  attrs: Record<string, unknown>,
+  layerId?: string
+): string {
+  if (layerId !== "oceansites") return "";
+  return referenceObservatoriesMetaRowHtml(String(attrs.site_names ?? ""));
+}
+
 function stackGroupPageInnerHtml(group: ColocatedPlatformMember[]): string {
   const passport = goosPassportIdFromMember(group[0]!);
   const operatedBy = formatOperatedByHtml(memberAttrsForOperatedBy(group[0]!));
   const networks = goosNetworksForMemberGroup(group);
   const primaryRef = group[0]?.ptf_ref.trim() ?? "";
+  const referenceObservatories = groupIsOceanSitesOnly(group)
+    ? referenceObservatoriesMetaRowHtml(group[0]?.site_names ?? "")
+    : "";
 
   return `<dl class="o-map-popup-meta">
             <div class="o-map-popup-meta-row">
@@ -180,6 +200,7 @@ function stackGroupPageInnerHtml(group: ColocatedPlatformMember[]): string {
               <dt>GOOS Observing Network(s)</dt>
               <dd>${escapeHtml(networks || "—")}</dd>
             </div>
+            ${referenceObservatories}
           </dl>
           ${moreAtOceanOpsHtml(primaryRef)}`;
 }
@@ -308,7 +329,8 @@ const mooringStackCustomContent = new CustomContent({
       const stackMask = Number(attrs.stack_mask ?? 0);
       const ptfRef = String(attrs.ptf_ref ?? "").trim();
       const network = goosNetworksFromStackAttrs(attrs, stackMask);
-      return inspectPopupBodyHtml(attrs, network, ptfRef);
+      const layerId = String(attrs.category ?? "oceansites");
+      return inspectPopupBodyHtml(attrs, network, ptfRef, layerId);
     }
 
     const groups = groupStackMembers(members);
@@ -337,7 +359,8 @@ function moreAtOceanOpsHtml(ptfRef: string): string {
 function inspectPopupBodyHtml(
   attrs: Record<string, unknown>,
   goosNetwork: string,
-  ptfRef: string
+  ptfRef: string,
+  layerId?: string
 ): string {
   return `<div class="o-map-popup o-map-popup--inspect">
           <dl class="o-map-popup-meta">
@@ -353,6 +376,7 @@ function inspectPopupBodyHtml(
               <dt>GOOS Observing Network(s)</dt>
               <dd>${escapeHtml(goosNetwork || "—")}</dd>
             </div>
+            ${referenceObservatoriesFromAttrs(attrs, layerId)}
           </dl>
           ${moreAtOceanOpsHtml(ptfRef)}
           </div>`;
@@ -407,7 +431,7 @@ export function platformInspectPopupContent(layerId: string) {
     const attrs = graphic.attributes;
     const ptfRef = String(attrs.ptf_ref ?? "").trim();
     const network = goosNetworkForPlatformPopup(attrs, layerId);
-    return inspectPopupBodyHtml(attrs, network, ptfRef);
+    return inspectPopupBodyHtml(attrs, network, ptfRef, layerId);
   };
 }
 

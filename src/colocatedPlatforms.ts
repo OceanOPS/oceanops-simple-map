@@ -12,6 +12,7 @@ export type ColocatedPlatformMember = {
   ptf_id?: number;
   wigos_ref?: string;
   goos_networks?: string;
+  site_names?: string;
   country_name?: string;
   country_iso_reporting?: string;
 };

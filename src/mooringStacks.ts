@@ -246,7 +246,7 @@ export type MooringStackData = {
 
 const COORD_DECIMALS = 4;
 /** Bump when stack grouping rules change (forces rebuild of blob URLs). */
-const MOORING_STACK_DATA_VERSION = 2;
+const MOORING_STACK_DATA_VERSION = 3;
 let cachedData: MooringStackData | null = null;
 let cachedDataVersion = 0;
 const blobUrls: string[] = [];
@@ -340,6 +340,144 @@ export function mooringCoordKey(lon: number, lat: number): string {
   return `${lon.toFixed(COORD_DECIMALS)},${lat.toFixed(COORD_DECIMALS)}`;
 }
 
+/** Shared WMO / array id for platforms at one mooring site (coords may differ slightly in exports). */
+export function mooringArrayKey(
+  properties: Record<string, unknown>
+): string | undefined {
+  const wmo = String(properties.wmo ?? properties.gts_id ?? "").trim();
+  if (wmo) return `wmo:${wmo}`;
+
+  const ref = String(properties.ptf_ref ?? "").trim();
+  const refMatch = ref.match(/^(\d+)_/);
+  if (refMatch) return `wmo:${refMatch[1]}`;
+
+  const wigos = String(properties.wigos_ref ?? properties.wigos_id ?? "").trim();
+  const wigosMatch = wigos.match(/-(\d+)$/);
+  if (wigosMatch) return `wmo:${wigosMatch[1]}`;
+
+  return undefined;
+}
+
+function parsePtfId(properties: Record<string, unknown>): number | undefined {
+  const raw = properties.ptf_id;
+  if (typeof raw === "number" && !Number.isNaN(raw)) return raw;
+  if (raw != null && raw !== "") {
+    const n = Number(raw);
+    if (!Number.isNaN(n)) return n;
+  }
+  return undefined;
+}
+
+type TaggedMooringFeature = {
+  layerId: MooringStackLayerId;
+  feature: PointFeature;
+  nativeKey: string;
+  arrayKey?: string;
+  ptfId?: number;
+};
+
+function addFeatureToEntry(
+  byKey: Map<string, Partial<Record<MooringStackLayerId, PointFeature[]>>>,
+  key: string,
+  layerId: MooringStackLayerId,
+  feature: PointFeature
+): void {
+  const entry = byKey.get(key) ?? {};
+  const list = entry[layerId] ?? [];
+  list.push(feature);
+  entry[layerId] = list;
+  byKey.set(key, entry);
+}
+
+function scoreCoordKeyForAnchor(features: TaggedMooringFeature[]): number {
+  let score = features.length;
+  if (features.some((f) => f.layerId === "moored_buoys")) score += 1000;
+  if (features.some((f) => f.layerId === "oceansites")) score += 100;
+  if (features.some((f) => f.layerId === "soconet_moorings")) score += 10;
+  return score;
+}
+
+function chooseAnchorCoordKey(features: TaggedMooringFeature[]): string {
+  const byNative = new Map<string, TaggedMooringFeature[]>();
+  for (const tagged of features) {
+    const list = byNative.get(tagged.nativeKey) ?? [];
+    list.push(tagged);
+    byNative.set(tagged.nativeKey, list);
+  }
+
+  let bestKey = features[0]!.nativeKey;
+  let bestScore = -1;
+  for (const [nativeKey, group] of byNative) {
+    const score = scoreCoordKeyForAnchor(group);
+    if (score > bestScore) {
+      bestScore = score;
+      bestKey = nativeKey;
+    }
+  }
+  return bestKey;
+}
+
+function buildMooringLocationIndex(
+  mooredBuoys: FeatureCollection,
+  oceansites: FeatureCollection,
+  soconetMoorings: FeatureCollection
+): Map<string, Partial<Record<MooringStackLayerId, PointFeature[]>>> {
+  const tagged: TaggedMooringFeature[] = [];
+
+  const tagLayer = (layerId: MooringStackLayerId, collection: FeatureCollection) => {
+    for (const feature of collection.features) {
+      if (feature.geometry?.type !== "Point") continue;
+      const [lon, lat] = feature.geometry.coordinates;
+      tagged.push({
+        layerId,
+        feature,
+        nativeKey: mooringCoordKey(lon, lat),
+        arrayKey: mooringArrayKey(feature.properties),
+        ptfId: parsePtfId(feature.properties),
+      });
+    }
+  };
+
+  tagLayer("moored_buoys", mooredBuoys);
+  tagLayer("oceansites", oceansites);
+  tagLayer("soconet_moorings", soconetMoorings);
+
+  const byArray = new Map<string, TaggedMooringFeature[]>();
+  for (const item of tagged) {
+    if (!item.arrayKey) continue;
+    const list = byArray.get(item.arrayKey) ?? [];
+    list.push(item);
+    byArray.set(item.arrayKey, list);
+  }
+
+  const arrayAnchorKey = new Map<string, string>();
+  for (const [arrayKey, group] of byArray) {
+    const nativeKeys = new Set(group.map((g) => g.nativeKey));
+    if (group.length < 2 && nativeKeys.size < 2) continue;
+    arrayAnchorKey.set(arrayKey, chooseAnchorCoordKey(group));
+  }
+
+  const ptfAnchorKey = new Map<number, string>();
+  const byKey = new Map<
+    string,
+    Partial<Record<MooringStackLayerId, PointFeature[]>>
+  >();
+
+  for (const item of tagged) {
+    let key = item.nativeKey;
+    if (item.arrayKey && arrayAnchorKey.has(item.arrayKey)) {
+      key = arrayAnchorKey.get(item.arrayKey)!;
+    } else if (item.ptfId != null && ptfAnchorKey.has(item.ptfId)) {
+      key = ptfAnchorKey.get(item.ptfId)!;
+    }
+
+    addFeatureToEntry(byKey, key, item.layerId, item.feature);
+    if (item.ptfId != null) ptfAnchorKey.set(item.ptfId, key);
+  }
+
+  return byKey;
+}
+
 async function fetchGeoJson(url: string): Promise<FeatureCollection> {
   const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) throw new Error(`Failed to load ${url}`);
@@ -354,11 +492,14 @@ function toBlobUrl(collection: FeatureCollection): string {
 
 function soloFeatures(
   collection: FeatureCollection,
-  stackedKeys: Set<string>
+  stackedKeys: Set<string>,
+  stackedArrayKeys: Set<string>
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
     features: collection.features.filter((feature) => {
+      const arrayKey = mooringArrayKey(feature.properties);
+      if (arrayKey && stackedArrayKeys.has(arrayKey)) return false;
       const [lon, lat] = feature.geometry.coordinates;
       return !stackedKeys.has(mooringCoordKey(lon, lat));
     }),
@@ -377,40 +518,20 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
     fetchGeoJson(`${baseUrl}geojson/moored_buoys.geojson`),
   ]);
 
-  const byKey = new Map<
-    string,
-    Partial<Record<MooringStackLayerId, PointFeature[]>>
-  >();
-
-  const indexLayer = (
-    layerId: MooringStackLayerId,
-    collection: FeatureCollection
-  ) => {
-    for (const feature of collection.features) {
-      if (feature.geometry?.type !== "Point") continue;
-      const [lon, lat] = feature.geometry.coordinates;
-      const key = mooringCoordKey(lon, lat);
-      const entry = byKey.get(key) ?? {};
-      const list = entry[layerId] ?? [];
-      list.push(feature);
-      entry[layerId] = list;
-      byKey.set(key, entry);
-    }
-  };
+  const byKey = buildMooringLocationIndex(
+    mooredBuoys,
+    oceansites,
+    soconetMoorings
+  );
 
   const soconetCountAtKey = new Map<string, number>();
-  for (const feature of soconetMoorings.features) {
-    if (feature.geometry?.type !== "Point") continue;
-    const [lon, lat] = feature.geometry.coordinates;
-    const key = mooringCoordKey(lon, lat);
-    soconetCountAtKey.set(key, (soconetCountAtKey.get(key) ?? 0) + 1);
+  for (const [key, entry] of byKey) {
+    const count = entry.soconet_moorings?.length ?? 0;
+    if (count > 0) soconetCountAtKey.set(key, count);
   }
 
-  indexLayer("moored_buoys", mooredBuoys);
-  indexLayer("oceansites", oceansites);
-  indexLayer("soconet_moorings", soconetMoorings);
-
   const stackedKeys = new Set<string>();
+  const stackedArrayKeys = new Set<string>();
   const stackFeatures: PointFeature[] = [];
 
   for (const [key, entry] of byKey) {
@@ -424,6 +545,12 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
     if (!shouldBuildMooringStack(stackMask, entry)) continue;
 
     stackedKeys.add(key);
+    for (const layerId of STACK_LABEL_LAYER_ORDER) {
+      for (const feature of entry[layerId] ?? []) {
+        const arrayKey = mooringArrayKey(feature.properties);
+        if (arrayKey) stackedArrayKeys.add(arrayKey);
+      }
+    }
 
     const anchor =
       entry.moored_buoys?.[0] ??
@@ -471,9 +598,15 @@ export async function loadMooringStackData(baseUrl: string): Promise<MooringStac
   blobUrls.length = 0;
 
   const data: MooringStackData = {
-    mooredBuoysSolo: toBlobUrl(soloFeatures(mooredBuoys, stackedKeys)),
-    oceansitesSolo: toBlobUrl(soloFeatures(oceansites, stackedKeys)),
-    soconetMooringsSolo: toBlobUrl(soloFeatures(soconetMoorings, stackedKeys)),
+    mooredBuoysSolo: toBlobUrl(
+      soloFeatures(mooredBuoys, stackedKeys, stackedArrayKeys)
+    ),
+    oceansitesSolo: toBlobUrl(
+      soloFeatures(oceansites, stackedKeys, stackedArrayKeys)
+    ),
+    soconetMooringsSolo: toBlobUrl(
+      soloFeatures(soconetMoorings, stackedKeys, stackedArrayKeys)
+    ),
     stackLayer: toBlobUrl({
       type: "FeatureCollection",
       features: stackFeatures,
