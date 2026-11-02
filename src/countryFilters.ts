@@ -1,5 +1,9 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
 import { categories } from "./categories";
+import {
+  buildMooredBuoyDefinitionExpression,
+  getMbnGoosTierFilter,
+} from "./mooringBuoyGoosTier";
 import { updateMooringStackDefinitionExpression } from "./mooringStacks";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
@@ -419,7 +423,15 @@ export function applyCountryFilter(
 
   for (const layerId of COUNTRY_FILTER_LAYER_IDS) {
     const layer = layerById.get(layerId);
-    if (layer) layer.definitionExpression = expression;
+    if (!layer) continue;
+    if (layerId === "moored_buoys") {
+      layer.definitionExpression = buildMooredBuoyDefinitionExpression(
+        expression,
+        getMbnGoosTierFilter()
+      );
+      continue;
+    }
+    layer.definitionExpression = expression;
   }
 
   updateMooringStackDefinitionExpression(layerById, expression || undefined);

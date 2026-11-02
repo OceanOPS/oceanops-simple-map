@@ -19,10 +19,17 @@ import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import {
   categories,
   type Category,
+  isGlobalArraysCategory,
   isLegendRowCategory,
   isReferenceObservatoryCategory,
+  isRegionalSystemsCategory,
   legendLayerIdsForCategory,
 } from "./categories";
+import {
+  appendMbnTierToFeatureWhere,
+  setMbnGoosTierFilter,
+  type MbnGoosTierFilter,
+} from "./mooringBuoyGoosTier";
 import { makeCategorySwatch } from "./categorySwatch";
 import {
   EU_COUNTRIES,
@@ -54,6 +61,10 @@ import {
   closeGoshipMetricsModal,
   openGoshipMetricsModal,
 } from "./goshipMetricsModal";
+import {
+  closeMbnMetricsModal,
+  openMbnMetricsModal,
+} from "./mbnMetricsModal";
 import {
   closeSoconetMetricsModal,
   openSoconetMetricsModal,
@@ -305,6 +316,7 @@ export function attachLegend(
   closeCountryMetricsModal();
   closeGoshipMetricsModal();
   closeSoconetMetricsModal();
+  closeMbnMetricsModal();
   document.body.classList.remove("menu-open");
 
   // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
@@ -640,8 +652,10 @@ export function attachLegend(
 
       try {
         let total: number;
+        const featureWhere =
+          id === "moored_buoys" ? appendMbnTierToFeatureWhere(where) : where;
         if (isMooringSquareLayerId(id)) {
-          total = await queryMooringLayerCount(id, layerById, where);
+          total = await queryMooringLayerCount(id, layerById, featureWhere);
         } else if (id === "soconet") {
           const n = await (layer as GeoJSONLayer).queryFeatureCount({ where });
           total =
@@ -739,8 +753,15 @@ export function attachLegend(
     }
   };
 
-  type NetworkListFilter = "all" | "platforms" | "refObs";
+  type NetworkListFilter = "all" | "globalArrays" | "regionalSystems" | "refObs";
   let networkListFilter: NetworkListFilter = "all";
+
+  const syncMbnGoosTierFromNetworkFilter = () => {
+    let tier: MbnGoosTierFilter = "all";
+    if (networkListFilter === "globalArrays") tier = "tropical";
+    else if (networkListFilter === "regionalSystems") tier = "coastal";
+    setMbnGoosTierFilter(tier);
+  };
   const networkRowWrappers = new Map<string, HTMLElement>();
 
   const networkSelectAllCheckbox = document.createElement("input");
@@ -755,9 +776,14 @@ export function attachLegend(
 
   const getVisibleNetworkCategoryIds = (): string[] => {
     const rows = legendRowCategories();
-    if (networkListFilter === "platforms") {
+    if (networkListFilter === "globalArrays") {
       return rows
-        .filter((cat) => !isReferenceObservatoryCategory(cat.id))
+        .filter((cat) => isGlobalArraysCategory(cat.id))
+        .map((cat) => cat.id);
+    }
+    if (networkListFilter === "regionalSystems") {
+      return rows
+        .filter((cat) => isRegionalSystemsCategory(cat.id))
         .map((cat) => cat.id);
     }
     if (networkListFilter === "refObs") {
@@ -789,6 +815,11 @@ export function attachLegend(
     for (const cat of legendRowCategories()) {
       applyCategoryVisibilityFromCheckbox(cat);
     }
+    applyCountryFilter(
+      layerById as Map<string, GeoJSONLayer>,
+      selectedCountries,
+      filterableCountries
+    );
     applyMooringStackSymbology(
       layerById,
       getProjection(),
@@ -837,11 +868,17 @@ export function attachLegend(
     "Show all networks; click again to show or hide all"
   );
 
-  const networkPlatformsFilterBtn = document.createElement("button");
-  networkPlatformsFilterBtn.type = "button";
-  networkPlatformsFilterBtn.className = "o-legend-country-group-btn";
-  networkPlatformsFilterBtn.textContent = "Platforms";
-  networkPlatformsFilterBtn.setAttribute("aria-pressed", "false");
+  const networkGlobalArraysFilterBtn = document.createElement("button");
+  networkGlobalArraysFilterBtn.type = "button";
+  networkGlobalArraysFilterBtn.className = "o-legend-country-group-btn";
+  networkGlobalArraysFilterBtn.textContent = "Global arrays";
+  networkGlobalArraysFilterBtn.setAttribute("aria-pressed", "false");
+
+  const networkRegionalSystemsFilterBtn = document.createElement("button");
+  networkRegionalSystemsFilterBtn.type = "button";
+  networkRegionalSystemsFilterBtn.className = "o-legend-country-group-btn";
+  networkRegionalSystemsFilterBtn.textContent = "Regional systems";
+  networkRegionalSystemsFilterBtn.setAttribute("aria-pressed", "false");
 
   const networkRefObsFilterBtn = document.createElement("button");
   networkRefObsFilterBtn.type = "button";
@@ -855,13 +892,21 @@ export function attachLegend(
       "aria-pressed",
       String(networkListFilter === "all")
     );
-    networkPlatformsFilterBtn.classList.toggle(
+    networkGlobalArraysFilterBtn.classList.toggle(
       "active",
-      networkListFilter === "platforms"
+      networkListFilter === "globalArrays"
     );
-    networkPlatformsFilterBtn.setAttribute(
+    networkGlobalArraysFilterBtn.setAttribute(
       "aria-pressed",
-      String(networkListFilter === "platforms")
+      String(networkListFilter === "globalArrays")
+    );
+    networkRegionalSystemsFilterBtn.classList.toggle(
+      "active",
+      networkListFilter === "regionalSystems"
+    );
+    networkRegionalSystemsFilterBtn.setAttribute(
+      "aria-pressed",
+      String(networkListFilter === "regionalSystems")
     );
     networkRefObsFilterBtn.classList.toggle("active", networkListFilter === "refObs");
     networkRefObsFilterBtn.setAttribute(
@@ -872,6 +917,7 @@ export function attachLegend(
 
   const applyNetworkListFilter = (filter: NetworkListFilter) => {
     networkListFilter = filter;
+    syncMbnGoosTierFromNetworkFilter();
     syncNetworkRowVisibility();
     updateNetworkGroupFilterButtons();
 
@@ -905,8 +951,11 @@ export function attachLegend(
     }
     applyNetworkListFilter("all");
   });
-  networkPlatformsFilterBtn.addEventListener("click", () =>
-    applyNetworkListFilter("platforms")
+  networkGlobalArraysFilterBtn.addEventListener("click", () =>
+    applyNetworkListFilter("globalArrays")
+  );
+  networkRegionalSystemsFilterBtn.addEventListener("click", () =>
+    applyNetworkListFilter("regionalSystems")
   );
   networkRefObsFilterBtn.addEventListener("click", () =>
     applyNetworkListFilter("refObs")
@@ -914,7 +963,8 @@ export function attachLegend(
 
   networkGroupBtnRow.append(
     networkAllFilterBtn,
-    networkPlatformsFilterBtn,
+    networkGlobalArraysFilterBtn,
+    networkRegionalSystemsFilterBtn,
     networkRefObsFilterBtn
   );
   networksBody.appendChild(networkGroupBtnRow);
@@ -950,6 +1000,14 @@ export function attachLegend(
       );
     };
 
+    const openMbnBreakdown = () => {
+      const where = getCountryCountWhere(selectedCountries, filterableCountries);
+      void openMbnMetricsModal(
+        layerById as Map<string, GeoJSONLayer>,
+        where
+      );
+    };
+
     let countEl: HTMLSpanElement;
     if (cat.id === "goship") {
       const { button, count } = createLegendNetworkDetailsBtn({
@@ -967,6 +1025,14 @@ export function attachLegend(
       });
       countEl = count;
       row.appendChild(button);
+    } else if (cat.id === "moored_buoys") {
+      const { button, count } = createLegendNetworkDetailsBtn({
+        ariaLabel: "View MBN breakdown (tropical and coastal moored buoys)",
+        title: "View MBN breakdown by GOOS tier",
+        onOpen: openMbnBreakdown,
+      });
+      countEl = count;
+      row.appendChild(button);
     } else {
       countEl = document.createElement("span");
       countEl.className = "o-legend-count";
@@ -977,15 +1043,20 @@ export function attachLegend(
 
     cb.addEventListener("change", () => {
       applyCategoryVisibilityFromCheckbox(cat as Category);
-      updateSelectAllState();
-      updateLayerCounts();
-      void updateCountryRowCounts();
+      applyCountryFilter(
+        layerById as Map<string, GeoJSONLayer>,
+        selectedCountries,
+        filterableCountries
+      );
       applyMooringStackSymbology(
         layerById,
         getProjection(),
         getPointLayerCountryExpression(selectedCountries, filterableCountries) ||
           undefined
       );
+      updateSelectAllState();
+      updateLayerCounts();
+      void updateCountryRowCounts();
     });
 
     cb.dataset.layerId = cat.id;

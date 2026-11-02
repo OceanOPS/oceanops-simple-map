@@ -12,6 +12,10 @@ import {
   MOORING_TWO_STACK_SIZE,
   type Shape,
 } from "./categories";
+import {
+  buildMooringStackMbnTierClause,
+  getMbnGoosTierFilter,
+} from "./mooringBuoyGoosTier";
 import { is3dProjection, type ProjectionId } from "./projections";
 import { makeCategoryRenderer } from "./renderers";
 
@@ -310,15 +314,21 @@ function visibleMooringStackMask(visibility: MooringStackVisibility): number {
   return mask;
 }
 
-/** Stack visibility + optional country filter for the overlay layer. */
+/** Stack visibility + optional country / MBN GOOS tier filter for the overlay layer. */
 export function buildMooringStackDefinitionExpression(
   visibleMask: number,
-  countryExpression?: string
+  countryExpression?: string,
+  tierFilter = getMbnGoosTierFilter()
 ): string {
   if (visibleMask === 0 || countryExpression === "1=0") return "1=0";
   const stackPart = `stack_mask IN (${visibleStackMaskValues(visibleMask).join(",")})`;
-  if (!countryExpression) return stackPart;
-  return `(${stackPart}) AND (${countryExpression})`;
+  const tierPart =
+    tierFilter !== "all" && (visibleMask & MOORING_STACK_BITS.moored_buoys) !== 0
+      ? buildMooringStackMbnTierClause(tierFilter)
+      : "";
+  const parts = [stackPart, countryExpression, tierPart].filter(Boolean);
+  if (parts.length === 1) return parts[0]!;
+  return parts.map((part) => `(${part})`).join(" AND ");
 }
 
 export function updateMooringStackDefinitionExpression(
@@ -756,8 +766,15 @@ export function applyMooringStackSymbology(
   if (!stackLayer) return;
 
   const visibility = getMooringStackVisibility(layerById);
+  const tierFilter = getMbnGoosTierFilter();
   updateMooringStackDefinitionExpression(layerById, countryExpression);
-  stackLayer.renderer = makeMooringStackRenderer(projection, visibility);
+  const useSoloMooredForTier =
+    tierFilter !== "all" && visibility.mooredBuoys;
+  stackLayer.renderer = useSoloMooredForTier
+    ? new SimpleRenderer({
+        symbol: makeMooringSoloSymbol(projection, "moored_buoys"),
+      })
+    : makeMooringStackRenderer(projection, visibility);
   stackLayer.visible =
     visibility.mooredBuoys || visibility.oceansites || visibility.soconetMoorings;
 }
@@ -768,7 +785,15 @@ function buildMooringStackLayerWhere(
 ): string {
   const layerMasks = stackMasksIncludingLayer(MOORING_STACK_BITS[layerId]);
   const maskClause = `stack_mask IN (${layerMasks.join(",")})`;
-  return where && where !== "1=1" ? `(${where}) AND ${maskClause}` : maskClause;
+  let expr =
+    where && where !== "1=1" ? `(${where}) AND ${maskClause}` : maskClause;
+  if (layerId === "moored_buoys") {
+    const tierPart = buildMooringStackMbnTierClause(getMbnGoosTierFilter());
+    if (tierPart) {
+      expr = expr ? `(${expr}) AND (${tierPart})` : tierPart;
+    }
+  }
+  return expr;
 }
 
 async function queryLayerFeaturesPaginated(
@@ -799,6 +824,37 @@ async function queryLayerFeaturesPaginated(
   }
 
   return attrs;
+}
+
+/** Platforms (`ptf_id` / stack member rows) at co-located pins for one mooring network. */
+async function countMooringPlatformsInStacks(
+  layerId: MooringStackLayerId,
+  layerById: ReadonlyMap<string, GeoJSONLayer>,
+  where: string
+): Promise<number> {
+  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
+  if (!stackLayer || typeof stackLayer.queryFeatures !== "function") {
+    return 0;
+  }
+
+  const stackWhere = buildMooringStackLayerWhere(layerId, where);
+  let attrs: Record<string, unknown>[];
+  try {
+    attrs = await queryLayerFeaturesPaginated(stackLayer, stackWhere, [
+      STACK_MEMBERS_JSON_FIELD,
+    ]);
+  } catch (err) {
+    console.warn("Mooring stack platform count query failed", layerId, err);
+    return 0;
+  }
+
+  let total = 0;
+  for (const row of attrs) {
+    for (const member of parseStackMembersFromAttrs(row)) {
+      if (member.layer_id === layerId) total += 1;
+    }
+  }
+  return total;
 }
 
 /** Every SOCONET mooring platform (solo + all platforms at co-located stack pins). */
@@ -838,7 +894,6 @@ export async function queryMooringLayerCount(
     return querySoconetMooringPlatformCount(layerById, where);
   }
   const soloLayer = layerById.get(layerId);
-  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
 
   let total = 0;
 
@@ -846,11 +901,7 @@ export async function queryMooringLayerCount(
     total += await soloLayer.queryFeatureCount({ where });
   }
 
-  if (stackLayer && typeof stackLayer.queryFeatureCount === "function") {
-    total += await stackLayer.queryFeatureCount({
-      where: buildMooringStackLayerWhere(layerId, where),
-    });
-  }
+  total += await countMooringPlatformsInStacks(layerId, layerById, where);
 
   return total;
 }

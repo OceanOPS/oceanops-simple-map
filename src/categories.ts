@@ -127,6 +127,33 @@ export function isReferenceObservatoryCategory(categoryId: string): boolean {
   return REFERENCE_OBSERVATORY_CATEGORY_IDS.has(categoryId);
 }
 
+/** GOOS “global arrays” legend filter (see goos-tier-counts.config.mjs). */
+export const GLOBAL_ARRAYS_CATEGORY_IDS = new Set<string>([
+  "argo",
+  "vos",
+  "drifting_buoys",
+  "moored_buoys",
+]);
+
+/** GOOS “regional & emerging systems” legend filter (map layers only). */
+export const REGIONAL_SYSTEMS_CATEGORY_IDS = new Set<string>([
+  "oceangliders",
+  "moored_buoys",
+  "anibos",
+  "hf_radars",
+  "tsunami_buoys",
+  "asap",
+  "fvon",
+]);
+
+export function isGlobalArraysCategory(categoryId: string): boolean {
+  return GLOBAL_ARRAYS_CATEGORY_IDS.has(categoryId);
+}
+
+export function isRegionalSystemsCategory(categoryId: string): boolean {
+  return REGIONAL_SYSTEMS_CATEGORY_IDS.has(categoryId);
+}
+
 /** Labels in country modal / breakdown lists (distinct sub-layers). */
 export function getLayerDisplayLabel(
   layerId: string,

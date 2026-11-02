@@ -3,6 +3,7 @@ import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 import { getCountryLabel, type CountryName } from "./countryFilters";
 import { makeNetworkPicto } from "./categorySwatch";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
+import { closeMbnMetricsModal } from "./mbnMetricsModal";
 import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 import {
   getCountryOperatedBreakdownFromMap,
@@ -499,6 +500,7 @@ export async function openCountryMetricsModal(
 ): Promise<void> {
   closeGoshipMetricsModal();
   closeSoconetMetricsModal();
+  closeMbnMetricsModal();
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
 

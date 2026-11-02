@@ -3,6 +3,7 @@ import { getLayerDisplayLabel } from "./categories";
 import { makeSoconetBreakdownPicto } from "./categorySwatch";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
+import { closeMbnMetricsModal } from "./mbnMetricsModal";
 import { queryMooringLayerCount } from "./mooringStacks";
 import { makeNetworkIconImg } from "./networkIcons";
 
@@ -52,7 +53,7 @@ function appendBreakdownRow(
   nameSpan.textContent = getLayerDisplayLabel(layerId, "modal");
   const countSpan = document.createElement("span");
   countSpan.className = "o-legend-count";
-  countSpan.textContent = ` (${count.toLocaleString()})`;
+  countSpan.textContent = count.toLocaleString();
   item.append(picto, nameSpan, countSpan);
   list.appendChild(item);
 }
@@ -63,6 +64,7 @@ export async function openSoconetMetricsModal(
 ): Promise<void> {
   closeCountryMetricsModal();
   closeGoshipMetricsModal();
+  closeMbnMetricsModal();
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
 

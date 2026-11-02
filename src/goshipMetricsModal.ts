@@ -1,6 +1,7 @@
 import { createLineStyleRow, getCategoryById, makeNetworkPicto } from "./categorySwatch";
 import { appendCountryFlag } from "./countryFlags";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
+import { closeMbnMetricsModal } from "./mbnMetricsModal";
 import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 import {
   loadGoshipEditionStats,
@@ -173,6 +174,7 @@ export async function openGoshipMetricsModal(
 ): Promise<void> {
   closeCountryMetricsModal();
   closeSoconetMetricsModal();
+  closeMbnMetricsModal();
   removeExistingModal();
   document.body.classList.add("o-country-modal-open");
 

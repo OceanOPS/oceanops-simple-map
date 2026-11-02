@@ -652,7 +652,7 @@ export function applyPopupDefaults(
 }
 
 export function applyViewNavigationDefaults(view: GlobeView) {
-  view.navigation.actionMap.mouseWheel = "none";
+  view.navigation.actionMap.mouseWheel = "zoom";
   if ("ui" in view) {
     view.ui.remove("navigation-toggle");
   }
