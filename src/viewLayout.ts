@@ -45,26 +45,20 @@ export function clearFlatViewDivWidthLimit(): void {
   viewDiv.style.removeProperty("margin-right");
 }
 
-/** Extent that fills the viewport width (no side gaps) while keeping a 360° longitude window. */
-export function plateCarreeExtentForViewport(
-  width: number,
-  height: number,
+function normalizeLongitude180(lon: number): number {
+  const wrapped = ((lon + 180) % 360 + 360) % 360 - 180;
+  return wrapped === -180 ? 180 : wrapped;
+}
+
+/** Pacific-centred Plate Carrée extent; xmin > xmax when the window crosses the dateline. */
+export function plateCarreeExtentFromSpans(
+  lonSpan: number,
+  latSpan: number,
   centerLongitude: number = PLATE_CARREE_CENTER_LONGITUDE
 ): Extent {
-  const aspect = width / height;
-  const worldAspect = WORLD_LON_SPAN / WORLD_LAT_SPAN;
-
-  // Wider than 2:1 → fill width and trim latitude; narrower → full ±90°.
-  const latSpan =
-    aspect > worldAspect
-      ? Math.min(WORLD_LAT_SPAN, WORLD_LON_SPAN / aspect)
-      : WORLD_LAT_SPAN;
-
   const halfLat = latSpan / 2;
-  const halfLon = WORLD_LON_SPAN / 2;
 
-  // Full-world longitude span: keep xmin/xmax in [-180, 180] (MapView goTo hangs on e.g. -330..30).
-  if (halfLon >= WORLD_LON_SPAN / 2 - 1e-9) {
+  if (lonSpan >= WORLD_LON_SPAN - 1e-6) {
     return new Extent({
       xmin: -180,
       ymin: -halfLat,
@@ -74,13 +68,38 @@ export function plateCarreeExtentForViewport(
     });
   }
 
+  const halfLon = lonSpan / 2;
+  const xmin = normalizeLongitude180(centerLongitude - halfLon);
+  const xmax = normalizeLongitude180(centerLongitude + halfLon);
+
   return new Extent({
-    xmin: centerLongitude - halfLon,
+    xmin,
     ymin: -halfLat,
-    xmax: centerLongitude + halfLon,
+    xmax,
     ymax: halfLat,
     spatialReference: SpatialReference.WGS84,
   });
+}
+
+/** Extent sized to the viewport (no letterboxing) with room to pan longitude at world scale. */
+export function plateCarreeExtentForViewport(
+  width: number,
+  height: number,
+  centerLongitude: number = PLATE_CARREE_CENTER_LONGITUDE
+): Extent {
+  const aspect = width / height;
+  const worldAspect = WORLD_LON_SPAN / WORLD_LAT_SPAN;
+
+  let latSpan = WORLD_LAT_SPAN;
+  let lonSpan = WORLD_LON_SPAN;
+
+  if (aspect > worldAspect) {
+    latSpan = Math.min(WORLD_LAT_SPAN, WORLD_LON_SPAN / aspect);
+  } else if (aspect < worldAspect) {
+    lonSpan = Math.min(WORLD_LON_SPAN, WORLD_LAT_SPAN * aspect);
+  }
+
+  return plateCarreeExtentFromSpans(lonSpan, latSpan, centerLongitude);
 }
 
 /** Extent sized to the viewport so the frame fills `#viewDiv` (no letterboxing). */
@@ -145,7 +164,13 @@ export async function fitPlateCarreeView(view: MapView): Promise<void> {
         : PLATE_CARREE_WORLD_EXTENT.clone();
     await view.goTo(fittedExtent, { animate: false });
 
-    if (PLATE_CARREE_CENTER_LONGITUDE !== 0) {
+    const showsFullLongitude =
+      fittedExtent.xmin === -180 &&
+      fittedExtent.xmax === 180 &&
+      fittedExtent.xmin < fittedExtent.xmax;
+
+    // Full 360° frame: anchor zoom on the Pacific; partial frames are already centred.
+    if (showsFullLongitude && PLATE_CARREE_CENTER_LONGITUDE !== 0) {
       await view
         .goTo(
           { center: [PLATE_CARREE_CENTER_LONGITUDE, 0], scale: view.scale },
