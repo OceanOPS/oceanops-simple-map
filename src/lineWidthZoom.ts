@@ -4,7 +4,7 @@ import type SceneView from "@arcgis/core/views/SceneView.js";
 import { categories } from "./categories";
 import {
   GLOBE_CAMERA_Z_REF,
-  lineSizePxForCameraZ,
+  linePathWidthMetersForCameraZ,
   makeGoshipLineRenderer,
   makeOceanTraxLineRenderer,
 } from "./renderers";
@@ -25,9 +25,9 @@ export function bindGlobeLineWidthZoomSync(
   const apply = (cameraZ: number) => {
     if (!is3dProjection(getProjection()) || view.type !== "3d") return;
 
-    const lineSizePx = lineSizePxForCameraZ(cameraZ);
-    if (lineSizePx === lastSize) return;
-    lastSize = lineSizePx;
+    const pathWidthM = linePathWidthMetersForCameraZ(cameraZ);
+    if (pathWidthM === lastSize) return;
+    lastSize = pathWidthM;
 
     for (const cat of categories) {
       if (cat.type !== "line" || !DUAL_LINE_LAYER_IDS.has(cat.id)) continue;
@@ -36,8 +36,8 @@ export function bindGlobeLineWidthZoomSync(
 
       layer.renderer =
         cat.id === "goship"
-          ? makeGoshipLineRenderer(PROJECTION_3D_GLOBE, cat.color, lineSizePx)
-          : makeOceanTraxLineRenderer(PROJECTION_3D_GLOBE, cat.color, lineSizePx);
+          ? makeGoshipLineRenderer(PROJECTION_3D_GLOBE, cat.color, pathWidthM)
+          : makeOceanTraxLineRenderer(PROJECTION_3D_GLOBE, cat.color, pathWidthM);
     }
   };
 

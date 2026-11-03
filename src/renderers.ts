@@ -70,15 +70,33 @@ export function lineSizePxForCameraZ(cameraZ: number): number {
 /** Diameter of generic 3D path tubes (non ship dual-style layers), in meters. */
 export const LINE_3D_WIDTH_METERS = 20000;
 
-/** 3D solid line (screen px) — same width as dashed lines. */
-function makeGoshipSolidLineSymbol3D(color: string, sizePx: number) {
+/** Path tube width when zoomed in close (m). */
+export const LINE_3D_PATH_WIDTH_METERS_ZOOMED = 20_000;
+/** Slightly bolder tubes at default / world camera altitude (m). */
+export const LINE_3D_PATH_WIDTH_METERS_UNZOOMED = 30_000;
+
+/** Path tube width (m) for GO-SHIP / OceanTraX on SceneView — follows the ellipsoid. */
+export function linePathWidthMetersForCameraZ(cameraZ: number): number {
+  const t = globeZoomFactor(cameraZ);
+  return (
+    LINE_3D_PATH_WIDTH_METERS_ZOOMED +
+    (LINE_3D_PATH_WIDTH_METERS_UNZOOMED - LINE_3D_PATH_WIDTH_METERS_ZOOMED) * t
+  );
+}
+
+/**
+ * 3D path tube — draped on the ground; avoids flat screen-space chords from `line` layers.
+ * (Esri dash patterns only exist on `line` layers, which look flat on the globe.)
+ */
+function makeGoshipPathSymbol3D(color: string, widthMeters: number) {
   return {
     type: "line-3d",
     symbolLayers: [
       {
-        type: "line",
-        size: sizePx,
+        type: "path",
+        profile: "circle",
         material: { color },
+        width: widthMeters,
         cap: "round",
         join: "round",
       },
@@ -86,24 +104,14 @@ function makeGoshipSolidLineSymbol3D(color: string, sizePx: number) {
   } as any;
 }
 
-/** 3D dashed line — requires antimeridian-split geometry (see densifyLayer). */
-function makeGoshipDashedLineSymbol3D(color: string, sizePx: number) {
-  return {
-    type: "line-3d",
-    symbolLayers: [
-      {
-        type: "line",
-        size: sizePx,
-        material: { color },
-        cap: "round",
-        join: "round",
-        pattern: {
-          type: "style",
-          style: "dash",
-        },
-      },
-    ],
-  } as any;
+/** Sampled / active lines on the globe. */
+function makeGoshipSolidLineSymbol3D(color: string, widthMeters: number) {
+  return makeGoshipPathSymbol3D(color, widthMeters);
+}
+
+/** Design / inactive lines — same path tube on 3D (dashed styling is 2D-only). */
+function makeGoshipDashedLineSymbol3D(color: string, widthMeters: number) {
+  return makeGoshipPathSymbol3D(color, widthMeters * 0.85);
 }
 
 export function makeLineRenderer3D(color: string) {
@@ -176,7 +184,8 @@ export function makeDualStyleLineRenderer(
   projection: ProjectionId,
   solidColor: string,
   dashColor: string,
-  lineSizePx = LINE_3D_LINE_SIZE_PX
+  _lineSizePx = LINE_3D_LINE_SIZE_PX,
+  linePathWidthMeters = LINE_3D_PATH_WIDTH_METERS_ZOOMED
 ) {
   const use3d = is3dProjection(projection);
   if (use3d) {
@@ -185,14 +194,14 @@ export function makeDualStyleLineRenderer(
       uniqueValueInfos: [
         {
           value: "solid",
-          symbol: makeGoshipSolidLineSymbol3D(solidColor, lineSizePx),
+          symbol: makeGoshipSolidLineSymbol3D(solidColor, linePathWidthMeters),
         },
         {
           value: "dash",
-          symbol: makeGoshipDashedLineSymbol3D(dashColor, lineSizePx),
+          symbol: makeGoshipDashedLineSymbol3D(dashColor, linePathWidthMeters),
         },
       ],
-      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor, lineSizePx),
+      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor, linePathWidthMeters),
     });
   }
 
@@ -216,18 +225,30 @@ export function makeDualStyleLineRenderer(
 export function makeOceanTraxLineRenderer(
   projection: ProjectionId,
   color: string,
-  lineSizePx?: number
+  linePathWidthMeters?: number
 ) {
-  return makeDualStyleLineRenderer(projection, color, color, lineSizePx);
+  return makeDualStyleLineRenderer(
+    projection,
+    color,
+    color,
+    LINE_3D_LINE_SIZE_PX,
+    linePathWidthMeters
+  );
 }
 
 /** GO-SHIP: solid = sampled this edition, dash = design line not sampled. */
 export function makeGoshipLineRenderer(
   projection: ProjectionId,
   color: string,
-  lineSizePx?: number
+  linePathWidthMeters?: number
 ) {
-  return makeDualStyleLineRenderer(projection, color, color, lineSizePx);
+  return makeDualStyleLineRenderer(
+    projection,
+    color,
+    color,
+    LINE_3D_LINE_SIZE_PX,
+    linePathWidthMeters
+  );
 }
 
 export function makeCategoryRenderer(
