@@ -7,11 +7,6 @@
 import Extent from "@arcgis/core/geometry/Extent.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
-import {
-  createFlatMapImageLayer,
-  OCEAN_MAP_SERVER,
-  SATELLITE_MAP_SERVER,
-} from "./plateCarreeBasemap";
 import { PACIFIC_CENTRAL_MERIDIAN } from "./projections";
 
 /** Pacific-centred Equal Earth (150°W), aligned with Plate Carrée framing. */
@@ -39,15 +34,16 @@ export const EQUAL_EARTH_WORLD_Y_SPAN = HALF_WORLD_Y * 2;
 /** Id used to find the basemap group when stacking operational layers. */
 export const EQUAL_EARTH_BASEMAP_GROUP_ID = "equal-earth-basemap-group";
 
-export function createEqualEarthBasemapGroup(kind: "map" | "satellite") {
+import {
+  addDualMapImageBasemaps,
+  type FlatBasemapKind,
+} from "./plateCarreeBasemap";
+
+export function createEqualEarthBasemapGroup(kind: FlatBasemapKind) {
   const group = new GroupLayer({
     id: EQUAL_EARTH_BASEMAP_GROUP_ID,
     listMode: "hide",
   });
-  group.add(
-    createFlatMapImageLayer(
-      kind === "satellite" ? SATELLITE_MAP_SERVER : OCEAN_MAP_SERVER
-    )
-  );
+  addDualMapImageBasemaps(group, kind);
   return group;
 }

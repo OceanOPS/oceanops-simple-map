@@ -1,6 +1,7 @@
 import esriConfig from "@arcgis/core/config.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
+import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
 import MapView from "@arcgis/core/views/MapView.js";
@@ -13,6 +14,7 @@ import {
   EQUAL_EARTH_WORLD_EXTENT,
 } from "./equalEarthBasemap";
 import {
+  applyFlatBasemapKindToGroup,
   createOceanTileLayer,
   createPlateCarreeBasemapGroup,
   PLATE_CARREE_BASEMAP_GROUP_ID,
@@ -154,18 +156,24 @@ export function applyBasemapKind(
   projection: ProjectionId
 ) {
   if (isEqualEarthProjection(projection)) {
-    const existing = map.findLayerById(EQUAL_EARTH_BASEMAP_GROUP_ID);
-    if (existing) map.remove(existing);
+    const group = map.findLayerById(EQUAL_EARTH_BASEMAP_GROUP_ID) as
+      | GroupLayer
+      | undefined;
+    if (group && applyFlatBasemapKindToGroup(group, kind)) return;
+    if (group) map.remove(group);
     map.add(createEqualEarthBasemapGroup(kind), 0);
     return;
   }
-  if (!isPlateCarreeProjection(projection)) {
-    map.basemap = basemapForKind(kind, projection);
+  if (isPlateCarreeProjection(projection)) {
+    const group = map.findLayerById(PLATE_CARREE_BASEMAP_GROUP_ID) as
+      | GroupLayer
+      | undefined;
+    if (group && applyFlatBasemapKindToGroup(group, kind)) return;
+    if (group) map.remove(group);
+    map.add(createPlateCarreeBasemapGroup(kind), 0);
     return;
   }
-  const existing = map.findLayerById(PLATE_CARREE_BASEMAP_GROUP_ID);
-  if (existing) map.remove(existing);
-  map.add(createPlateCarreeBasemapGroup(kind), 0);
+  map.basemap = basemapForKind(kind, projection);
 }
 
 const FLAT_HIGHLIGHT = {
@@ -182,7 +190,7 @@ const OCEANOPS_VIEW_BACKGROUND = {
 /** Map uses full `#viewDiv` — no Esri inset padding. */
 const EDGE_TO_EDGE_VIEW_PADDING = { left: 0, top: 0, right: 0, bottom: 0 };
 
-function createFlatMapView(
+export function createFlatMapView(
   container: HTMLDivElement | string,
   map: Map,
   projection: ProjectionId
@@ -651,8 +659,22 @@ export function applyPopupDefaults(
   }
 }
 
+let mapMouseWheelZoomEnabled = false;
+
+export function isMapMouseWheelZoomEnabled(): boolean {
+  return mapMouseWheelZoomEnabled;
+}
+
+export function setMapMouseWheelZoomEnabled(
+  view: GlobeView,
+  enabled: boolean
+): void {
+  mapMouseWheelZoomEnabled = enabled;
+  view.navigation.actionMap.mouseWheel = enabled ? "zoom" : "none";
+}
+
 export function applyViewNavigationDefaults(view: GlobeView) {
-  view.navigation.actionMap.mouseWheel = "zoom";
+  view.navigation.actionMap.mouseWheel = mapMouseWheelZoomEnabled ? "zoom" : "none";
   if ("ui" in view) {
     view.ui.remove("navigation-toggle");
   }
@@ -733,6 +755,52 @@ export function mountBasemapProjectionControl(
   const divider2 = document.createElement("div");
   divider2.className = "o-map-display-divider";
   divider2.setAttribute("aria-hidden", "true");
+
+  const scrollWheelSection = document.createElement("div");
+  scrollWheelSection.className =
+    "o-map-display-section o-map-display-section--scroll-wheel";
+
+  const scrollWheelBtn = document.createElement("button");
+  scrollWheelBtn.type = "button";
+  scrollWheelBtn.className = "o-map-scroll-wheel-toggle";
+  scrollWheelBtn.setAttribute("aria-pressed", "false");
+  scrollWheelBtn.setAttribute("aria-label", "Enable mouse wheel zoom");
+
+  const scrollWheelIcon = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="7" y="3" width="10" height="18" rx="5" stroke="currentColor" stroke-width="1.75"/>
+      <path d="M12 7v3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      <path d="M9.5 10.5 12 8l2.5 2.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+  const scrollWheelHint = document.createElement("span");
+  scrollWheelHint.className = "o-basemap-kind-label";
+  scrollWheelHint.textContent = "Scroll zoom";
+
+  const syncScrollWheelUi = () => {
+    const enabled = isMapMouseWheelZoomEnabled();
+    scrollWheelBtn.classList.toggle("is-active", enabled);
+    scrollWheelBtn.innerHTML = scrollWheelIcon;
+    scrollWheelBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    const actionLabel = enabled
+      ? "Disable mouse wheel zoom"
+      : "Enable mouse wheel zoom";
+    scrollWheelBtn.setAttribute("aria-label", actionLabel);
+    appendToolbarHint(scrollWheelBtn, actionLabel);
+  };
+
+  scrollWheelBtn.addEventListener("click", () => {
+    const view = options.viewHolder.view;
+    setMapMouseWheelZoomEnabled(view, !isMapMouseWheelZoomEnabled());
+    syncScrollWheelUi();
+  });
+
+  syncScrollWheelUi();
+  scrollWheelSection.append(scrollWheelBtn, scrollWheelHint);
+
+  const divider3 = document.createElement("div");
+  divider3.className = "o-map-display-divider";
+  divider3.setAttribute("aria-hidden", "true");
 
   const fullscreenSection = document.createElement("div");
   fullscreenSection.className = "o-map-display-section o-map-display-section--fullscreen";
@@ -835,7 +903,17 @@ export function mountBasemapProjectionControl(
     })();
   });
 
-  menu.append(basemapSection, divider, projectionSection, divider2, fullscreenSection);
+  menu.append(
+    basemapSection,
+    divider,
+    projectionSection,
+    divider2,
+    scrollWheelSection,
+    divider3,
+    fullscreenSection
+  );
+  (menu as HTMLElement & { _refreshDisplayMenu?: () => void })._refreshDisplayMenu =
+    updateUi;
   view.ui.add(menu, { position: "top-left", index: 4 });
   syncLeftToolbarOrder(view);
 }

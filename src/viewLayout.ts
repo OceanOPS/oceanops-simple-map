@@ -83,24 +83,27 @@ export function plateCarreeExtentForViewport(
   });
 }
 
-/** Extent that fills the viewport while keeping the full Equal Earth world in frame. */
+/** Extent sized to the viewport so the frame fills `#viewDiv` (no letterboxing). */
 export function equalEarthExtentForViewport(width: number, height: number): Extent {
   const aspect = width / height;
   const worldAspect = EQUAL_EARTH_WORLD_X_SPAN / EQUAL_EARTH_WORLD_Y_SPAN;
 
-  const ySpan =
-    aspect > worldAspect
-      ? Math.min(EQUAL_EARTH_WORLD_Y_SPAN, EQUAL_EARTH_WORLD_X_SPAN / aspect)
-      : EQUAL_EARTH_WORLD_Y_SPAN;
+  let xSpan = EQUAL_EARTH_WORLD_X_SPAN;
+  let ySpan = EQUAL_EARTH_WORLD_Y_SPAN;
 
-  const halfY = ySpan / 2;
-  const halfX = EQUAL_EARTH_WORLD_X_SPAN / 2;
+  if (aspect > worldAspect) {
+    // Wider than the world: trim latitude (poles) to match width.
+    ySpan = Math.min(EQUAL_EARTH_WORLD_Y_SPAN, EQUAL_EARTH_WORLD_X_SPAN / aspect);
+  } else if (aspect < worldAspect) {
+    // Taller than the world: trim longitude (Pacific-centred) to match height.
+    xSpan = Math.min(EQUAL_EARTH_WORLD_X_SPAN, EQUAL_EARTH_WORLD_Y_SPAN * aspect);
+  }
 
   return new Extent({
-    xmin: -halfX,
-    ymin: -halfY,
-    xmax: halfX,
-    ymax: halfY,
+    xmin: -xSpan / 2,
+    ymin: -ySpan / 2,
+    xmax: xSpan / 2,
+    ymax: ySpan / 2,
     spatialReference: EQUAL_EARTH_WORLD_EXTENT.spatialReference,
   });
 }

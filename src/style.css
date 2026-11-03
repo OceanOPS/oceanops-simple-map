@@ -686,6 +686,7 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transform: scale(0.98);
 }
 
+.o-map-scroll-wheel-toggle,
 .o-map-fullscreen-toggle {
   width: 46px;
   height: 46px;
@@ -700,6 +701,23 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 0;
+}
+
+.o-map-scroll-wheel-toggle:hover,
+.o-map-scroll-wheel-toggle:focus-visible {
+  opacity: 0.85;
+  border-color: #f48b25;
+  color: #f48b25;
+  outline: none;
+}
+
+.o-map-scroll-wheel-toggle.is-active {
+  border-color: #f48b25;
+  color: #f48b25;
+}
+
+.o-map-scroll-wheel-toggle:active {
+  transform: scale(0.95);
 }
 
 .o-map-fullscreen-toggle:hover,
@@ -720,11 +738,13 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 }
 
 @media (max-height: 700px) {
+  .o-map-scroll-wheel-toggle,
   .o-map-fullscreen-toggle {
     width: 40px;
     height: 40px;
   }
 
+  .o-map-scroll-wheel-toggle svg,
   .o-map-fullscreen-toggle svg {
     width: 16px;
     height: 16px;

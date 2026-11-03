@@ -17,6 +17,7 @@ import {
 } from "./lineCrossCountryCruise";
 import {
   isMooringSquareLayerId,
+  queryMooredBuoyTierPlatformCount,
   queryMooringLayerCount,
   queryMooringLayerFeatures,
 } from "./mooringStacks";
@@ -104,6 +105,41 @@ function sensorCrossCountryWhere(country: CountryName): string {
 }
 
 const labelByLayerId = (layerId: string) => getLayerDisplayLabel(layerId, "modal");
+
+const MBN_TIER_MODAL_LABELS = {
+  tropical: "Tropical moored buoys – MBN subcomponent",
+  coastal: "Coastal and National moored buoys – MBN subcomponent",
+} as const;
+
+async function mooredBuoyTierBreakdownForCountry(
+  country: CountryName,
+  layerById: Map<string, GeoJSONLayer>
+): Promise<CountryLayerCount[]> {
+  const where = countryWhere(country);
+  const [tropical, coastal] = await Promise.all([
+    queryMooredBuoyTierPlatformCount(layerById, where, "tropical"),
+    queryMooredBuoyTierPlatformCount(layerById, where, "coastal"),
+  ]);
+
+  const rows: CountryLayerCount[] = [];
+  if (tropical > 0) {
+    rows.push({
+      layerId: "moored_buoys",
+      label: MBN_TIER_MODAL_LABELS.tropical,
+      count: tropical,
+      displayCount: formatCountryModalMetric(tropical),
+    });
+  }
+  if (coastal > 0) {
+    rows.push({
+      layerId: "moored_buoys",
+      label: MBN_TIER_MODAL_LABELS.coastal,
+      count: coastal,
+      displayCount: formatCountryModalMetric(coastal),
+    });
+  }
+  return rows;
+}
 
 const REPORTING_ISO_FIELD = ["country_iso_reporting"] as const;
 
@@ -609,7 +645,14 @@ export async function getCountryOperatedBreakdownFromMap(
       displayCount,
     })
   );
-  return [...platformRows, ...lineRows].sort(
+
+  let platformBreakdown = platformRows.filter((row) => row.layerId !== "moored_buoys");
+  if (visibleLayerIds.has("moored_buoys")) {
+    const mbnTierRows = await mooredBuoyTierBreakdownForCountry(country, layerById);
+    platformBreakdown = [...platformBreakdown, ...mbnTierRows];
+  }
+
+  return [...platformBreakdown, ...lineRows].sort(
     (a, b) => b.count - a.count || a.label.localeCompare(b.label)
   );
 }

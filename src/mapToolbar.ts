@@ -149,16 +149,16 @@ export function ensureNavigationControlHints(view: GlobeView): void {
   });
 }
 
-/** Top-left stack: menu → zoom → compass → rotation → basemap/expand → search. */
-export function syncLeftToolbarOrder(view: GlobeView): void {
-  const move = (target: HTMLElement | string, index: number) => {
-    try {
-      view.ui.move(target, { position: "top-left", index });
-    } catch {
-      /* widget not mounted yet */
-    }
-  };
+function moveTopLeft(view: GlobeView, target: HTMLElement | string, index: number) {
+  try {
+    view.ui.move(target, { position: "top-left", index });
+  } catch {
+    /* widget not mounted yet */
+  }
+}
 
+/** Top-left stack: legend → zoom → compass → rotation → basemap/projection → search. */
+export function syncLeftToolbarOrder(view: GlobeView): void {
   const legendToggle = document.getElementById("legend-toggle");
   const searchBar = document.getElementById("platform-search-bar");
   const displayMenu = document.querySelector(".o-map-display-menu");
@@ -166,10 +166,11 @@ export function syncLeftToolbarOrder(view: GlobeView): void {
     ".o-map-toolbar-section--rotation"
   );
 
-  if (legendToggle) move(legendToggle, 0);
-  move("zoom", 1);
-  move("compass", 2);
-  if (rotationSection) move(rotationSection as HTMLElement, 3);
-  if (displayMenu) move(displayMenu as HTMLElement, 4);
-  if (searchBar) move(searchBar, 5);
+  if (legendToggle) moveTopLeft(view, legendToggle, 0);
+  moveTopLeft(view, "zoom", 1);
+  moveTopLeft(view, "compass", 2);
+  if (rotationSection) moveTopLeft(view, rotationSection as HTMLElement, 3);
+  if (displayMenu) moveTopLeft(view, displayMenu as HTMLElement, 4);
+  if (searchBar) moveTopLeft(view, searchBar, 5);
 }
+

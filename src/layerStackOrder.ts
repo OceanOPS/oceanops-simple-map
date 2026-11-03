@@ -16,11 +16,14 @@ export function sortedOperationalLayerIds(): string[] {
 }
 
 function operationalLayerBaseIndex(map: Map): number {
+  let topBasemapIndex = -1;
   for (const groupId of [PLATE_CARREE_BASEMAP_GROUP_ID, EQUAL_EARTH_BASEMAP_GROUP_ID]) {
     const basemapGroup = map.findLayerById(groupId);
-    if (basemapGroup) return map.layers.indexOf(basemapGroup) + 1;
+    if (basemapGroup) {
+      topBasemapIndex = Math.max(topBasemapIndex, map.layers.indexOf(basemapGroup));
+    }
   }
-  return 0;
+  return topBasemapIndex + 1;
 }
 
 /** MapView layer order (co-located mooring stacks use a sprite overlay layer on top). */

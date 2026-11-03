@@ -50,19 +50,48 @@ export const PLATE_CARREE_CENTER_LONGITUDE: number = PACIFIC_CENTRAL_MERIDIAN;
 /** Id used to find and swap the basemap group when the map/satellite toggle fires. */
 export const PLATE_CARREE_BASEMAP_GROUP_ID = "basemap-group";
 
+export const FLAT_BASEMAP_MAP_LAYER_ID = "flat-basemap-map";
+export const FLAT_BASEMAP_SATELLITE_LAYER_ID = "flat-basemap-satellite";
+
+export type FlatBasemapKind = "map" | "satellite";
+
+export function addDualMapImageBasemaps(
+  group: GroupLayer,
+  activeKind: FlatBasemapKind
+): void {
+  const mapLayer = createFlatMapImageLayer(OCEAN_MAP_SERVER);
+  mapLayer.id = FLAT_BASEMAP_MAP_LAYER_ID;
+  mapLayer.visible = activeKind === "map";
+
+  const satelliteLayer = createFlatMapImageLayer(SATELLITE_MAP_SERVER);
+  satelliteLayer.id = FLAT_BASEMAP_SATELLITE_LAYER_ID;
+  satelliteLayer.visible = activeKind === "satellite";
+
+  group.addMany([mapLayer, satelliteLayer]);
+}
+
+/** Toggle visibility instead of remove/add (avoids MapServer loader + UI churn). */
+export function applyFlatBasemapKindToGroup(
+  group: GroupLayer,
+  kind: FlatBasemapKind
+): boolean {
+  const mapLayer = group.findLayerById(FLAT_BASEMAP_MAP_LAYER_ID);
+  const satelliteLayer = group.findLayerById(FLAT_BASEMAP_SATELLITE_LAYER_ID);
+  if (!mapLayer || !satelliteLayer) return false;
+  mapLayer.visible = kind === "map";
+  satelliteLayer.visible = kind === "satellite";
+  return true;
+}
+
 /**
  * Ships as a plain layer rather than a `Basemap`: a `Basemap` reports the MapServer's
  * cached Web Mercator spatial reference, which the 4326 view rejects.
  */
-export function createPlateCarreeBasemapGroup(kind: "map" | "satellite") {
+export function createPlateCarreeBasemapGroup(kind: FlatBasemapKind) {
   const group = new GroupLayer({
     id: PLATE_CARREE_BASEMAP_GROUP_ID,
     listMode: "hide",
   });
-  group.add(
-    createFlatMapImageLayer(
-      kind === "satellite" ? SATELLITE_MAP_SERVER : OCEAN_MAP_SERVER
-    )
-  );
+  addDualMapImageBasemaps(group, kind);
   return group;
 }

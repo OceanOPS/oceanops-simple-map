@@ -19,8 +19,15 @@ const MAP_IMAGE_BASEMAP_GROUP_IDS = [
 function findMapImageBasemapLayer(map: __esri.Map | null | undefined) {
   for (const groupId of MAP_IMAGE_BASEMAP_GROUP_IDS) {
     const group = map?.findLayerById(groupId) as GroupLayer | undefined;
-    const layer = group?.layers.getItemAt(0);
-    if (layer?.type === "map-image") return layer;
+    if (!group) continue;
+
+    for (let i = 0; i < group.layers.length; i++) {
+      const layer = group.layers.getItemAt(i);
+      if (layer?.type === "map-image" && layer.visible) return layer;
+    }
+
+    const fallback = group.layers.getItemAt(0);
+    if (fallback?.type === "map-image") return fallback;
   }
   return undefined;
 }
@@ -115,7 +122,7 @@ export function mountMapServerLoader(
   const mapWatch = reactiveUtils.watch(
     () => {
       const layer = findMapImageBasemapLayer(view.map);
-      return `${layer?.id ?? ""}:${layer?.type ?? ""}`;
+      return `${layer?.id ?? ""}:${layer?.visible ?? ""}:${layer?.type ?? ""}`;
     },
     attachToBasemap,
     { initial: true }

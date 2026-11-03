@@ -306,10 +306,10 @@ export function attachLegend(
   stopRotation: () => void,
   getProjection: () => ProjectionId,
   onShellLayoutChange?: () => void,
-  getPlatformSearch?: () => PlatformSearchController | null
+  getPlatformSearch?: () => PlatformSearchController | null,
+  options?: { openPanel?: boolean }
 ): (() => void) | undefined {
   const view = viewHolder.view;
-  // nuke any previous legend, backdrop and toggle button
   document.getElementById("legend")?.remove();
   document.getElementById("legend-backdrop")?.remove();
   document.getElementById("legend-toggle")?.remove();
@@ -319,7 +319,6 @@ export function attachLegend(
   closeMbnMetricsModal();
   document.body.classList.remove("menu-open");
 
-  // Create toggle button (sidebar panel — clearer icon + hover hint when closed)
   const toggleButton = document.createElement("button");
   toggleButton.id = "legend-toggle";
   toggleButton.type = "button";
@@ -404,8 +403,6 @@ export function attachLegend(
   };
 
   updatePlayPauseIcon();
-
-  // Register callback to update UI when rotation state changes
   setRotationStateChangeCallback(updatePlayPauseIcon);
 
   playPauseButton.addEventListener("click", () => {
@@ -427,7 +424,6 @@ export function attachLegend(
   };
   syncRotationControlVisibility();
 
-  // Stop rotation when compass is clicked (widget may re-mount — delegate)
   view.container?.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (target?.closest(".esri-compass")) stopRotation();
@@ -1203,6 +1199,14 @@ export function attachLegend(
   }
 
   syncRotationControlVisibility();
+
+  if (options?.openPanel) {
+    legend.classList.add("open");
+    backdrop.classList.add("open");
+    document.body.classList.add("menu-open");
+    setMenuToggleState(toggleButton, true);
+    onShellLayoutChange?.();
+  }
 
   return syncSearchButton;
 }

@@ -337,6 +337,7 @@ function createRotationController(
   };
 
   let syncPlatformSearchUi: (() => void) | undefined;
+  let restoreLegendPanelOpen = false;
 
   const attachLegendToView = () => {
     syncPlatformSearchUi = attachLegend(
@@ -348,7 +349,98 @@ function createRotationController(
       () => rotationApi.stopRotation(),
       () => currentProjection,
       onShellLayoutChange,
-      () => platformSearch
+      () => platformSearch,
+      { openPanel: restoreLegendPanelOpen }
+    );
+    restoreLegendPanelOpen = false;
+  };
+
+  const unbindViewBindings = () => {
+    rotationApi.stopRotation();
+    unbindMapServerLoader?.();
+    unbindMapServerLoader = null;
+    unbindMapFullscreen?.();
+    unbindMapFullscreen = null;
+    unbindMapFullscreenEmbed?.();
+    unbindMapFullscreenEmbed = null;
+    unbindMapEmbedResize?.();
+    unbindMapEmbedResize = null;
+    unbindGlobeLineWidthZoom?.();
+    unbindGlobeLineWidthZoom = null;
+    unbindFlatWorldLayout?.();
+    unbindFlatWorldLayout = null;
+  };
+
+  const mountViewChrome = (projection: ProjectionId) => {
+    const view = viewHolder.view;
+    mountBasemapProjectionControl(view, {
+      viewHolder,
+      getProjection: () => currentProjection,
+      getBasemapKind: () => currentBasemapKind,
+      onBasemapKindChange: (kind) => {
+        currentBasemapKind = kind;
+      },
+      onProjectionChange: async (next) => {
+        await swapProjection(next);
+      },
+      onShellLayoutChange,
+    });
+
+    rotationApi = createRotationController(viewHolder, () => currentProjection);
+    if (!is3dProjection(projection)) {
+      rotationApi.stopRotation();
+    }
+
+    unbindMapFullscreen = bindMapFullscreenSync(onShellLayoutChange);
+    unbindMapFullscreenEmbed = bindMapFullscreenEmbedSync(onShellLayoutChange);
+    unbindMapEmbedResize = bindMapEmbedResizeSync(onShellLayoutChange);
+
+    unbindGlobeLineWidthZoom = is3dProjection(projection)
+      ? bindGlobeLineWidthZoomSync(view, layerById, () => currentProjection)
+      : null;
+
+    attachLegendToView();
+    mountPlatformSearchUi();
+  };
+
+  async function finishViewLayout(projection: ProjectionId) {
+    const view = viewHolder.view;
+    try {
+      applyPopupDefaults(view, {
+        getStackLayer: () => layerById.get(MOORING_STACK_LAYER_ID),
+        resolveLayerId: (layer) => {
+          const explicitId = layer.id?.trim();
+          if (explicitId) return explicitId;
+          for (const [id, mappedLayer] of layerById) {
+            if (mappedLayer === layer) return id;
+          }
+          const url = "url" in layer ? String((layer as GeoJSONLayer).url ?? "") : "";
+          const fromUrl = url.match(/\/geojson\/([^/?#]+)\.geojson/i)?.[1];
+          return fromUrl || undefined;
+        },
+      });
+    } catch (err) {
+      console.warn("Popup setup failed", err);
+    }
+    wirePointerCursor(view);
+    await refreshViewLayout(view);
+    const layerUnion = await computeLayerUnion(layerById);
+    await fitViewInitialExtent(view, projection, layerUnion);
+    await refreshViewLayout(view);
+
+    unbindFlatWorldLayout = is3dProjection(projection)
+      ? null
+      : bindFlatWorldLayoutSync(view, () => currentProjection);
+  }
+
+  const bindMapServerLoader = (view: GlobeView) => {
+    unbindMapServerLoader?.();
+    const mapShell = document.getElementById("mapShell");
+    if (!mapShell) return;
+    unbindMapServerLoader = mountMapServerLoader(
+      mapShell,
+      view,
+      () => currentProjection
     );
   };
 
@@ -388,95 +480,19 @@ function createRotationController(
     applyViewNavigationDefaults(view);
     await view.when();
     await refreshViewLayout(view);
+    bindMapServerLoader(view);
     await stripBasemapLabels(map);
     await addOperationalLayers(map, projection, layerById);
 
-    mountBasemapProjectionControl(view, {
-      viewHolder,
-      getProjection: () => currentProjection,
-      getBasemapKind: () => currentBasemapKind,
-      onBasemapKindChange: (kind) => {
-        currentBasemapKind = kind;
-      },
-      onProjectionChange: async (next) => {
-        await swapProjection(next);
-      },
-      onShellLayoutChange,
-    });
-
-    rotationApi = createRotationController(viewHolder, () => currentProjection);
-    if (!is3dProjection(projection)) {
-      rotationApi.stopRotation();
-    }
-    unbindMapFullscreen?.();
-    unbindMapFullscreen = bindMapFullscreenSync(onShellLayoutChange);
-    unbindMapFullscreenEmbed?.();
-    unbindMapFullscreenEmbed = bindMapFullscreenEmbedSync(onShellLayoutChange);
-    unbindMapEmbedResize?.();
-    unbindMapEmbedResize = bindMapEmbedResizeSync(onShellLayoutChange);
-
-    unbindGlobeLineWidthZoom?.();
-    unbindGlobeLineWidthZoom = is3dProjection(projection)
-      ? bindGlobeLineWidthZoomSync(view, layerById, () => currentProjection)
-      : null;
-
-    attachLegendToView();
-    mountPlatformSearchUi();
-
-    try {
-      applyPopupDefaults(view, {
-        getStackLayer: () => layerById.get(MOORING_STACK_LAYER_ID),
-        resolveLayerId: (layer) => {
-          const explicitId = layer.id?.trim();
-          if (explicitId) return explicitId;
-          for (const [id, mappedLayer] of layerById) {
-            if (mappedLayer === layer) return id;
-          }
-          const url = "url" in layer ? String((layer as GeoJSONLayer).url ?? "") : "";
-          const fromUrl = url.match(/\/geojson\/([^/?#]+)\.geojson/i)?.[1];
-          return fromUrl || undefined;
-        },
-      });
-    } catch (err) {
-      console.warn("Popup setup failed", err);
-    }
-    wirePointerCursor(view);
-    await refreshViewLayout(view);
-    const layerUnion = await computeLayerUnion(layerById);
-    await fitViewInitialExtent(view, projection, layerUnion);
-    await refreshViewLayout(view);
-
-    unbindFlatWorldLayout?.();
-    unbindFlatWorldLayout = is3dProjection(projection)
-      ? null
-      : bindFlatWorldLayoutSync(view, () => currentProjection);
-
-    unbindMapServerLoader?.();
-    const mapShell = document.getElementById("mapShell");
-    if (mapShell) {
-      unbindMapServerLoader = mountMapServerLoader(
-        mapShell,
-        view,
-        () => currentProjection
-      );
-    }
+    mountViewChrome(projection);
+    await finishViewLayout(projection);
   }
 
   async function swapProjection(projection: ProjectionId) {
-    rotationApi.stopRotation();
-    unbindMapServerLoader?.();
-    unbindMapServerLoader = null;
-    unbindMapFullscreen?.();
-    unbindMapFullscreen = null;
-    unbindMapFullscreenEmbed?.();
-    platformSearch?.rebuild();
-    unbindMapFullscreenEmbed = null;
-    unbindMapEmbedResize?.();
-    unbindMapEmbedResize = null;
-    unbindGlobeLineWidthZoom?.();
-    unbindGlobeLineWidthZoom = null;
-    unbindFlatWorldLayout?.();
-    unbindFlatWorldLayout = null;
+    restoreLegendPanelOpen =
+      document.getElementById("legend")?.classList.contains("open") ?? false;
+
+    unbindViewBindings();
 
     const oldView = viewHolder.view;
     const oldMap = oldView.map;
@@ -485,7 +501,6 @@ function createRotationController(
     oldMap?.destroy();
 
     currentProjection = projection;
-    await new Promise((r) => setTimeout(r, 100));
 
     await initView(projection, currentBasemapKind);
     await refreshViewLayout(viewHolder.view);
