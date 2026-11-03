@@ -1,4 +1,6 @@
 import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
+import Polyline from "@arcgis/core/geometry/Polyline.js";
+import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import { categories, getLayerDisplayLabel } from "./categories";
 import {
   MOORING_STACK_BITS,
@@ -191,12 +193,17 @@ export function mountPlatformSearch(options: {
         setStatus("Could not locate that platform.");
         return;
       }
-      await flyToFeature(view, feature.geometry, hit.isLine);
+      const navGeometry = hit.isLine
+        ? primaryLineGeometry(feature.geometry)
+        : feature.geometry;
+      await flyToFeature(view, navGeometry, hit.isLine);
       if (layer.popupTemplate) feature.popupTemplate = layer.popupTemplate;
       const location =
         feature.geometry.type === "point"
           ? feature.geometry
-          : feature.geometry.extent?.center;
+          : hit.isLine
+            ? linePopupLocation(navGeometry)
+            : feature.geometry.extent?.center;
       if (location?.type === "point") {
         await view.openPopup({
           features: [feature],
@@ -501,6 +508,41 @@ function pickFeature(
   if (features.length === 0) return null;
   if (objectId == null) return features[0];
   return features.find((feature) => readObjectId(feature) === objectId) ?? features[0];
+}
+
+/**
+ * Antimeridian-split GO-SHIP lines are MultiLineStrings; combined extent centers
+ * on the wrong meridian (e.g. P04E → Gulf of Guinea). Navigate using one path.
+ */
+function primaryLineGeometry(geometry: __esri.Geometry): __esri.Geometry {
+  if (geometry.type !== "polyline") return geometry;
+  const polyline = geometry as __esri.Polyline;
+  const paths = polyline.paths;
+  if (!paths || paths.length <= 1) return geometry;
+
+  let bestPath = paths[0]!;
+  let bestLen = -1;
+  for (const path of paths) {
+    if (!path || path.length < 2) continue;
+    const segment = new Polyline({
+      paths: [path],
+      spatialReference: polyline.spatialReference,
+    });
+    const len = geometryEngine.geodesicLength(segment, "kilometers");
+    if (len > bestLen) {
+      bestLen = len;
+      bestPath = path;
+    }
+  }
+
+  return new Polyline({
+    paths: [bestPath],
+    spatialReference: polyline.spatialReference,
+  });
+}
+
+function linePopupLocation(geometry: __esri.Geometry): __esri.Point | null {
+  return geometry.extent?.center ?? null;
 }
 
 async function flyToFeature(

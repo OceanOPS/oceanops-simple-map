@@ -13,8 +13,10 @@ import {
   type Shape,
 } from "./categories";
 import {
+  appendMbnTierToFeatureWhere,
   buildMooringStackMbnTierClause,
   getMbnGoosTierFilter,
+  type MbnGoosTier,
 } from "./mooringBuoyGoosTier";
 import { is3dProjection, type ProjectionId } from "./projections";
 import { makeCategoryRenderer } from "./renderers";
@@ -43,6 +45,8 @@ export type MooringStackMember = {
   ptf_id?: number;
   wigos_ref?: string;
   goos_networks?: string;
+  /** OceanSITES reference observatory site name(s) (see oceansites.geojson). */
+  site_names?: string;
   country_name?: string;
   country_iso_reporting?: string;
 };
@@ -112,6 +116,9 @@ function memberFromFeature(
 
   const goos = String(properties.goos_networks ?? "").trim();
   if (goos) member.goos_networks = goos;
+
+  const siteNames = String(properties.site_names ?? "").trim();
+  if (siteNames) member.site_names = siteNames;
 
   const country = String(properties.country_name ?? "").trim();
   if (country) member.country_name = country;
@@ -250,7 +257,7 @@ export type MooringStackData = {
 
 const COORD_DECIMALS = 4;
 /** Bump when stack grouping rules change (forces rebuild of blob URLs). */
-const MOORING_STACK_DATA_VERSION = 3;
+const MOORING_STACK_DATA_VERSION = 4;
 let cachedData: MooringStackData | null = null;
 let cachedDataVersion = 0;
 const blobUrls: string[] = [];
@@ -781,13 +788,15 @@ export function applyMooringStackSymbology(
 
 function buildMooringStackLayerWhere(
   layerId: MooringStackLayerId,
-  where: string
+  where: string,
+  options?: { applyActiveMapTierFilter?: boolean }
 ): string {
+  const applyActiveMapTierFilter = options?.applyActiveMapTierFilter ?? true;
   const layerMasks = stackMasksIncludingLayer(MOORING_STACK_BITS[layerId]);
   const maskClause = `stack_mask IN (${layerMasks.join(",")})`;
   let expr =
     where && where !== "1=1" ? `(${where}) AND ${maskClause}` : maskClause;
-  if (layerId === "moored_buoys") {
+  if (layerId === "moored_buoys" && applyActiveMapTierFilter) {
     const tierPart = buildMooringStackMbnTierClause(getMbnGoosTierFilter());
     if (tierPart) {
       expr = expr ? `(${expr}) AND (${tierPart})` : tierPart;
@@ -830,14 +839,15 @@ async function queryLayerFeaturesPaginated(
 async function countMooringPlatformsInStacks(
   layerId: MooringStackLayerId,
   layerById: ReadonlyMap<string, GeoJSONLayer>,
-  where: string
+  where: string,
+  options?: { applyActiveMapTierFilter?: boolean }
 ): Promise<number> {
   const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
   if (!stackLayer || typeof stackLayer.queryFeatures !== "function") {
     return 0;
   }
 
-  const stackWhere = buildMooringStackLayerWhere(layerId, where);
+  const stackWhere = buildMooringStackLayerWhere(layerId, where, options);
   let attrs: Record<string, unknown>[];
   try {
     attrs = await queryLayerFeaturesPaginated(stackLayer, stackWhere, [
@@ -883,6 +893,39 @@ export async function querySoconetMooringPlatformCount(
   }
 
   return total;
+}
+
+/**
+ * MBN modal / breakdown: tier totals must not follow the legend Global/Regional
+ * map filter (layer definitionExpression + active tier on stack queries).
+ */
+export async function queryMooredBuoyTierPlatformCount(
+  layerById: ReadonlyMap<string, GeoJSONLayer>,
+  countryWhere: string,
+  tier: MbnGoosTier
+): Promise<number> {
+  const featureWhere = appendMbnTierToFeatureWhere(countryWhere, tier);
+  const soloLayer = layerById.get("moored_buoys");
+  const stackLayer = layerById.get(MOORING_STACK_LAYER_ID);
+  const savedSoloDef = soloLayer?.definitionExpression ?? "";
+  const savedStackDef = stackLayer?.definitionExpression ?? "";
+
+  try {
+    if (soloLayer) soloLayer.definitionExpression = "";
+    if (stackLayer) stackLayer.definitionExpression = "";
+
+    let total = 0;
+    if (soloLayer && typeof soloLayer.queryFeatureCount === "function") {
+      total += await soloLayer.queryFeatureCount({ where: featureWhere });
+    }
+    total += await countMooringPlatformsInStacks("moored_buoys", layerById, featureWhere, {
+      applyActiveMapTierFilter: false,
+    });
+    return total;
+  } finally {
+    if (soloLayer) soloLayer.definitionExpression = savedSoloDef;
+    if (stackLayer) stackLayer.definitionExpression = savedStackDef;
+  }
 }
 
 export async function queryMooringLayerCount(

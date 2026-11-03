@@ -3,11 +3,8 @@ import { categories, type Category } from "./categories";
 import { makeCategorySwatch } from "./categorySwatch";
 import { closeCountryMetricsModal } from "./countryMetricsModal";
 import { closeGoshipMetricsModal } from "./goshipMetricsModal";
-import {
-  appendMbnTierToFeatureWhere,
-  type MbnGoosTier,
-} from "./mooringBuoyGoosTier";
-import { queryMooringLayerCount } from "./mooringStacks";
+import type { MbnGoosTier } from "./mooringBuoyGoosTier";
+import { queryMooredBuoyTierPlatformCount } from "./mooringStacks";
 import { makeNetworkIconImg } from "./networkIcons";
 import { closeSoconetMetricsModal } from "./soconetMetricsModal";
 
@@ -66,11 +63,7 @@ async function loadMbnBreakdown(
 ): Promise<{ tropical: number; coastal: number }> {
   const [tropical, coastal] = await Promise.all(
     TIER_ROWS.map(({ tier }) =>
-      queryMooringLayerCount(
-        "moored_buoys",
-        layerById,
-        appendMbnTierToFeatureWhere(where, tier)
-      )
+      queryMooredBuoyTierPlatformCount(layerById, where, tier)
     )
   );
   return { tropical, coastal };

@@ -5,6 +5,7 @@ import {
   getMbnGoosTierFilter,
 } from "./mooringBuoyGoosTier";
 import { updateMooringStackDefinitionExpression } from "./mooringStacks";
+import { appendGoshipLegendCountWhere } from "./goshipSampledLines";
 import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import { getPartnerDataSnapshot } from "./partnerCountriesData";
 
@@ -480,7 +481,11 @@ export function getLineLayerCountWhere(
   if (layerId === "oceantrax") {
     return selectedCountries.size === 0 ? "1=0" : OCEANTRAX_ACTIVE_DEFINITION;
   }
-  if (isAllCountriesSelected(selectedCountries, filterableCountries)) return "1=1";
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) {
+    return appendGoshipLegendCountWhere("1=1");
+  }
   if (selectedCountries.size === 0) return "1=0";
-  return buildLineCountryExpression(selectedCountries, filterableCountries);
+  return appendGoshipLegendCountWhere(
+    buildLineCountryExpression(selectedCountries, filterableCountries)
+  );
 }

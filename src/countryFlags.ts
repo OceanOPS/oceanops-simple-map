@@ -4,7 +4,8 @@ import { getPartnerDataSnapshot } from "./partnerCountriesData";
 /** ISO 3166-1 alpha-2 for GeoJSON `country_name` (from partner export index). */
 export function getCountryIsoCode(country: CountryName): string | undefined {
   const iso = getPartnerDataSnapshot().byGeoCountryName[country];
-  return iso || undefined;
+  if (iso) return iso;
+  return getIsoCodeForGeoCountry(country);
 }
 
 /** ISO code for a raw GeoJSON `country_name`, when mapped in partner export. */

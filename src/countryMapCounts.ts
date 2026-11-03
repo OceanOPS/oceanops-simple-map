@@ -26,6 +26,7 @@ import {
   getPartnerDataSnapshot,
   type CountryLayerCount,
 } from "./partnerCountriesData";
+import { listGoshipSampledLineNamesForCountry } from "./goshipCountryLineCounts";
 
 export type CountryContributorCount = {
   geoCountry: string;
@@ -348,14 +349,6 @@ export type CountryLineNetworkDetail = CountryLayerCount & {
   lineNames: string[];
 };
 
-function parseEditionCountryCodes(value: unknown): string[] {
-  if (typeof value !== "string" || !value.trim()) return [];
-  return value
-    .split(",")
-    .map((code) => code.trim().toUpperCase())
-    .filter(Boolean);
-}
-
 function oceanTraxLineDetailFromPartner(
   country: CountryName,
   visibleLayerIds: ReadonlySet<string>
@@ -377,51 +370,17 @@ function oceanTraxLineDetailFromPartner(
  */
 export async function getCountryLineDetailsFromMap(
   country: CountryName,
-  layerById: Map<string, GeoJSONLayer>,
+  _layerById: Map<string, GeoJSONLayer>,
   visibleLayerIds: ReadonlySet<string>
 ): Promise<CountryLineNetworkDetail[]> {
-  const iso = getCountryIsoCode(country)?.toUpperCase();
   const details: CountryLineNetworkDetail[] = [];
 
-  if (iso) {
-    for (const layerId of COUNTRY_FILTER_LINE_LAYER_IDS) {
-      if (layerId === "oceantrax") continue;
-      if (!visibleLayerIds.has(layerId)) continue;
-      const layer = layerById.get(layerId);
-      if (!layer || typeof layer.queryFeatures !== "function") continue;
-
-      let lineNames: string[] = [];
-      try {
-        const result = await layer.queryFeatures({
-          where: "1=1",
-          outFields: ["line_name", "edition_country_codes", "last_cruise_countries"],
-          returnGeometry: false,
-        });
-        lineNames = result.features
-          .filter((feature) => {
-            const attrs = feature.attributes ?? {};
-            if (
-              parseEditionCountryCodes(attrs.edition_country_codes).includes(iso)
-            ) {
-              return true;
-            }
-            return parseProgramCountryNames(
-              String(attrs.last_cruise_countries ?? "")
-            ).some((name) => countryNameMatchesFilter(country, name));
-          })
-          .map((feature) => String(feature.attributes?.line_name ?? "").trim())
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b));
-      } catch {
-        continue;
-      }
-
-      if (lineNames.length === 0) continue;
-
-      const label = labelByLayerId(layerId);
+  if (visibleLayerIds.has("goship")) {
+    const lineNames = await listGoshipSampledLineNamesForCountry(country);
+    if (lineNames.length > 0) {
       details.push({
-        layerId,
-        label,
+        layerId: "goship",
+        label: labelByLayerId("goship"),
         count: lineNames.length,
         displayCount: formatCountryModalMetric(lineNames.length),
         lineNames,

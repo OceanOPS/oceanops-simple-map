@@ -20,6 +20,7 @@ export function bindGlobeLineWidthZoomSync(
   getProjection: () => ProjectionId
 ): () => void {
   let lastSize = -1;
+  let latestCameraZ = GLOBE_CAMERA_Z_REF;
 
   const apply = (cameraZ: number) => {
     if (!is3dProjection(getProjection()) || view.type !== "3d") return;
@@ -41,11 +42,28 @@ export function bindGlobeLineWidthZoomSync(
   };
 
   const sceneView = view as SceneView;
-  const watch = reactiveUtils.watch(
+
+  /** Replacing renderers while the camera moves clears 3D lines until the layer reprojects. */
+  const maybeApply = (cameraZ: number) => {
+    latestCameraZ = cameraZ;
+    if (sceneView.stationary) apply(cameraZ);
+  };
+
+  const cameraWatch = reactiveUtils.watch(
     () => sceneView.camera?.position?.z ?? GLOBE_CAMERA_Z_REF,
-    (cameraZ) => apply(cameraZ),
+    (cameraZ) => maybeApply(cameraZ),
     { initial: true }
   );
 
-  return () => watch.remove();
+  const stationaryWatch = reactiveUtils.watch(
+    () => sceneView.stationary,
+    (stationary) => {
+      if (stationary) apply(latestCameraZ);
+    }
+  );
+
+  return () => {
+    cameraWatch.remove();
+    stationaryWatch.remove();
+  };
 }

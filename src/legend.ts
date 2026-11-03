@@ -634,7 +634,7 @@ export function attachLegend(
           node.textContent = formatNetworkLegendCount(n);
           node.title =
             id === "goship"
-              ? `${n.toLocaleString()} lines with edition cruises (selected countries)`
+              ? `${n.toLocaleString()} sampled GO-SHIP lines (solid; selected countries)`
               : `${n.toLocaleString()} active design lines (not filtered by country)`;
         } catch {
           node.textContent = "";
@@ -964,8 +964,8 @@ export function attachLegend(
   networkGroupBtnRow.append(
     networkAllFilterBtn,
     networkGlobalArraysFilterBtn,
-    networkRegionalSystemsFilterBtn,
-    networkRefObsFilterBtn
+    networkRefObsFilterBtn,
+    networkRegionalSystemsFilterBtn
   );
   networksBody.appendChild(networkGroupBtnRow);
 

@@ -37,6 +37,12 @@ export function formatCountriesWithFlagsHtml(countriesCsv: string): string {
 
   if (canonicalNames.length === 0) return "";
 
+  canonicalNames.sort((a, b) =>
+    getGeoCountryLabel(a).localeCompare(getGeoCountryLabel(b), undefined, {
+      sensitivity: "base",
+    })
+  );
+
   return canonicalNames
     .map((name) => {
       const label = getGeoCountryLabel(name);
@@ -160,6 +166,12 @@ function resolveCruiseRows(
   return latest ? [latest] : [];
 }
 
+function oceanTraxOperatedByCountriesCsv(attrs: Record<string, unknown>): string {
+  const fromDesign = String(attrs.operated_by_countries ?? "").trim();
+  if (fromDesign) return fromDesign;
+  return String(attrs.last_cruise_countries ?? attrs.last_cruise_country ?? "").trim();
+}
+
 function formatLineStatus(status: unknown): string {
   const value = String(status ?? "").trim().toLowerCase();
   if (value === "active") return "Active";
@@ -189,6 +201,16 @@ function renderPopupHtml(
       ? `<p><b>Network status:</b> ${escapeHtml(formatLineStatus(attrs.line_status))}</p>`
       : "";
 
+  const operatedByHtml =
+    cat.id === "oceantrax"
+      ? (() => {
+          const countriesHtml = formatCountriesWithFlagsHtml(
+            oceanTraxOperatedByCountriesCsv(attrs)
+          );
+          return `<p><b>Operated by:</b> ${countriesHtml || "—"}</p>`;
+        })()
+      : "";
+
   const lineUrl = `https://www.ocean-ops.org/board/wa/InspectLine?name=${encodeURIComponent(lineName)}`;
   const actionsHtml = `<p class="o-map-popup-actions">
           <a class="o-map-popup-action" target="_blank" rel="noopener noreferrer" href="${lineUrl}">Inspect line</a>
@@ -196,8 +218,9 @@ function renderPopupHtml(
 
   return `<div class="o-map-popup">
           <p><b>Type:</b> ${escapeHtml(cat.label)}</p>
-          <p><b>Name:</b> ${escapeHtml(lineName)}</p>
+          <p><b>Reference Observatory:</b> ${escapeHtml(lineName)}</p>
           ${networkStatusHtml}
+          ${operatedByHtml}
           ${cruiseSectionHtml}
           ${actionsHtml}
           </div>`;

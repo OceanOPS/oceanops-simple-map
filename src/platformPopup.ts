@@ -178,14 +178,28 @@ function referenceObservatoriesFromAttrs(
   return referenceObservatoriesMetaRowHtml(String(attrs.site_names ?? ""));
 }
 
+/** Reference observatory site name(s) from OceanSITES member(s) on a stack page. */
+function referenceObservatoriesForMemberGroup(
+  group: ColocatedPlatformMember[]
+): string {
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const member of group) {
+    if (member.layer_id !== "oceansites") continue;
+    const sites = (member.site_names ?? "").trim();
+    if (!sites || seen.has(sites)) continue;
+    seen.add(sites);
+    parts.push(sites);
+  }
+  return referenceObservatoriesMetaRowHtml(parts.join(", "));
+}
+
 function stackGroupPageInnerHtml(group: ColocatedPlatformMember[]): string {
   const passport = goosPassportIdFromMember(group[0]!);
   const operatedBy = formatOperatedByHtml(memberAttrsForOperatedBy(group[0]!));
   const networks = goosNetworksForMemberGroup(group);
   const primaryRef = group[0]?.ptf_ref.trim() ?? "";
-  const referenceObservatories = groupIsOceanSitesOnly(group)
-    ? referenceObservatoriesMetaRowHtml(group[0]?.site_names ?? "")
-    : "";
+  const referenceObservatories = referenceObservatoriesForMemberGroup(group);
 
   return `<dl class="o-map-popup-meta">
             <div class="o-map-popup-meta-row">

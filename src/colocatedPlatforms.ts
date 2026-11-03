@@ -67,6 +67,9 @@ export function memberFromPlatformAttributes(
   const goos = String(properties.goos_networks ?? "").trim();
   if (goos) member.goos_networks = goos;
 
+  const siteNames = String(properties.site_names ?? "").trim();
+  if (siteNames) member.site_names = siteNames;
+
   const country = String(properties.country_name ?? "").trim();
   if (country) member.country_name = country;
 

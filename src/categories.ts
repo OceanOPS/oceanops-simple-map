@@ -160,6 +160,9 @@ export function getLayerDisplayLabel(
   context: "legend" | "modal" = "legend"
 ): string {
   if (context === "modal") {
+    if (layerId === "goship") {
+      return "Repeated transects – GO-SHIP (sampled in the last 12 months)";
+    }
     if (layerId === "soconet") return "Surface ocean CO₂ cruises - SOCONET";
     if (layerId === "soconet_moorings")
       return "Surface ocean CO₂ sites - SOCONET";

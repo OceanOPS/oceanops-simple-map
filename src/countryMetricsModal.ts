@@ -388,7 +388,7 @@ function appendInternationalCollaborationSectionTitle(
 
   const middle =
     variant === "ship"
-      ? " deployed by research ships of "
+      ? " deployed by research vessels from "
       : " equipped with sensors provided by ";
   const suffix = " and operated by other countries.";
 
