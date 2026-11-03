@@ -45,8 +45,10 @@ export const LINE_3D_LINE_SIZE_PX = 3;
 /** Very thin ship lines when the globe camera is pulled back. */
 export const LINE_3D_LINE_SIZE_PX_UNZOOMED = 1.5;
 
-/** Default SceneView camera altitude (m) — matches `createGlobeView`. */
-export const GLOBE_CAMERA_Z_REF = 2.2e7;
+/** Initial / world-framing SceneView camera altitude (m) — matches `createGlobeView`. */
+export const GLOBE_INITIAL_CAMERA_Z = 2.55e7;
+/** Camera altitude (m) at or above which ship lines use the de-zoomed width. */
+export const GLOBE_CAMERA_Z_REF = GLOBE_INITIAL_CAMERA_Z;
 /** Approximate closest globe camera altitude (m) used for width interpolation. */
 export const GLOBE_CAMERA_Z_MIN = 2.5e6;
 

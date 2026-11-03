@@ -27,6 +27,7 @@ import {
   type ColocatedGraphicHit,
   isColocatedPopupLayer,
 } from "./colocatedPlatforms";
+import { GLOBE_INITIAL_CAMERA_Z } from "./renderers";
 import { STACK_MEMBERS_JSON_FIELD } from "./mooringStacks";
 import {
   bindStackPopupView,
