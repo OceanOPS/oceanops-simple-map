@@ -47,12 +47,11 @@ import {
 import {
   getCountryProgramTotalFromMap,
   getFilterableCountryNames,
+  getGoshipLegendCount,
   getNetworkLegendTotal,
-  getNetworkTotalFromPartner,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
 } from "./countryMetrics";
-import { LAYER_TO_PARTNER_NETWORK } from "./partnerNetworkMap";
 import {
   closeCountryMetricsModal,
   openCountryMetricsModal,
@@ -582,11 +581,11 @@ export function attachLegend(
         const node = countNodes.get(id);
         if (!node) continue;
         try {
-          if (id === "goship" && allCountriesSelected) {
-            const networkKey = LAYER_TO_PARTNER_NETWORK[id];
-            const total = networkKey
-              ? getNetworkTotalFromPartner(networkKey, getPartnerDataSnapshot())
-              : 0;
+          if (id === "goship") {
+            const total = getGoshipLegendCount(
+              selectedCountries as Set<CountryName>,
+              filterableCountries as readonly CountryName[]
+            );
             node.textContent = formatNetworkLegendCount(total);
             node.title = `${total.toLocaleString()} edition cruises (lead program country)`;
             continue;

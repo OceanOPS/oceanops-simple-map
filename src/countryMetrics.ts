@@ -3,6 +3,7 @@ export {
   getCountryBreakdownFromPartner,
   getCountryTotalFromPartner,
   getFilterableCountryNames,
+  getGoshipLegendCount,
   getNetworkLegendTotal,
   getNetworkTotalFromPartner,
   getPartnerDataSnapshot,

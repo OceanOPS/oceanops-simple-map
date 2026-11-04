@@ -1,5 +1,5 @@
 import type { CountryName } from "./countryFilters";
-import { ALL_COUNTRIES } from "./countryFilters";
+import { ALL_COUNTRIES, isAllCountriesSelected } from "./countryFilters";
 import partnerSnapshot from "./data/partnerCountries.json";
 import { categories, getLayerDisplayLabel } from "./categories";
 import {
@@ -168,4 +168,33 @@ export function getNetworkLegendTotal(
   const explicit = data.networkLegendTotals?.[networkKey];
   if (explicit != null && Number.isFinite(explicit)) return explicit;
   return undefined;
+}
+
+export function getPartnerNetworkCountForSelectedCountries(
+  networkKey: string,
+  selectedCountries: ReadonlySet<CountryName>,
+  data: PartnerCountriesFile = getPartnerDataSnapshot()
+): number {
+  let total = 0;
+  for (const geoCountry of selectedCountries) {
+    const record = getPartnerCountryByGeoName(data, geoCountry);
+    if (!record) continue;
+    total += numericContribution(record.networks[networkKey] ?? 0);
+  }
+  return total;
+}
+
+export function getGoshipLegendCount(
+  selectedCountries: ReadonlySet<CountryName>,
+  filterableCountries: readonly CountryName[]
+): number {
+  const snap = getPartnerDataSnapshot();
+  if (selectedCountries.size === 0) return 0;
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) {
+    return (
+      getNetworkLegendTotal("goShip", snap) ??
+      getNetworkTotalFromPartner("goShip", snap)
+    );
+  }
+  return getPartnerNetworkCountForSelectedCountries("goShip", selectedCountries, snap);
 }
