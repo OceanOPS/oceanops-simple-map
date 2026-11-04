@@ -280,7 +280,10 @@ export function createGlobeView(
     const view = new SceneView({
       container,
       map,
-      camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
+      camera: {
+        position: { longitude: 0, latitude: 0, z: GLOBE_INITIAL_CAMERA_Z },
+        tilt: 0,
+      },
       padding: EDGE_TO_EDGE_VIEW_PADDING,
       qualityProfile: "low",
       environment: {
@@ -794,8 +797,10 @@ export function mountBasemapProjectionControl(
     const view = options.viewHolder.view;
     setMapMouseWheelZoomEnabled(view, !isMapMouseWheelZoomEnabled());
     syncScrollWheelUi();
+    scrollWheelBtn.blur();
   });
 
+  setMapMouseWheelZoomEnabled(options.viewHolder.view, false);
   syncScrollWheelUi();
   scrollWheelSection.append(scrollWheelBtn, scrollWheelHint);
 

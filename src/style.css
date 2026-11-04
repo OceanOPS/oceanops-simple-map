@@ -703,12 +703,17 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   padding: 0;
 }
 
-.o-map-scroll-wheel-toggle:hover,
+@media (hover: hover) {
+  .o-map-scroll-wheel-toggle:hover {
+    opacity: 0.85;
+    border-color: #f48b25;
+    color: #f48b25;
+  }
+}
+
 .o-map-scroll-wheel-toggle:focus-visible {
-  opacity: 0.85;
-  border-color: #f48b25;
-  color: #f48b25;
-  outline: none;
+  outline: 2px solid #f48b25;
+  outline-offset: 2px;
 }
 
 .o-map-scroll-wheel-toggle.is-active {
@@ -720,12 +725,17 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transform: scale(0.95);
 }
 
-.o-map-fullscreen-toggle:hover,
+@media (hover: hover) {
+  .o-map-fullscreen-toggle:hover {
+    opacity: 0.85;
+    border-color: #f48b25;
+    color: #f48b25;
+  }
+}
+
 .o-map-fullscreen-toggle:focus-visible {
-  opacity: 0.85;
-  border-color: #f48b25;
-  color: #f48b25;
-  outline: none;
+  outline: 2px solid #f48b25;
+  outline-offset: 2px;
 }
 
 .o-map-fullscreen-toggle.is-active {
@@ -1550,6 +1560,11 @@ body.o-country-modal-open {
   font-size: 13px;
   line-height: 1.5;
   opacity: 0.88;
+}
+
+.o-country-modal-group--oceanops-contribution .o-country-modal-group-title {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .o-country-modal-group .o-country-modal-section:last-child {
