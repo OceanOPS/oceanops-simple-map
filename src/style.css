@@ -798,6 +798,13 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transform: scale(0.95);
 }
 
+@media (max-width: 639px) {
+  .o-map-display-section--fullscreen,
+  .o-map-display-divider--fullscreen {
+    display: none;
+  }
+}
+
 @media (max-height: 700px) {
   .o-map-scroll-wheel-switch {
     width: 46px;

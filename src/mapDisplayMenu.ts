@@ -99,7 +99,7 @@ export function mountBasemapProjectionControl(
 
   const scrollWheelHint = document.createElement("span");
   scrollWheelHint.className = "o-basemap-kind-label";
-  scrollWheelHint.textContent = "Scroll zoom (mouse)";
+  scrollWheelHint.textContent = "Scroll zoom";
 
   const syncScrollWheelUi = () => {
     const enabled = isMapMouseWheelZoomEnabled();
@@ -124,7 +124,7 @@ export function mountBasemapProjectionControl(
   scrollWheelSection.append(scrollWheelSwitch, scrollWheelHint);
 
   const divider3 = document.createElement("div");
-  divider3.className = "o-map-display-divider";
+  divider3.className = "o-map-display-divider o-map-display-divider--fullscreen";
   divider3.setAttribute("aria-hidden", "true");
 
   const fullscreenSection = document.createElement("div");
