@@ -89,18 +89,13 @@ export function mountBasemapProjectionControl(
   scrollWheelSection.className =
     "o-map-display-section o-map-display-section--scroll-wheel";
 
-  const scrollWheelBtn = document.createElement("button");
-  scrollWheelBtn.type = "button";
-  scrollWheelBtn.className = "o-map-scroll-wheel-toggle";
-  scrollWheelBtn.setAttribute("aria-pressed", "false");
-  scrollWheelBtn.setAttribute("aria-label", "Enable mouse wheel zoom");
-
-  const scrollWheelIcon = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="7" y="3" width="10" height="18" rx="5" stroke="currentColor" stroke-width="1.75"/>
-      <path d="M12 7v3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-      <path d="M9.5 10.5 12 8l2.5 2.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`;
+  const scrollWheelSwitch = document.createElement("button");
+  scrollWheelSwitch.type = "button";
+  scrollWheelSwitch.className = "o-map-scroll-wheel-switch";
+  scrollWheelSwitch.setAttribute("role", "switch");
+  scrollWheelSwitch.setAttribute("aria-checked", "false");
+  scrollWheelSwitch.setAttribute("aria-label", "Enable mouse wheel zoom");
+  scrollWheelSwitch.innerHTML = `<span class="o-map-scroll-wheel-switch__track" aria-hidden="true"><span class="o-map-scroll-wheel-switch__thumb"></span></span>`;
 
   const scrollWheelHint = document.createElement("span");
   scrollWheelHint.className = "o-basemap-kind-label";
@@ -108,26 +103,25 @@ export function mountBasemapProjectionControl(
 
   const syncScrollWheelUi = () => {
     const enabled = isMapMouseWheelZoomEnabled();
-    scrollWheelBtn.classList.toggle("is-active", enabled);
-    scrollWheelBtn.innerHTML = scrollWheelIcon;
-    scrollWheelBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    scrollWheelSwitch.classList.toggle("is-on", enabled);
+    scrollWheelSwitch.setAttribute("aria-checked", enabled ? "true" : "false");
     const actionLabel = enabled
       ? "Disable mouse wheel zoom"
       : "Enable mouse wheel zoom";
-    scrollWheelBtn.setAttribute("aria-label", actionLabel);
-    appendToolbarHint(scrollWheelBtn, actionLabel);
+    scrollWheelSwitch.setAttribute("aria-label", actionLabel);
+    appendToolbarHint(scrollWheelSwitch, actionLabel);
   };
 
-  scrollWheelBtn.addEventListener("click", () => {
+  scrollWheelSwitch.addEventListener("click", () => {
     const view = options.viewHolder.view;
     setMapMouseWheelZoomEnabled(view, !isMapMouseWheelZoomEnabled());
     syncScrollWheelUi();
-    scrollWheelBtn.blur();
+    scrollWheelSwitch.blur();
   });
 
   setMapMouseWheelZoomEnabled(options.viewHolder.view, false);
   syncScrollWheelUi();
-  scrollWheelSection.append(scrollWheelBtn, scrollWheelHint);
+  scrollWheelSection.append(scrollWheelSwitch, scrollWheelHint);
 
   const divider3 = document.createElement("div");
   divider3.className = "o-map-display-divider";

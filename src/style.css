@@ -686,7 +686,80 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transform: scale(0.98);
 }
 
-.o-map-scroll-wheel-toggle,
+.o-map-scroll-wheel-switch {
+  display: block;
+  width: 52px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 0;
+  --scroll-switch-travel: 26px;
+}
+
+.o-map-scroll-wheel-switch__track {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(248, 248, 248, 0.2);
+  border: 1px solid rgba(224, 224, 224, 0.9);
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition:
+    background-color 0.32s cubic-bezier(0.33, 1, 0.68, 1),
+    border-color 0.32s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.o-map-scroll-wheel-switch__thumb {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f8f8f8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transform: translateY(-50%) translateX(0);
+  transition:
+    transform 0.32s cubic-bezier(0.33, 1, 0.68, 1),
+    background-color 0.28s ease;
+  will-change: transform;
+}
+
+.o-map-scroll-wheel-switch.is-on .o-map-scroll-wheel-switch__track {
+  background: rgba(244, 139, 37, 0.35);
+  border-color: #f48b25;
+}
+
+.o-map-scroll-wheel-switch.is-on .o-map-scroll-wheel-switch__thumb {
+  transform: translateY(-50%) translateX(var(--scroll-switch-travel));
+  background: #f48b25;
+}
+
+@media (hover: hover) {
+  .o-map-scroll-wheel-switch:hover .o-map-scroll-wheel-switch__track {
+    border-color: #f48b25;
+  }
+}
+
+.o-map-scroll-wheel-switch:focus-visible {
+  outline: 2px solid #f48b25;
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+.o-map-scroll-wheel-switch:active .o-map-scroll-wheel-switch__thumb {
+  transform: translateY(-50%) translateX(0) scale(0.96);
+}
+
+.o-map-scroll-wheel-switch.is-on:active .o-map-scroll-wheel-switch__thumb {
+  transform: translateY(-50%) translateX(var(--scroll-switch-travel)) scale(0.96);
+}
+
 .o-map-fullscreen-toggle {
   width: 46px;
   height: 46px;
@@ -701,28 +774,6 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 0;
-}
-
-@media (hover: hover) {
-  .o-map-scroll-wheel-toggle:hover {
-    opacity: 0.85;
-    border-color: #f48b25;
-    color: #f48b25;
-  }
-}
-
-.o-map-scroll-wheel-toggle:focus-visible {
-  outline: 2px solid #f48b25;
-  outline-offset: 2px;
-}
-
-.o-map-scroll-wheel-toggle.is-active {
-  border-color: #f48b25;
-  color: #f48b25;
-}
-
-.o-map-scroll-wheel-toggle:active {
-  transform: scale(0.95);
 }
 
 @media (hover: hover) {
@@ -748,13 +799,23 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 }
 
 @media (max-height: 700px) {
-  .o-map-scroll-wheel-toggle,
+  .o-map-scroll-wheel-switch {
+    width: 46px;
+    height: 26px;
+    --scroll-switch-travel: 24px;
+  }
+
+  .o-map-scroll-wheel-switch__thumb {
+    width: 18px;
+    height: 18px;
+    left: 2px;
+  }
+
   .o-map-fullscreen-toggle {
     width: 40px;
     height: 40px;
   }
 
-  .o-map-scroll-wheel-toggle svg,
   .o-map-fullscreen-toggle svg {
     width: 16px;
     height: 16px;
