@@ -5,6 +5,7 @@ import { categories } from "./categories";
 import {
   GLOBE_CAMERA_Z_REF,
   linePathWidthMetersForCameraZ,
+  lineSizePxForCameraZ,
   makeGoshipLineRenderer,
   makeOceanTraxLineRenderer,
 } from "./renderers";
@@ -26,8 +27,10 @@ export function bindGlobeLineWidthZoomSync(
     if (!is3dProjection(getProjection()) || view.type !== "3d") return;
 
     const pathWidthM = linePathWidthMetersForCameraZ(cameraZ);
-    if (pathWidthM === lastSize) return;
-    lastSize = pathWidthM;
+    const lineSizePx = lineSizePxForCameraZ(cameraZ);
+    const sizeKey = pathWidthM * 1000 + lineSizePx;
+    if (sizeKey === lastSize) return;
+    lastSize = sizeKey;
 
     for (const cat of categories) {
       if (cat.type !== "line" || !DUAL_LINE_LAYER_IDS.has(cat.id)) continue;
@@ -36,8 +39,18 @@ export function bindGlobeLineWidthZoomSync(
 
       layer.renderer =
         cat.id === "goship"
-          ? makeGoshipLineRenderer(PROJECTION_3D_GLOBE, cat.color, pathWidthM)
-          : makeOceanTraxLineRenderer(PROJECTION_3D_GLOBE, cat.color, pathWidthM);
+          ? makeGoshipLineRenderer(
+              PROJECTION_3D_GLOBE,
+              cat.color,
+              pathWidthM,
+              lineSizePx
+            )
+          : makeOceanTraxLineRenderer(
+              PROJECTION_3D_GLOBE,
+              cat.color,
+              pathWidthM,
+              lineSizePx
+            );
     }
   };
 

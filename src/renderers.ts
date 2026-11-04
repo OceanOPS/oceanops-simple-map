@@ -111,9 +111,24 @@ function makeGoshipSolidLineSymbol3D(color: string, widthMeters: number) {
   return makeGoshipPathSymbol3D(color, widthMeters);
 }
 
-/** Design / inactive lines — same path tube on 3D (dashed styling is 2D-only). */
-function makeGoshipDashedLineSymbol3D(color: string, widthMeters: number) {
-  return makeGoshipPathSymbol3D(color, widthMeters * 0.85);
+/** Design / inactive lines — dashed screen-space line (path tubes cannot dash). */
+function makeGoshipDashedLineSymbol3D(color: string, sizePx: number) {
+  return {
+    type: "line-3d",
+    symbolLayers: [
+      {
+        type: "line",
+        size: sizePx,
+        material: { color },
+        cap: "round",
+        join: "round",
+        pattern: {
+          type: "style",
+          style: "dash",
+        },
+      },
+    ],
+  } as any;
 }
 
 export function makeLineRenderer3D(color: string) {
@@ -200,10 +215,10 @@ export function makeDualStyleLineRenderer(
         },
         {
           value: "dash",
-          symbol: makeGoshipDashedLineSymbol3D(dashColor, linePathWidthMeters),
+          symbol: makeGoshipDashedLineSymbol3D(dashColor, _lineSizePx),
         },
       ],
-      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor, linePathWidthMeters),
+      defaultSymbol: makeGoshipDashedLineSymbol3D(dashColor, _lineSizePx),
     });
   }
 
@@ -227,13 +242,14 @@ export function makeDualStyleLineRenderer(
 export function makeOceanTraxLineRenderer(
   projection: ProjectionId,
   color: string,
-  linePathWidthMeters?: number
+  linePathWidthMeters?: number,
+  lineSizePx = LINE_3D_LINE_SIZE_PX
 ) {
   return makeDualStyleLineRenderer(
     projection,
     color,
     color,
-    LINE_3D_LINE_SIZE_PX,
+    lineSizePx,
     linePathWidthMeters
   );
 }
@@ -242,13 +258,14 @@ export function makeOceanTraxLineRenderer(
 export function makeGoshipLineRenderer(
   projection: ProjectionId,
   color: string,
-  linePathWidthMeters?: number
+  linePathWidthMeters?: number,
+  lineSizePx = LINE_3D_LINE_SIZE_PX
 ) {
   return makeDualStyleLineRenderer(
     projection,
     color,
     color,
-    LINE_3D_LINE_SIZE_PX,
+    lineSizePx,
     linePathWidthMeters
   );
 }
