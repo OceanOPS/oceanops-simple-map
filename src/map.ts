@@ -38,26 +38,13 @@ import {
   isCustomFlatBasemapProjection,
   isEqualEarthProjection,
   isPlateCarreeProjection,
-  PROJECTION_3D_GLOBE,
-  PROJECTION_EQUAL_EARTH,
-  PROJECTION_PLATE_CARREE_PACIFIC,
-  projectionLabel,
-  toggleProjection,
   type ProjectionId,
 } from "./projections";
-import {
-  appendToolbarHint,
-  clearToolbarHint,
-  syncLeftToolbarOrder,
-} from "./mapToolbar";
-import type { GlobeView, ViewHolder } from "./viewHolder";
-import { isMapFullscreen, setMapFullscreen } from "./mapFullscreen";
+import type { GlobeView } from "./viewHolder";
 
 esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
 export type BasemapKind = "map" | "satellite";
-
-const BASE = import.meta.env.BASE_URL;
 
 export function createNavigationBasemapMercator() {
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
