@@ -652,6 +652,25 @@ export function applyPopupDefaults(
 
 let mapMouseWheelZoomEnabled = false;
 
+function isMapEmbeddedInParentPage(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function applyMouseWheelZoomNavigation(view: GlobeView, enabled: boolean): void {
+  view.navigation.actionMap.mouseWheel = enabled ? "zoom" : "none";
+  view.navigation.mouseWheelZoomEnabled = enabled;
+}
+
+/** Embedded report-card iframe: one-finger drag scrolls the page; use two fingers on the map. */
+function applyEmbeddedTouchNavigation(view: GlobeView): void {
+  if (!isMapEmbeddedInParentPage()) return;
+  view.navigation.browserTouchPanEnabled = false;
+}
+
 export function isMapMouseWheelZoomEnabled(): boolean {
   return mapMouseWheelZoomEnabled;
 }
@@ -661,11 +680,12 @@ export function setMapMouseWheelZoomEnabled(
   enabled: boolean
 ): void {
   mapMouseWheelZoomEnabled = enabled;
-  view.navigation.actionMap.mouseWheel = enabled ? "zoom" : "none";
+  applyMouseWheelZoomNavigation(view, enabled);
 }
 
 export function applyViewNavigationDefaults(view: GlobeView) {
-  view.navigation.actionMap.mouseWheel = mapMouseWheelZoomEnabled ? "zoom" : "none";
+  applyMouseWheelZoomNavigation(view, mapMouseWheelZoomEnabled);
+  applyEmbeddedTouchNavigation(view);
   if ("ui" in view) {
     view.ui.remove("navigation-toggle");
   }

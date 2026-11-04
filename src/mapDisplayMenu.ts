@@ -99,7 +99,7 @@ export function mountBasemapProjectionControl(
 
   const scrollWheelHint = document.createElement("span");
   scrollWheelHint.className = "o-basemap-kind-label";
-  scrollWheelHint.textContent = "Scroll zoom";
+  scrollWheelHint.textContent = "Scroll zoom (mouse)";
 
   const syncScrollWheelUi = () => {
     const enabled = isMapMouseWheelZoomEnabled();
