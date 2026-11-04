@@ -15,7 +15,6 @@ import {
   isMooringSquareLayerId,
   queryMooringLayerCount,
 } from "./mooringStacks";
-import { OCEANTRAX_ACTIVE_DEFINITION } from "./oceanTraxFilter";
 import {
   categories,
   type Category,
@@ -48,7 +47,6 @@ import {
   getCountryProgramTotalFromMap,
   getFilterableCountryNames,
   getGoshipLegendCount,
-  getNetworkLegendTotal,
   getPartnerDataSnapshot,
   loadPartnerCountriesData,
 } from "./countryMetrics";
@@ -591,30 +589,6 @@ export function attachLegend(
             continue;
           }
 
-          if (id === "oceantrax" && allCountriesSelected) {
-            const legendTotal = getNetworkLegendTotal(
-              "oceantrax",
-              getPartnerDataSnapshot()
-            );
-            if (legendTotal != null) {
-              node.textContent = formatNetworkLegendCount(legendTotal);
-              node.title = `${legendTotal.toLocaleString()} active OceanTraX lines`;
-              continue;
-            }
-            const canCount =
-              typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
-            if (!canCount) {
-              node.textContent = "";
-              continue;
-            }
-            const active = await (layer as GeoJSONLayer).queryFeatureCount({
-              where: OCEANTRAX_ACTIVE_DEFINITION,
-            });
-            node.textContent = formatNetworkLegendCount(active);
-            node.title = `${active.toLocaleString()} active OceanTraX lines`;
-            continue;
-          }
-
           const canCount = typeof (layer as GeoJSONLayer).queryFeatureCount === "function";
           if (!canCount) {
             node.textContent = "";
@@ -630,7 +604,9 @@ export function attachLegend(
           node.title =
             id === "goship"
               ? `${n.toLocaleString()} sampled GO-SHIP lines (solid; selected countries)`
-              : `${n.toLocaleString()} active design lines (not filtered by country)`;
+              : allCountriesSelected
+                ? `${n.toLocaleString()} active OceanTraX lines`
+                : `${n.toLocaleString()} active OceanTraX lines (operating country)`;
         } catch {
           node.textContent = "";
           node.removeAttribute("title");

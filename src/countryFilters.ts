@@ -147,7 +147,7 @@ export const COUNTRY_FILTER_LAYER_IDS = categories
   .filter((cat) => cat.id !== "oceantrax" && cat.id !== "goship")
   .map((cat) => cat.id);
 
-/** Line layers — GO-SHIP filtered by edition / last cruise country; OceanTraX is not. */
+/** Line layers — GO-SHIP (edition / last cruise) and OceanTraX (operating country). */
 export const COUNTRY_FILTER_LINE_LAYER_IDS = ["goship", "oceantrax"] as const;
 
 /** Extra GeoJSON text names for ship/sensor fields (no ISO on those properties). Not partner rollup — see sql/_partner_country_iso.sql. */
@@ -334,6 +334,12 @@ function lastCruiseCountryNameMatches(dbName: string): string {
   return `(last_cruise_countries = '${name}' OR last_cruise_countries LIKE '${name},%' OR last_cruise_countries LIKE '%, ${name}' OR last_cruise_countries LIKE '%, ${name},%')`;
 }
 
+/** Match one DB country name inside comma-separated `operated_by_countries` (OceanTraX). */
+function operatedByCountryNameMatches(dbName: string): string {
+  const name = dbName.replace(/'/g, "''");
+  return `(operated_by_countries = '${name}' OR operated_by_countries LIKE '${name},%' OR operated_by_countries LIKE '%, ${name}' OR operated_by_countries LIKE '%, ${name},%')`;
+}
+
 function lineHasCountryAttribution(): string {
   return `NOT ((edition_country_codes IS NULL OR edition_country_codes = '') AND (last_cruise_countries IS NULL OR last_cruise_countries = ''))`;
 }
@@ -385,12 +391,63 @@ function buildStrictLineCountryExpression(
   return `(${attribution} AND (${include}))`;
 }
 
-/** Line-layer country filter — GO-SHIP only (OceanTraX is never filtered by country). */
+/** Line-layer country filter — GO-SHIP (edition / last cruise countries). */
 export function buildLineCountryExpression(
   selectedCountries: Iterable<string>,
   filterableCountries: readonly string[]
 ): string {
   return buildStrictLineCountryExpression(selectedCountries, filterableCountries);
+}
+
+function oceanTraXHasCountryAttribution(): string {
+  return `(operated_by_countries IS NOT NULL AND operated_by_countries <> '')`;
+}
+
+function buildOceanTraXCountryMatchExpression(
+  countries: Iterable<string>
+): string | null {
+  const dbNames = dbCountryNamesForFilterCountries(countries);
+  if (dbNames.length === 0) return null;
+  const parts = dbNames.map(operatedByCountryNameMatches);
+  if (parts.length === 1) return parts[0];
+  return `(${parts.join(" OR ")})`;
+}
+
+/** OceanTraX — match `operated_by_countries` for selected legend countries. */
+export function buildOceanTraXLineCountryExpression(
+  selectedCountries: Iterable<string>,
+  filterableCountries: readonly string[]
+): string {
+  const selectedSet = new Set(selectedCountries);
+  const deselected = filterableCountries.filter((country) => !selectedSet.has(country));
+  const attribution = oceanTraXHasCountryAttribution();
+
+  if (deselected.length <= selectedSet.size) {
+    const exclude = buildOceanTraXCountryMatchExpression(deselected);
+    if (!exclude) return "1=0";
+    return `(${attribution} AND NOT (${exclude}))`;
+  }
+
+  const include = buildOceanTraXCountryMatchExpression(selectedSet);
+  if (!include) return "1=0";
+  return `(${attribution} AND (${include}))`;
+}
+
+/** Active OceanTraX lines, optionally filtered by operating country. */
+export function buildOceanTraXDefinitionExpression(
+  selectedCountries: ReadonlySet<string>,
+  filterableCountries: readonly string[]
+): string {
+  if (selectedCountries.size === 0) return "1=0";
+  if (isAllCountriesSelected(selectedCountries, filterableCountries)) {
+    return OCEANTRAX_ACTIVE_DEFINITION;
+  }
+  const countryExpr = buildOceanTraXLineCountryExpression(
+    selectedCountries,
+    filterableCountries
+  );
+  if (countryExpr === "1=0") return "1=0";
+  return `(${OCEANTRAX_ACTIVE_DEFINITION}) AND (${countryExpr})`;
 }
 
 export function isAllCountriesSelected(
@@ -447,8 +504,10 @@ export function applyCountryFilter(
     if (!layer) continue;
 
     if (layerId === "oceantrax") {
-      layer.definitionExpression =
-        selectedCountries.size === 0 ? "1=0" : OCEANTRAX_ACTIVE_DEFINITION;
+      layer.definitionExpression = buildOceanTraXDefinitionExpression(
+        selectedCountries,
+        filterableCountries
+      );
       continue;
     }
 
@@ -479,7 +538,10 @@ export function getLineLayerCountWhere(
   layerId: (typeof COUNTRY_FILTER_LINE_LAYER_IDS)[number]
 ): string {
   if (layerId === "oceantrax") {
-    return selectedCountries.size === 0 ? "1=0" : OCEANTRAX_ACTIVE_DEFINITION;
+    return buildOceanTraXDefinitionExpression(
+      selectedCountries,
+      filterableCountries
+    );
   }
   if (isAllCountriesSelected(selectedCountries, filterableCountries)) {
     return appendGoshipLegendCountWhere("1=1");
