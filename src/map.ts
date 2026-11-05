@@ -1,23 +1,60 @@
 import esriConfig from "@arcgis/core/config.js";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
+import type GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer.js";
+import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
 import Map from "@arcgis/core/Map.js";
 import SceneView from "@arcgis/core/views/SceneView.js";
+import MapView from "@arcgis/core/views/MapView.js";
 import Basemap from "@arcgis/core/Basemap.js";
-import TileLayer from "@arcgis/core/layers/TileLayer.js";
-export async function initMap(containerId = "viewDiv") {
-  esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
+import {
+  createEqualEarthBasemapGroup,
+  EQUAL_EARTH_BASEMAP_GROUP_ID,
+  EQUAL_EARTH_SPATIAL_REFERENCE,
+  EQUAL_EARTH_WORLD_EXTENT,
+} from "./equalEarthBasemap";
+import {
+  applyFlatBasemapKindToGroup,
+  createOceanTileLayer,
+  createPlateCarreeBasemapGroup,
+  PLATE_CARREE_BASEMAP_GROUP_ID,
+  PLATE_CARREE_WORLD_EXTENT,
+} from "./plateCarreeBasemap";
+import Graphic from "@arcgis/core/Graphic.js";
+import {
+  buildSyntheticColocatedAttributes,
+  colocatedMembersFromHits,
+  type ColocatedGraphicHit,
+  isColocatedPopupLayer,
+} from "./colocatedPlatforms";
+import { GLOBE_INITIAL_CAMERA_Z } from "./renderers";
+import { STACK_MEMBERS_JSON_FIELD } from "./mooringStacks";
+import {
+  bindStackPopupView,
+  colocatedPlatformsPopupTemplate,
+} from "./platformPopup";
+import {
+  is3dProjection,
+  isCustomFlatBasemapProjection,
+  isEqualEarthProjection,
+  isPlateCarreeProjection,
+  type ProjectionId,
+} from "./projections";
+import type { GlobeView } from "./viewHolder";
 
-  const BASE = import.meta.env.BASE_URL;
+esriConfig.assetsPath = "https://js.arcgis.com/4.33/@arcgis/core/assets";
 
+export type BasemapKind = "map" | "satellite";
+
+export function createNavigationBasemapMercator() {
   // ===== BASEMAP OPTIONS - Uncomment one to try =====
 
-  // CURRENT: Ocean base (default)
-  // const oceanBase = new TileLayer({
-  //   url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
-  // });
-  // const basemap = new Basemap({
-  //   baseLayers: [oceanBase],
-  //   referenceLayers: []
-  // });
+  // Ocean base — ArcGIS CDN tiles (Web Mercator)
+  const oceanBase = createOceanTileLayer();
+  const basemap = new Basemap({
+    baseLayers: [oceanBase],
+    referenceLayers: [],
+  });
 
   // OPTION 1: Gray Vector (light minimalist)
   // const basemap = Basemap.fromId("gray-vector");
@@ -55,7 +92,7 @@ export async function initMap(containerId = "viewDiv") {
   // OPTION 12: Streets Relief (with terrain shading)
   // const basemap = Basemap.fromId("streets-relief-vector");
 
-   // ===== 3D OPTIMIZED BASEMAPS (Best for SceneView/Globe) =====
+  // ===== 3D OPTIMIZED BASEMAPS (Best for SceneView/Globe) =====
 
   // OPTION 13: Gray 3D (ultra minimal light - RECOMMENDED for clean look)
   // const basemap = Basemap.fromId("gray-3d");
@@ -68,17 +105,6 @@ export async function initMap(containerId = "viewDiv") {
 
   // OPTION 16: Navigation 3D (clean navigation for 3D)
   // const basemapId = "navigation-3d";
-
-  // Pre-load both basemaps for smooth switching
-  // Ocean base (default)
-  const oceanBase = new TileLayer({
-    url: "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer"
-  });
-  const navigationBasemap = new Basemap({
-    baseLayers: [oceanBase],
-    referenceLayers: []
-  });
-  const satelliteBasemap = Basemap.fromId("satellite");
 
   // OPTION 17: Navigation Dark 3D (dark navigation for 3D)
   // const basemap = Basemap.fromId("navigation-dark-3d");
@@ -94,204 +120,605 @@ export async function initMap(containerId = "viewDiv") {
 
   // ===== END BASEMAP OPTIONS =====
 
-  const map = new Map({
-    basemap: navigationBasemap
-  });
+  return basemap;
+}
 
-  const view = new SceneView({
-    container: containerId,
-    map,
-    camera: { position: { longitude: 0, latitude: 0, z: 2.2e7 }, tilt: 0 },
-    qualityProfile: "low",
-    environment: {
-      atmosphereEnabled: false,
-      starsEnabled: false,
-      lighting: {
-        type: "virtual",
-        directShadowsEnabled: false
+/** Ocean base for 3D globe (Web Mercator tiles). */
+export function createNavigationBasemap() {
+  return createNavigationBasemapMercator();
+}
+
+export function createSatelliteBasemap() {
+  return Basemap.fromId("satellite");
+}
+
+export function basemapForKind(kind: BasemapKind, projection: ProjectionId) {
+  if (isCustomFlatBasemapProjection(projection)) return null;
+  return kind === "satellite" ? createSatelliteBasemap() : createNavigationBasemapMercator();
+}
+
+/** Plate Carrée keeps its base imagery in a layer, so the toggle swaps that instead. */
+export function applyBasemapKind(
+  map: Map,
+  kind: BasemapKind,
+  projection: ProjectionId
+) {
+  if (isEqualEarthProjection(projection)) {
+    const group = map.findLayerById(EQUAL_EARTH_BASEMAP_GROUP_ID) as
+      | GroupLayer
+      | undefined;
+    if (group && applyFlatBasemapKindToGroup(group, kind)) return;
+    if (group) map.remove(group);
+    map.add(createEqualEarthBasemapGroup(kind), 0);
+    return;
+  }
+  if (isPlateCarreeProjection(projection)) {
+    const group = map.findLayerById(PLATE_CARREE_BASEMAP_GROUP_ID) as
+      | GroupLayer
+      | undefined;
+    if (group && applyFlatBasemapKindToGroup(group, kind)) return;
+    if (group) map.remove(group);
+    map.add(createPlateCarreeBasemapGroup(kind), 0);
+    return;
+  }
+  map.basemap = basemapForKind(kind, projection);
+}
+
+const FLAT_HIGHLIGHT = {
+  color: [244, 139, 37, 1] as [number, number, number, number],
+  haloOpacity: 0.9,
+  fillOpacity: 0.2,
+};
+
+/** Shell / view background (3D globe, Plate Carrée, Equal Earth). */
+const OCEANOPS_VIEW_BACKGROUND = {
+  color: [11, 30, 66, 1] as [number, number, number, number],
+};
+
+/** Map uses full `#viewDiv` — no Esri inset padding. */
+const EDGE_TO_EDGE_VIEW_PADDING = { left: 0, top: 0, right: 0, bottom: 0 };
+
+export function createFlatMapView(
+  container: HTMLDivElement | string,
+  map: Map,
+  projection: ProjectionId
+): MapView {
+  if (is3dProjection(projection)) {
+    throw new Error("createFlatMapView requires a flat projection");
+  }
+
+  if (isPlateCarreeProjection(projection)) {
+    // The extent (not center/zoom) drives the initial camera so the full 360x180 world
+    // is framed from the first paint, poles included, whatever the container size.
+    return new MapView({
+      container,
+      map,
+      spatialReference: SpatialReference.WGS84,
+      extent: PLATE_CARREE_WORLD_EXTENT.clone(),
+      background: OCEANOPS_VIEW_BACKGROUND,
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
+      constraints: {
+        geometry: PLATE_CARREE_WORLD_EXTENT.clone(),
+        rotationEnabled: false,
+        snapToZoom: false,
       },
-      background: { type: "color", color: [11, 30, 66, 1] }
+      highlightOptions: FLAT_HIGHLIGHT,
+    });
+  }
+
+  if (isEqualEarthProjection(projection)) {
+    return new MapView({
+      container,
+      map,
+      spatialReference: EQUAL_EARTH_SPATIAL_REFERENCE,
+      extent: EQUAL_EARTH_WORLD_EXTENT.clone(),
+      background: OCEANOPS_VIEW_BACKGROUND,
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
+      constraints: {
+        geometry: EQUAL_EARTH_WORLD_EXTENT.clone(),
+        rotationEnabled: false,
+        snapToZoom: false,
+      },
+      highlightOptions: FLAT_HIGHLIGHT,
+    });
+  }
+
+  throw new Error(`Unsupported flat projection: ${projection}`);
+}
+
+export async function stripBasemapLabels(map: Map) {
+  if (!map.basemap) return;
+  map.basemap.referenceLayers.removeAll();
+  const baseLayers = map.basemap.baseLayers;
+  const loadPromises = baseLayers.map((layer: __esri.Layer) => layer.load?.() ?? Promise.resolve());
+  await Promise.all(loadPromises);
+
+  const layersToRemove: __esri.Layer[] = [];
+  baseLayers.forEach((layer: __esri.Layer) => {
+    const title = (layer.title || "").toLowerCase();
+    const id = (layer.id || "").toLowerCase();
+    const url = ("url" in layer ? String(layer.url) : "").toLowerCase();
+    if (
+      /label|reference|place|text/.test(title) ||
+      /label|reference|place|text/.test(id) ||
+      /label|reference|place|text/.test(url)
+    ) {
+      layersToRemove.push(layer);
+    }
+  });
+  layersToRemove.forEach((layer) => baseLayers.remove(layer));
+}
+
+export function createGlobeView(
+  projection: ProjectionId,
+  basemapKind: BasemapKind,
+  container: HTMLDivElement | string
+): { map: Map; view: GlobeView } {
+  const map = new Map({
+    basemap: basemapForKind(basemapKind, projection) ?? undefined,
+  });
+  if (isPlateCarreeProjection(projection)) {
+    map.add(createPlateCarreeBasemapGroup(basemapKind), 0);
+  } else if (isEqualEarthProjection(projection)) {
+    map.add(createEqualEarthBasemapGroup(basemapKind), 0);
+  }
+
+  if (is3dProjection(projection)) {
+    const view = new SceneView({
+      container,
+      map,
+      camera: {
+        position: { longitude: 0, latitude: 0, z: GLOBE_INITIAL_CAMERA_Z },
+        tilt: 0,
+      },
+      padding: EDGE_TO_EDGE_VIEW_PADDING,
+      qualityProfile: "low",
+      environment: {
+        atmosphereEnabled: false,
+        starsEnabled: false,
+        lighting: {
+          type: "virtual",
+          directShadowsEnabled: false,
+        },
+        background: { type: "color", color: OCEANOPS_VIEW_BACKGROUND.color },
+      },
+      highlightOptions: {
+        color: [244, 139, 37, 1],
+        haloOpacity: 0.9,
+        fillOpacity: 0.2,
+      },
+    });
+    view.popupEnabled = false;
+    return { map, view };
+  }
+
+  const view = createFlatMapView(container, map, projection);
+  view.popupEnabled = false;
+  return { map, view };
+}
+
+const GLOBE_DOUBLE_CLICK_ZOOM_OUT_STEP = 1;
+
+function zoomOutGlobeAtPoint(sceneView: SceneView, mapPoint: __esri.Point): void {
+  void sceneView.goTo(
+    {
+      target: mapPoint,
+      zoom: sceneView.zoom - GLOBE_DOUBLE_CLICK_ZOOM_OUT_STEP,
     },
-    highlightOptions: {
-      color: [244, 139, 37, 1], // #f48b25 in RGBA
-      haloOpacity: 0.9,
-      fillOpacity: 0.2
-    }
-  });
+    { animate: true, duration: 600 }
+  );
+}
 
-  await view.when();
+const POPUP_SHADOW_SCROLLBAR_STYLE_ID = "o-popup-scrollbar-styles";
 
-  // Remove labels and boundaries from basemap after it loads
-  if (map.basemap) {
-    // Remove all reference layers (labels, place names, boundaries)
-    map.basemap.referenceLayers.removeAll();
+/** Scrollbar styling for Calcite panel content inside Esri popup shadow DOM. */
+const POPUP_SHADOW_SCROLLBAR_CSS = `
+.content-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #f48b25 rgba(255, 255, 255, 0.12);
+}
+.content-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.content-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+.content-wrapper::-webkit-scrollbar-thumb {
+  background: #f48b25;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #f6a555;
+}
+`;
 
-    // Wait for base layers to load, then filter out label layers
-    const baseLayers = map.basemap.baseLayers;
-    const removeLabels = async () => {
-      // Wait for all layers to load
-      const loadPromises = baseLayers.map((layer: any) => layer.load?.() || Promise.resolve());
-      await Promise.all(loadPromises);
+function injectPopupShadowScrollbarStyles(shadowRoot: ShadowRoot): void {
+  if (!shadowRoot.querySelector(".content-wrapper")) return;
+  if (shadowRoot.getElementById(POPUP_SHADOW_SCROLLBAR_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = POPUP_SHADOW_SCROLLBAR_STYLE_ID;
+  style.textContent = POPUP_SHADOW_SCROLLBAR_CSS;
+  shadowRoot.appendChild(style);
+}
 
-      const layersToRemove: any[] = [];
-      baseLayers.forEach((layer: any) => {
-        // Remove layers that contain "label", "reference", "place", or "text" in their title/id/url
-        const title = (layer.title || "").toLowerCase();
-        const id = (layer.id || "").toLowerCase();
-        const url = (layer.url || "").toLowerCase();
-        if (title.includes("label") || title.includes("reference") || title.includes("place") || title.includes("text") ||
-            id.includes("label") || id.includes("reference") || id.includes("place") || id.includes("text") ||
-            url.includes("label") || url.includes("reference") || url.includes("place") || url.includes("text")) {
-          layersToRemove.push(layer);
-        }
-      });
-      layersToRemove.forEach(layer => baseLayers.remove(layer));
-    };
-    removeLabels();
+function traverseShadowTree(node: Node, visitElement: (el: Element) => void): void {
+  if (node instanceof Element) {
+    visitElement(node);
+    node.shadowRoot?.childNodes.forEach((child) => traverseShadowTree(child, visitElement));
   }
+  node.childNodes.forEach((child) => traverseShadowTree(child, visitElement));
+}
 
-  // Disable mouse wheel zoom using new API
-  view.navigation.actionMap.mouseWheel = "none";
-
-  // Add basemap selector FIRST so it appears at the top
-  const basemapToggle = document.createElement("button");
-  basemapToggle.className = "o-basemap-toggle";
-  basemapToggle.title = "Change basemap";
-  basemapToggle.setAttribute("aria-label", "Change basemap");
-
-  let currentBasemap: "map" | "satellite" = "map";
-
-  const updateToggleContent = () => {
-    if (currentBasemap === "map") {
-      // Show satellite preview
-      basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('${BASE}img/satelite.jpeg');"></div>
-        <span>Satellite layer</span>
-      `;
-    } else {
-      // Show map preview
-      basemapToggle.innerHTML = `
-        <div class="o-basemap-preview" style="background-image: url('${BASE}img/map.jpeg');"></div>
-        <span>Map layer</span>
-      `;
-    }
-  };
-
-  updateToggleContent();
-
-  basemapToggle.addEventListener("click", async () => {
-    currentBasemap = currentBasemap === "map" ? "satellite" : "map";
-    updateToggleContent();
-
-    if (currentBasemap === "satellite") {
-      map.basemap = satelliteBasemap;
-    } else {
-      map.basemap = navigationBasemap;
-    }
+function patchPopupCalciteScrollbars(popupRoot: Element): void {
+  traverseShadowTree(popupRoot, (el) => {
+    const shadow = (el as HTMLElement).shadowRoot;
+    if (shadow) injectPopupShadowScrollbarStyles(shadow);
   });
+}
 
-  view.ui.add(basemapToggle, { position: "top-left", index: 4 });
+/** Stack inspect is one screen — drop Esri/C ALCITE max-height so nav + fields stay visible. */
+function patchStackPopupAutoHeight(popupRoot: Element): void {
+  if (!popupRoot.querySelector(".o-map-popup--stack-paged")) return;
 
-  // Remove navigation toggle
-  view.ui.remove("navigation-toggle");
-
-  // NOTE: zoom and compass will be moved to specific positions after legend is added
-  // This happens in attachLegend function
-
-  // Auto-rotate globe until user interacts
-  let isRotating = true;
-  let rotationFrame: number;
-  let onRotationStateChange: (() => void) | null = null;
-
-  const rotate = () => {
-    if (!isRotating) return;
-
-    const camera = view.camera.clone();
-    if (camera.position.longitude !== null && camera.position.longitude !== undefined) {
-      camera.position.longitude += 0.1; // Rotation speed
-      view.goTo(camera, { animate: false }).catch(() => {});
-    }
-    rotationFrame = requestAnimationFrame(rotate);
+  const unlock = (el: HTMLElement) => {
+    el.style.maxHeight = "none";
+    el.style.overflow = "visible";
   };
 
-  const stopRotation = () => {
-    if (isRotating) {
-      isRotating = false;
-      if (rotationFrame) cancelAnimationFrame(rotationFrame);
-      if (onRotationStateChange) onRotationStateChange();
+  popupRoot.querySelectorAll(".esri-popup__content").forEach((el) => unlock(el as HTMLElement));
+  popupRoot
+    .querySelectorAll(".esri-features__content-container, .esri-feature-content")
+    .forEach((el) => unlock(el as HTMLElement));
+
+  traverseShadowTree(popupRoot, (el) => {
+    const htmlEl = el as HTMLElement;
+    if (
+      htmlEl.classList.contains("esri-popup__content") ||
+      htmlEl.classList.contains("esri-features__content-container")
+    ) {
+      unlock(htmlEl);
     }
-  };
-
-  const startRotation = () => {
-    if (!isRotating) {
-      isRotating = true;
-      rotate();
-      if (onRotationStateChange) onRotationStateChange();
-    }
-  };
-
-  const toggleRotation = () => {
-    if (isRotating) {
-      stopRotation();
-    } else {
-      startRotation();
-    }
-    return isRotating;
-  };
-
-  const setRotationStateChangeCallback = (callback: () => void) => {
-    onRotationStateChange = callback;
-  };
-
-  // Stop rotation on user interaction
-  view.on("drag", stopRotation);
-  view.on("key-down", stopRotation);
-  view.on("double-click", stopRotation);
-
-  // Cursor management: grab for map, pointer for features
-  let isDragging = false;
-
-  // Set initial cursor
-  if (view.container) {
-    view.container.style.cursor = "grab";
-  }
-
-  // Change to grabbing cursor while dragging
-  view.on("drag", (event) => {
-    if (event.action === "start") {
-      isDragging = true;
-      if (view.container) view.container.style.cursor = "grabbing";
-    } else if (event.action === "end") {
-      isDragging = false;
-      if (view.container) view.container.style.cursor = "grab";
-    }
+    const wrapper = htmlEl.shadowRoot?.querySelector(".content-wrapper") as HTMLElement | null;
+    if (wrapper) unlock(wrapper);
   });
+}
 
-  // Change cursor to pointer when hovering over features
-  view.on("pointer-move", async (event) => {
-    if (isDragging || !view.container) return;
+function patchOpenPopup(popupRoot: Element | null): void {
+  if (!popupRoot) return;
+  patchPopupCalciteScrollbars(popupRoot);
+  patchStackPopupAutoHeight(popupRoot);
+}
 
-    try {
-      const response = await view.hitTest(event);
-      if (response.results.length > 0) {
-        view.container.style.cursor = "pointer";
-      } else {
-        view.container.style.cursor = "grab";
-      }
-    } catch {
-      // Ignore hitTest errors
-    }
+function featureUsesColocatedPaginatedPopup(
+  feature: __esri.Graphic,
+  stackLayer: GeoJSONLayer | undefined
+): boolean {
+  if (stackLayer && feature.layer === stackLayer) return true;
+  const raw = feature.attributes?.[STACK_MEMBERS_JSON_FIELD];
+  return typeof raw === "string" && raw.trim().length > 0;
+}
+
+function popupFeaturesUseColocatedPager(
+  features: __esri.Graphic[],
+  stackLayer: GeoJSONLayer | undefined
+): boolean {
+  return features.some((feature) =>
+    featureUsesColocatedPaginatedPopup(feature, stackLayer)
+  );
+}
+
+/** Esri “1 of N” for overlaps; stack locations use in-popup Prev/Next only. */
+function allPopupFeaturesColocatedInspect(
+  features: __esri.Graphic[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): boolean {
+  if (features.length < 2) return false;
+  return features.every((feature) => {
+    const layer = feature.layer as __esri.Layer | undefined;
+    if (!layer) return false;
+    return isColocatedPopupLayer(resolveLayerId(layer));
   });
+}
 
-  // Start rotation
-  rotate();
-
-  return {
-    map,
-    view,
-    toggleRotation,
-    isRotating: () => isRotating,
-    setRotationStateChangeCallback,
-    stopRotation
+export function syncPopupFeatureNavigation(
+  view: GlobeView,
+  getStackLayer: () => GeoJSONLayer | undefined,
+  resolveLayerId?: (layer: __esri.Layer) => string | undefined
+): void {
+  if (!view.popup) return;
+  const features = view.popup.viewModel?.features ?? [];
+  const useCustomPager =
+    popupFeaturesUseColocatedPager(features, getStackLayer()) ||
+    (resolveLayerId != null &&
+      allPopupFeaturesColocatedInspect(features, resolveLayerId));
+  view.popup.visibleElements = {
+    ...view.popup.visibleElements,
+    featureNavigation: !useCustomPager && features.length > 1,
   };
 }
+
+/**
+ * One popup model for co-located moorings: stack graphic + paginated content.
+ * Other layer overlaps still use Esri feature navigation when needed.
+ */
+function hitsFromHitTest(response: __esri.HitTestResult): ColocatedGraphicHit[] {
+  const hits: ColocatedGraphicHit[] = [];
+  for (const result of response.results) {
+    if (result.type !== "graphic") continue;
+    const graphicHit = result as __esri.GraphicHit;
+    hits.push({
+      graphic: graphicHit.graphic,
+      layer: (graphicHit.layer ?? graphicHit.graphic.layer) as
+        | __esri.Layer
+        | null
+        | undefined,
+    });
+  }
+  return hits;
+}
+
+function isColocatedInspectHit(
+  hit: ColocatedGraphicHit,
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): boolean {
+  const layer = (hit.layer ?? hit.graphic.layer) as __esri.Layer | undefined;
+  if (!layer) return false;
+  return isColocatedPopupLayer(resolveLayerId(layer));
+}
+
+function colocatedInspectHits(
+  hits: ColocatedGraphicHit[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): ColocatedGraphicHit[] {
+  return hits.filter((hit) => isColocatedInspectHit(hit, resolveLayerId));
+}
+
+function syntheticGraphicFromColocatedHits(
+  hits: ColocatedGraphicHit[],
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): __esri.Graphic | null {
+  const members = colocatedMembersFromHits(hits, resolveLayerId);
+  if (members.length < 2) return null;
+  const geometry = hits[0]?.graphic.geometry;
+  if (!geometry) return null;
+  return new Graphic({
+    geometry,
+    attributes: buildSyntheticColocatedAttributes(
+      members,
+      hits.map((hit) => hit.graphic)
+    ),
+    popupTemplate: colocatedPlatformsPopupTemplate(),
+  });
+}
+
+function colocatedPopupFeaturesFromHits(
+  hits: ColocatedGraphicHit[],
+  getStackLayer: () => GeoJSONLayer | undefined,
+  resolveLayerId: (layer: __esri.Layer) => string | undefined
+): __esri.Graphic[] {
+  const stackLayer = getStackLayer();
+  const stackHit = hits.find(
+    (hit) => stackLayer && (hit.layer ?? hit.graphic.layer) === stackLayer
+  );
+  if (stackHit) return [stackHit.graphic];
+
+  const inspectable = colocatedInspectHits(hits, resolveLayerId);
+  if (inspectable.length >= 2) {
+    const synthetic = syntheticGraphicFromColocatedHits(inspectable, resolveLayerId);
+    if (synthetic) return [synthetic];
+  }
+
+  return hits.map((hit) => hit.graphic);
+}
+
+export type MapPopupWireOptions = {
+  getStackLayer: () => GeoJSONLayer | undefined;
+  resolveLayerId: (layer: __esri.Layer) => string | undefined;
+};
+
+export function wireUnifiedPopups(view: GlobeView, options: MapPopupWireOptions): void {
+  if (!view.popup) return;
+
+  view.popupEnabled = false;
+
+  reactiveUtils.watch(
+    () => view.popup?.visible,
+    (visible) => {
+      if (visible) {
+        syncPopupFeatureNavigation(
+          view,
+          options.getStackLayer,
+          options.resolveLayerId
+        );
+      }
+    }
+  );
+
+  const openColocatedPopup = async (
+    hits: ColocatedGraphicHit[],
+    location: __esri.Point | nullish
+  ) => {
+    if (hits.length === 0) {
+      view.closePopup();
+      return;
+    }
+
+    const features = colocatedPopupFeaturesFromHits(
+      hits,
+      options.getStackLayer,
+      options.resolveLayerId
+    );
+
+    await view.openPopup({
+      features,
+      location: location ?? undefined,
+    });
+    syncPopupFeatureNavigation(
+      view,
+      options.getStackLayer,
+      options.resolveLayerId
+    );
+  };
+
+  view.on("click", async (event) => {
+    if (event.button != null && event.button !== 0) return;
+    const response = await view.hitTest(event);
+    await openColocatedPopup(hitsFromHitTest(response), event.mapPoint);
+  });
+
+  reactiveUtils.watch(
+    () => view.popup?.viewModel?.features?.length ?? 0,
+    (featureCount) => {
+      if (!featureCount || featureCount < 2 || !view.popup?.visible) return;
+      const popupFeatures = view.popup.viewModel?.features ?? [];
+      const hits: ColocatedGraphicHit[] = popupFeatures.map((graphic) => ({
+        graphic,
+        layer: graphic.layer as __esri.Layer | null | undefined,
+      }));
+      const merged = colocatedPopupFeaturesFromHits(
+        hits,
+        options.getStackLayer,
+        options.resolveLayerId
+      );
+      if (merged.length === 1 && merged.length < popupFeatures.length) {
+        void view.openPopup({
+          features: merged,
+          location: view.popup.location ?? undefined,
+        });
+      }
+      syncPopupFeatureNavigation(
+        view,
+        options.getStackLayer,
+        options.resolveLayerId
+      );
+    }
+  );
+}
+
+export function applyPopupDefaults(
+  view: GlobeView,
+  popupWire?: MapPopupWireOptions
+): void {
+  if (!view.popup) return;
+  bindStackPopupView(view);
+  view.popup.visibleElements = {
+    closeButton: true,
+    collapseButton: true,
+    featureNavigation: true,
+    heading: true,
+    spinner: true,
+    actionBar: true,
+  };
+
+  if (popupWire) {
+    wireUnifiedPopups(view, popupWire);
+  }
+  let patchScheduled = false;
+  const schedulePopupScrollbarPatch = () => {
+    if (patchScheduled) return;
+    patchScheduled = true;
+    requestAnimationFrame(() => {
+      patchScheduled = false;
+      const popupEl = view.container?.querySelector(".esri-popup");
+      if (popupEl) patchPopupCalciteScrollbars(popupEl);
+      patchOpenPopup(popupEl ?? null);
+    });
+  };
+
+  if (view.container) {
+    view.container.addEventListener("o-stack-popup-layout", () => {
+      const popupEl = view.container?.querySelector(".esri-popup");
+      patchStackPopupAutoHeight(popupEl ?? view.container!);
+    });
+  }
+  reactiveUtils.watch(
+    () => view.popup?.visible,
+    (visible) => {
+      if (visible) schedulePopupScrollbarPatch();
+    }
+  );
+
+  if (view.container) {
+    const observer = new MutationObserver(() => {
+      if (view.popup?.visible) schedulePopupScrollbarPatch();
+    });
+    observer.observe(view.container, { childList: true, subtree: true });
+  }
+}
+
+let mapMouseWheelZoomEnabled = false;
+
+function isMapEmbeddedInParentPage(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function applyMouseWheelZoomNavigation(view: GlobeView, enabled: boolean): void {
+  view.navigation.actionMap.mouseWheel = enabled ? "zoom" : "none";
+  view.navigation.mouseWheelZoomEnabled = enabled;
+}
+
+/** Embedded report-card iframe: one-finger drag scrolls the page; use two fingers on the map. */
+function applyEmbeddedTouchNavigation(view: GlobeView): void {
+  if (!isMapEmbeddedInParentPage()) return;
+  view.navigation.browserTouchPanEnabled = false;
+}
+
+export function isMapMouseWheelZoomEnabled(): boolean {
+  return mapMouseWheelZoomEnabled;
+}
+
+export function setMapMouseWheelZoomEnabled(
+  view: GlobeView,
+  enabled: boolean
+): void {
+  mapMouseWheelZoomEnabled = enabled;
+  applyMouseWheelZoomNavigation(view, enabled);
+}
+
+export function applyViewNavigationDefaults(view: GlobeView) {
+  applyMouseWheelZoomNavigation(view, mapMouseWheelZoomEnabled);
+  applyEmbeddedTouchNavigation(view);
+  if ("ui" in view) {
+    view.ui.remove("navigation-toggle");
+  }
+
+  view.on("double-click", (event) => {
+    if (event.button !== 2) return;
+    event.stopPropagation();
+
+    if (view.type === "2d") {
+      const mapView = view as MapView;
+      const minScale = mapView.constraints.minScale;
+      const zoomOutScale = mapView.scale * 2;
+      void mapView.goTo(
+        {
+          center: event.mapPoint,
+          scale:
+            minScale != null
+              ? Math.min(zoomOutScale, minScale)
+              : zoomOutScale,
+        },
+        { animate: true, duration: 250 }
+      );
+      return;
+    }
+
+    zoomOutGlobeAtPoint(view as SceneView, event.mapPoint);
+  });
+}
+
+
+export {
+  mountBasemapProjectionControl,
+  mountBasemapControlOnView,
+  type MapChromeOptions,
+} from "./mapDisplayMenu";
+

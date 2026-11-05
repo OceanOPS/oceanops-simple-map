@@ -1,0 +1,18 @@
+.o-map-projection-steps {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.o-map-projection-steps__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(248, 248, 248, 0.35);
+}
+
+.o-map-projection-steps__dot.is-active {
+  background: #f48b25;
+  transform: scale(1.15);
+}
