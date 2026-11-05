@@ -44,6 +44,6 @@ export function createEqualEarthBasemapGroup(kind: FlatBasemapKind) {
     id: EQUAL_EARTH_BASEMAP_GROUP_ID,
     listMode: "hide",
   });
-  addDualMapImageBasemaps(group, kind);
+  addDualMapImageBasemaps(group, kind, "equal-earth");
   return group;
 }

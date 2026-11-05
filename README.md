@@ -71,6 +71,19 @@ npm run densify:geojson -- public/geojson/goship_undensified.geojson public/geoj
 # or: node densify.js public/geojson/goship_undensified.geojson public/geojson/goship.geojson
 ```
 
+## Flat basemap tiles (Plate Carrée / Equal Earth)
+
+Production flat projections read pre-rendered tiles from **[oceanops-basemap-tiles](../oceanops-basemap-tiles)** (Docker/nginx). Closer zoom still uses Esri MapServer export.
+
+```bash
+# In oceanops-basemap-tiles: build pyramid + run service (see that README)
+VITE_FLAT_BASEMAP_TILES_URL=http://localhost:8081/tiles npm run dev   # simple-map/.env.local
+```
+
+**Netlify / CI:** set `VITE_FLAT_BASEMAP_TILES_URL=https://basemap-tiles.<domain>/tiles` on the **simple-map** site. Production builds fail if it is missing when `CI` or `NETLIFY` is set. Dev fallback: unset or `off` → MapServer export only.
+
+Copy `.env.example` → `.env.local` for local URLs.
+
 ## Netlify (deploy previews + production)
 
 This repo includes `netlify.toml` (`npm run build`, publish `dist`, Node 20). The app is served at **`/demos/simple-arcgis-map/`** (same path as [production](https://www.ocean-ops.org/demos/simple-arcgis-map/)) via path rewrites.
@@ -79,8 +92,9 @@ This repo includes `netlify.toml` (`npm run build`, publish `dist`, Node 20). Th
 
 1. **Add new site** → **Import from Git** → `OceanOPS/oceanops-simple-map`.
 2. Confirm build settings (Netlify reads `netlify.toml` automatically).
-3. **Deploy** production from your main branch (e.g. `main` or `staging`).
-4. **Site configuration → Build & deploy → Deploy contexts** → enable **Deploy Previews** for pull requests (same as report card).
+3. **Environment variables:** `VITE_FLAT_BASEMAP_TILES_URL` → your basemap-tiles HTTPS URL (ends with `/tiles`).
+4. **Deploy** production from your main branch (e.g. `main` or `staging`).
+5. **Site configuration → Build & deploy → Deploy contexts** → enable **Deploy Previews** for pull requests (same as report card).
 
 After deploy, open:
 

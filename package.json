@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && node scripts/assert-flat-basemap-url.mjs && vite build",
     "preview": "vite preview",
     "export:geojson": "npm run export:geojson --prefix ../oceanops-data-exports",
     "export:geojson:dry-run": "npm run export:geojson:dry-run --prefix ../oceanops-data-exports",

@@ -11,6 +11,12 @@ import GroupLayer from "@arcgis/core/layers/GroupLayer.js";
 import MapImageLayer from "@arcgis/core/layers/MapImageLayer.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference.js";
 import TileLayer from "@arcgis/core/layers/TileLayer.js";
+import {
+  createFlatTileLayer,
+  getFlatTileHandoffScale,
+  isFlatBasemapTilesEnabled,
+  type FlatTileProjection,
+} from "./flatBasemapTiles";
 import { PACIFIC_CENTRAL_MERIDIAN } from "./projections";
 
 export const OCEAN_MAP_SERVER =
@@ -52,22 +58,55 @@ export const PLATE_CARREE_BASEMAP_GROUP_ID = "basemap-group";
 
 export const FLAT_BASEMAP_MAP_LAYER_ID = "flat-basemap-map";
 export const FLAT_BASEMAP_SATELLITE_LAYER_ID = "flat-basemap-satellite";
+/** MapServer export layers that take over below the finest pre-rendered tile level. */
+export const FLAT_BASEMAP_DETAIL_MAP_LAYER_ID = "flat-basemap-detail-map";
+export const FLAT_BASEMAP_DETAIL_SATELLITE_LAYER_ID = "flat-basemap-detail-satellite";
 
 export type FlatBasemapKind = "map" | "satellite";
 
+/**
+ * Ocean + satellite basemaps for a flat projection.
+ *
+ * With `VITE_FLAT_BASEMAP_TILES_URL` set: tiles from the basemap-tiles service for overview
+ * levels, plus MapServer export below the handoff scale. With tiles off or unset: MapServer
+ * export at every scale (dev fallback).
+ */
 export function addDualMapImageBasemaps(
   group: GroupLayer,
-  activeKind: FlatBasemapKind
+  activeKind: FlatBasemapKind,
+  projection: FlatTileProjection
 ): void {
-  const mapLayer = createFlatMapImageLayer(OCEAN_MAP_SERVER);
-  mapLayer.id = FLAT_BASEMAP_MAP_LAYER_ID;
-  mapLayer.visible = activeKind === "map";
+  const mapExport = createFlatMapImageLayer(OCEAN_MAP_SERVER);
+  const satelliteExport = createFlatMapImageLayer(SATELLITE_MAP_SERVER);
 
-  const satelliteLayer = createFlatMapImageLayer(SATELLITE_MAP_SERVER);
-  satelliteLayer.id = FLAT_BASEMAP_SATELLITE_LAYER_ID;
-  satelliteLayer.visible = activeKind === "satellite";
+  if (!isFlatBasemapTilesEnabled()) {
+    mapExport.id = FLAT_BASEMAP_MAP_LAYER_ID;
+    satelliteExport.id = FLAT_BASEMAP_SATELLITE_LAYER_ID;
+    mapExport.visible = activeKind === "map";
+    satelliteExport.visible = activeKind === "satellite";
+    group.addMany([mapExport, satelliteExport]);
+    return;
+  }
 
-  group.addMany([mapLayer, satelliteLayer]);
+  const mapTiles = createFlatTileLayer(projection, "map", FLAT_BASEMAP_MAP_LAYER_ID);
+  const satelliteTiles = createFlatTileLayer(
+    projection,
+    "satellite",
+    FLAT_BASEMAP_SATELLITE_LAYER_ID
+  );
+
+  const handoffScale = getFlatTileHandoffScale(projection);
+  mapExport.id = FLAT_BASEMAP_DETAIL_MAP_LAYER_ID;
+  satelliteExport.id = FLAT_BASEMAP_DETAIL_SATELLITE_LAYER_ID;
+  mapExport.minScale = handoffScale;
+  satelliteExport.minScale = handoffScale;
+
+  mapTiles.visible = activeKind === "map";
+  mapExport.visible = activeKind === "map";
+  satelliteTiles.visible = activeKind === "satellite";
+  satelliteExport.visible = activeKind === "satellite";
+
+  group.addMany([mapTiles, satelliteTiles, mapExport, satelliteExport]);
 }
 
 /** Toggle visibility instead of remove/add (avoids MapServer loader + UI churn). */
@@ -80,6 +119,11 @@ export function applyFlatBasemapKindToGroup(
   if (!mapLayer || !satelliteLayer) return false;
   mapLayer.visible = kind === "map";
   satelliteLayer.visible = kind === "satellite";
+
+  const detailMap = group.findLayerById(FLAT_BASEMAP_DETAIL_MAP_LAYER_ID);
+  const detailSatellite = group.findLayerById(FLAT_BASEMAP_DETAIL_SATELLITE_LAYER_ID);
+  if (detailMap) detailMap.visible = kind === "map";
+  if (detailSatellite) detailSatellite.visible = kind === "satellite";
   return true;
 }
 
@@ -92,6 +136,6 @@ export function createPlateCarreeBasemapGroup(kind: FlatBasemapKind) {
     id: PLATE_CARREE_BASEMAP_GROUP_ID,
     listMode: "hide",
   });
-  addDualMapImageBasemaps(group, kind);
+  addDualMapImageBasemaps(group, kind, "plate-carree");
   return group;
 }
