@@ -799,6 +799,8 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 }
 
 @media (max-width: 639px) {
+  .o-map-display-section--scroll-wheel,
+  .o-map-display-divider--scroll-wheel,
   .o-map-display-section--fullscreen,
   .o-map-display-divider--fullscreen {
     display: none;

@@ -82,7 +82,7 @@ export function mountBasemapProjectionControl(
   projectionSection.append(projectionPreviewBtn, projectionSteps, projectionHint);
 
   const divider2 = document.createElement("div");
-  divider2.className = "o-map-display-divider";
+  divider2.className = "o-map-display-divider o-map-display-divider--scroll-wheel";
   divider2.setAttribute("aria-hidden", "true");
 
   const scrollWheelSection = document.createElement("div");
