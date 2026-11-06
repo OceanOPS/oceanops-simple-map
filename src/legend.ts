@@ -340,7 +340,9 @@ export function attachLegend(
   toggleButton.innerHTML = `
     <span class="o-legend-toggle__inner">
       <span class="o-legend-toggle__icon">${menuToggleIconClosed}</span>
-      <span class="o-legend-toggle__label">Networks and Member States</span>
+      <span class="o-legend-toggle__label">
+        <span class="o-legend-toggle__label-line o-legend-toggle__label-line--title">Map legend</span>
+      </span>
     </span>
     <span class="o-legend-toggle__hint o-map-toolbar-hint">${MENU_TOGGLE_HINT.closed}</span>
   `;
