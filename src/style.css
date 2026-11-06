@@ -330,19 +330,106 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle {
   position: relative;
-  width: 46px;
-  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  width: auto;
+  height: auto;
   background-color: #0b1e42;
-  border: 1px solid #e0e0e0;
-  border-radius: 50%;
+  border: 2px solid #f48b25;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Do not transition box-shadow — it blocks @keyframes pulse (issue: nudge not visible). */
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    border-radius 0.2s ease,
+    padding 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease,
+    min-width 0.2s ease,
+    min-height 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   margin-bottom: 0;
+  padding: 8px 10px;
+}
+
+.o-legend-toggle.is-open {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
   padding: 0;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.o-legend-toggle__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.o-legend-toggle.is-open .o-legend-toggle__inner {
+  gap: 0;
+}
+
+.o-legend-toggle__label {
+  display: block;
+  max-width: 104px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #f8f8f8;
+  text-align: center;
+  user-select: none;
+}
+
+.o-legend-toggle.is-open .o-legend-toggle__label {
+  display: none;
+}
+
+/* Pulse ring on a pseudo-element so it is not smoothed away by transition: all on the button. */
+.o-legend-toggle--pulse:not(.is-open)::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 2px solid rgba(244, 139, 37, 0.85);
+  pointer-events: none;
+  animation: o-legend-toggle-ring-pulse 2s ease-in-out 3;
+}
+
+.o-legend-toggle.is-open::after {
+  display: none;
+}
+
+@keyframes o-legend-toggle-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .o-legend-toggle--pulse:not(.is-open)::after {
+    animation: none;
+    opacity: 0.5;
+  }
 }
 
 .o-legend-toggle__icon {
@@ -350,6 +437,7 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   align-items: center;
   justify-content: center;
   line-height: 0;
+  flex-shrink: 0;
 }
 
 .o-map-control-with-hint {
@@ -417,23 +505,31 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle:focus-visible {
   outline: none;
-}
-
-.o-legend-toggle.is-open {
-  background-color: #0b1e42;
-  border-color: #e0e0e0;
+  outline: 2px solid #f48b25;
+  outline-offset: 2px;
 }
 
 /* Reduce size on short screens */
 @media (max-height: 700px) {
-  .o-legend-toggle {
-    width: 40px;
-    height: 40px;
+  .o-legend-toggle:not(.is-open) {
+    padding: 6px 8px;
+  }
+
+  .o-legend-toggle__label {
+    font-size: 7px;
+    max-width: 92px;
   }
 
   .o-legend-toggle__icon svg {
     width: 20px;
     height: 16px;
+  }
+
+  .o-legend-toggle.is-open {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 }
 
@@ -444,8 +540,7 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle:hover {
   background-color: #0b1e42;
-  opacity: 0.8;
-  box-shadow: none;
+  opacity: 0.92;
 }
 
 .o-legend-toggle:active {
@@ -2526,6 +2621,11 @@ body.o-country-modal-open {
 
 .esri-ui-top-right .esri-component, .esri-ui-top-left .esri-component {
     margin-bottom: 0px !important;
+}
+
+/* Legend pulse ring extends past the button — Esri wrappers clip overflow by default */
+.esri-ui-top-left .esri-component:has(#legend-toggle) {
+  overflow: visible !important;
 }
 
 /* Feature popups — match legend / OceanOPS navy + orange */
