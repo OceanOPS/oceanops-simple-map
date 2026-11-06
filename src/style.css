@@ -330,19 +330,144 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle {
   position: relative;
-  width: 46px;
-  height: 46px;
+  /* Fixed px sizes so open/close can interpolate (auto width + circle ↔ pill was janky). */
+  box-sizing: border-box;
+  width: 92px;
+  height: 80px;
+  min-width: 92px;
+  min-height: 80px;
   background-color: #0b1e42;
-  border: 1px solid #e0e0e0;
-  border-radius: 50%;
+  border: 2px solid #f48b25;
+  /* Same radius open & closed — only width/height morph */
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Do not transition box-shadow — it blocks @keyframes pulse (issue: nudge not visible). */
+  transition:
+    background-color 0.22s ease,
+    opacity 0.22s ease,
+    transform 0.18s ease,
+    border-color 0.22s ease,
+    border-width 0.22s ease,
+    padding 0.22s ease,
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    min-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   margin-bottom: 0;
+  padding: 7px 8px;
+}
+
+.o-legend-toggle.is-open {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
   padding: 0;
+  border-radius: 14px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.o-legend-toggle__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.o-legend-toggle.is-open .o-legend-toggle__inner {
+  gap: 0;
+}
+
+.o-legend-toggle__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  max-width: 112px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #f8f8f8;
+  text-align: center;
+  user-select: none;
+}
+
+.o-legend-toggle__label-line {
+  display: block;
+  line-height: 1.2;
+}
+
+/* Primary line — larger so “Map legend” reads at a glance */
+.o-legend-toggle__label-line--title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.o-legend-toggle.is-open .o-legend-toggle__label {
+  opacity: 0;
+  visibility: hidden;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease,
+    max-height 0.22s ease;
+}
+
+.o-legend-toggle:not(.is-open) .o-legend-toggle__label {
+  opacity: 1;
+  visibility: visible;
+  max-height: 80px;
+  transition:
+    opacity 0.18s ease 0.06s,
+    visibility 0s linear 0.06s,
+    max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1) 0.04s;
+}
+
+/* Pulse ring on a pseudo-element so it is not smoothed away by transition: all on the button. */
+.o-legend-toggle--pulse:not(.is-open)::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  border: 2px solid rgba(244, 139, 37, 0.85);
+  pointer-events: none;
+  animation: o-legend-toggle-ring-pulse 2s ease-in-out 3;
+}
+
+.o-legend-toggle.is-open::after {
+  display: none;
+}
+
+@keyframes o-legend-toggle-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .o-legend-toggle--pulse:not(.is-open)::after {
+    animation: none;
+    opacity: 0.5;
+  }
 }
 
 .o-legend-toggle__icon {
@@ -350,6 +475,7 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
   align-items: center;
   justify-content: center;
   line-height: 0;
+  flex-shrink: 0;
 }
 
 .o-map-control-with-hint {
@@ -417,23 +543,40 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle:focus-visible {
   outline: none;
-}
-
-.o-legend-toggle.is-open {
-  background-color: #0b1e42;
-  border-color: #e0e0e0;
+  outline: 2px solid #f48b25;
+  outline-offset: 2px;
 }
 
 /* Reduce size on short screens */
 @media (max-height: 700px) {
-  .o-legend-toggle {
-    width: 40px;
-    height: 40px;
+  .o-legend-toggle:not(.is-open) {
+    width: 84px;
+    height: 74px;
+    min-width: 84px;
+    min-height: 74px;
+    padding: 5px 6px;
+  }
+
+  .o-legend-toggle__label {
+    font-size: 6px;
+    max-width: 98px;
+    gap: 0;
+  }
+
+  .o-legend-toggle__label-line--title {
+    font-size: 9px;
   }
 
   .o-legend-toggle__icon svg {
     width: 20px;
     height: 16px;
+  }
+
+  .o-legend-toggle.is-open {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 }
 
@@ -444,8 +587,7 @@ body.flat-mapserver-basemap #viewDiv .esri-view-surface {
 
 .o-legend-toggle:hover {
   background-color: #0b1e42;
-  opacity: 0.8;
-  box-shadow: none;
+  opacity: 0.92;
 }
 
 .o-legend-toggle:active {
@@ -2526,6 +2668,11 @@ body.o-country-modal-open {
 
 .esri-ui-top-right .esri-component, .esri-ui-top-left .esri-component {
     margin-bottom: 0px !important;
+}
+
+/* Legend pulse ring extends past the button — Esri wrappers clip overflow by default */
+.esri-ui-top-left .esri-component:has(#legend-toggle) {
+  overflow: visible !important;
 }
 
 /* Feature popups — match legend / OceanOPS navy + orange */

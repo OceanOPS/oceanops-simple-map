@@ -71,9 +71,21 @@ import { appendCountryFlag, getCountryIsoCode } from "./countryFlags";
 const BASE = import.meta.env.BASE_URL;
 
 const MENU_TOGGLE_HINT = {
-  closed: "Map Legend and Contributing Countries",
-  open: "Hide map legend and contributing countries",
+  closed:
+    "Open the side panel: network layers, country filters, and per-network stats",
+  open: "Close side panel",
 } as const;
+
+const LEGEND_FIRST_OPEN_KEY = "oceanops-map-legend-opened-v1";
+
+function markLegendDiscovered(toggleButton: HTMLButtonElement): void {
+  try {
+    sessionStorage.setItem(LEGEND_FIRST_OPEN_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  toggleButton.classList.remove("o-legend-toggle--pulse");
+}
 
 const menuToggleIconClosed = `
   <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -108,6 +120,11 @@ function setMenuToggleState(button: HTMLButtonElement, isOpen: boolean) {
   const hint = button.querySelector(".o-legend-toggle__hint");
   if (hint) {
     hint.textContent = isOpen ? MENU_TOGGLE_HINT.open : MENU_TOGGLE_HINT.closed;
+  }
+
+  const label = button.querySelector(".o-legend-toggle__label");
+  if (label) {
+    label.setAttribute("aria-hidden", isOpen ? "true" : "false");
   }
 }
 
@@ -321,10 +338,23 @@ export function attachLegend(
   toggleButton.type = "button";
   toggleButton.className = "o-legend-toggle o-map-control-with-hint";
   toggleButton.innerHTML = `
-    <span class="o-legend-toggle__icon">${menuToggleIconClosed}</span>
+    <span class="o-legend-toggle__inner">
+      <span class="o-legend-toggle__icon">${menuToggleIconClosed}</span>
+      <span class="o-legend-toggle__label">
+        <span class="o-legend-toggle__label-line o-legend-toggle__label-line--title">Map legend</span>
+      </span>
+    </span>
     <span class="o-legend-toggle__hint o-map-toolbar-hint">${MENU_TOGGLE_HINT.closed}</span>
   `;
   setMenuToggleState(toggleButton, false);
+
+  try {
+    if (sessionStorage.getItem(LEGEND_FIRST_OPEN_KEY) !== "1") {
+      toggleButton.classList.add("o-legend-toggle--pulse");
+    }
+  } catch {
+    toggleButton.classList.add("o-legend-toggle--pulse");
+  }
 
   const searchButton = document.createElement("button");
   searchButton.id = "platform-search-toggle";
@@ -449,6 +479,7 @@ export function attachLegend(
       document.body.classList.remove("menu-open");
       setMenuToggleState(toggleButton, false);
     } else {
+      markLegendDiscovered(toggleButton);
       legend.classList.add("open");
       backdrop.classList.add("open");
       document.body.classList.add("menu-open");
@@ -1176,6 +1207,7 @@ export function attachLegend(
   syncRotationControlVisibility();
 
   if (options?.openPanel) {
+    markLegendDiscovered(toggleButton);
     legend.classList.add("open");
     backdrop.classList.add("open");
     document.body.classList.add("menu-open");
