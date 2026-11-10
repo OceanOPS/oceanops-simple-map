@@ -15,6 +15,7 @@
     "generate:mooring-stacks": "node scripts/generate-mooring-stack-sprites.mjs"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "canvas": "^3.2.3",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
